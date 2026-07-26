@@ -19,5 +19,18 @@
   --fog-2: #a8d4e0;
   --cream: #eafaff;
 
-  --shell: 392px;
+  /* Grows with the viewport instead of sitting fixed at phone width. */
+  --shell: min(392px, 100%);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --shell: 560px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --shell: 720px;
+  }
 }
