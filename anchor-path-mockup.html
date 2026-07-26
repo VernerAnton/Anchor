@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchor — Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a1f24;
+    --ink-2:#0f2a30;
+    --ink-3:#173d44;
+    --coral:#ff6b4a;
+    --lime:#c8ff4d;
+    --fog:#7fa0a4;
+    --fog-2:#b8d0d2;
+    --cream:#f3f7f4;
+    --track:#1c464e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:26px 16px 60px;
+    background-image:radial-gradient(circle at 15% 4%,#123138 0%,transparent 40%),radial-gradient(circle at 90% 96%,#123138 0%,transparent 40%);
+  }
+  .phone{width:100%;max-width:390px}
+
+  .top{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:20px;
+  }
+  .wordmark{font-family:'Fraunces',serif;font-weight:600;font-size:24px;letter-spacing:-.5px}
+  .wordmark .dot{color:var(--coral)}
+  .now{
+    font-family:'Space Mono',monospace;font-size:12px;letter-spacing:1px;
+    color:var(--fog);text-align:right;
+  }
+  .now b{color:var(--coral);font-weight:700}
+
+  .heading{
+    font-family:'Fraunces',serif;font-weight:400;font-size:27px;
+    line-height:1.15;letter-spacing:-.5px;margin-bottom:5px;
+  }
+  .heading b{font-weight:600}
+  .sub{color:var(--fog);font-size:13.5px;margin-bottom:26px}
+  .sub .live{color:var(--lime)}
+
+  /* ── THE PATH ── */
+  .path{position:relative;padding-left:8px}
+
+  .node{
+    position:relative;
+    padding-left:52px;
+    padding-bottom:6px;
+  }
+  /* the continuous trail behind every node */
+  .node::before{
+    content:"";
+    position:absolute;
+    left:19px;top:0;bottom:0;
+    width:3px;
+    background:var(--track);
+  }
+  .node:first-child::before{top:26px}
+  .node:last-child::before{bottom:auto;height:26px}
+
+  /* completed segment = solid lime */
+  .node.done::before{background:var(--lime)}
+  /* the rest stretch = dashed, still ON the path */
+  .node.rest::before{
+    background:repeating-linear-gradient(var(--track) 0 6px,transparent 6px 12px);
+  }
+  /* active node's incoming trail = coral */
+  .node.active::before{
+    background:linear-gradient(var(--lime),var(--coral));
+  }
+
+  /* the station dot */
+  .dot{
+    position:absolute;left:11px;top:16px;
+    width:20px;height:20px;border-radius:50%;
+    background:var(--ink);border:3px solid var(--track);
+    z-index:2;
+  }
+  .node.done .dot{background:var(--lime);border-color:var(--lime)}
+  .node.done .dot::after{
+    content:"✓";position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:var(--ink);font-weight:700;
+  }
+  .node.active .dot{
+    border-color:var(--coral);background:var(--ink);
+    box-shadow:0 0 0 5px #ff6b4a22,0 0 20px #ff6b4a55;
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{50%{box-shadow:0 0 0 9px #ff6b4a11,0 0 26px #ff6b4a66}}
+  .node.rest .dot{
+    width:12px;height:12px;left:15px;top:20px;
+    border-width:2px;background:var(--ink);border-color:var(--track);
+  }
+  .node.upcoming .dot{border-color:var(--track)}
+
+  /* time rail on the far left */
+  .time{
+    position:absolute;left:-42px;top:14px;
+    width:44px;text-align:right;
+    font-family:'Space Mono',monospace;font-size:11px;
+    color:var(--fog);line-height:1.3;
+  }
+  .node.active .time{color:var(--coral)}
+  .node.done .time{color:var(--fog-2)}
+
+  /* card content per node */
+  .body{
+    background:var(--ink-2);border:1px solid var(--ink-3);
+    border-radius:16px;padding:15px 16px;margin:8px 0 14px;
+  }
+  .node.active .body{
+    border-color:var(--coral);
+    box-shadow:0 10px 34px -14px #ff6b4a55;
+  }
+  .node.done .body{opacity:.6}
+  .node.rest .body{
+    background:transparent;border:1px dashed var(--ink-3);
+    padding:11px 16px;
+  }
+  .kicker{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--fog);margin-bottom:7px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .node.active .kicker{color:var(--coral)}
+  .node.active .kicker .badge{
+    color:var(--coral);border:1px solid var(--coral);
+    padding:2px 7px;border-radius:999px;font-size:9px;
+  }
+  .title{font-family:'Fraunces',serif;font-weight:600;font-size:21px;letter-spacing:-.3px;line-height:1.1}
+  .node.done .title{font-size:18px}
+  .dur{
+    font-family:'Space Mono',monospace;font-size:11px;color:var(--fog);
+    margin-top:6px;display:flex;align-items:center;gap:6px;
+  }
+  .dur .len{
+    display:inline-block;height:4px;border-radius:2px;background:var(--ink-3);
+    position:relative;overflow:hidden;
+  }
+  .dur .len::after{content:"";position:absolute;inset:0;background:var(--coral);width:var(--p,0%)}
+  .node.done .dur .len::after{background:var(--lime);width:100%}
+
+  .rest-label{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;
+    color:var(--fog);display:flex;align-items:center;gap:8px;
+  }
+  .rest-label b{color:var(--fog-2);font-weight:400}
+
+  .cta{
+    margin-top:12px;width:100%;border:none;border-radius:11px;
+    padding:13px;font-family:'Space Grotesk';font-weight:700;font-size:15px;
+    background:var(--coral);color:#2a0a02;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+
+  /* ── the live "you are here" marker ── */
+  .youare{
+    position:absolute;left:6px;
+    display:flex;align-items:center;gap:8px;
+    z-index:5;pointer-events:none;
+  }
+  .youare .pin{
+    width:9px;height:9px;border-radius:50%;background:var(--coral);
+    box-shadow:0 0 0 4px #ff6b4a33;
+  }
+  .youare .lbl{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--coral);
+    background:var(--ink);padding:2px 7px;border-radius:999px;border:1px solid #ff6b4a44;
+    margin-left:44px;
+  }
+
+  .foot{
+    text-align:center;color:var(--fog);font-size:12px;line-height:1.6;
+    margin-top:28px;padding-top:22px;border-top:1px solid var(--ink-3);
+  }
+  .foot b{color:var(--fog-2);font-weight:500}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="top">
+    <span class="wordmark">anchor<span class="dot">.</span></span>
+    <span class="now">SUN · <b>08:12</b></span>
+  </div>
+
+  <h1 class="heading"><b>You're on the path.</b><br>Two points behind you.</h1>
+  <p class="sub">The route's already laid out — <span class="live">the marker moves as the day does</span>.</p>
+
+  <div class="path">
+
+    <!-- DONE -->
+    <div class="node done">
+      <span class="time">06:00</span>
+      <span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>Anchor · physical</span></div>
+        <div class="title">Bag by the door</div>
+        <div class="dur">done in 2 min <span class="len" style="width:34px"></span></div>
+      </div>
+    </div>
+
+    <!-- REST segment (on the path, not blank) -->
+    <div class="node rest done">
+      <span class="dot"></span>
+      <div class="body">
+        <span class="rest-label">↳ <b>rest — coffee, slow start</b> · 20 min</span>
+      </div>
+    </div>
+
+    <!-- DONE -->
+    <div class="node done">
+      <span class="time">06:25</span>
+      <span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>Movement · preset plan</span></div>
+        <div class="title">Walk + gym session</div>
+        <div class="dur">done in 55 min <span class="len" style="width:60px"></span></div>
+      </div>
+    </div>
+
+    <!-- REST -->
+    <div class="node rest">
+      <span class="dot"></span>
+      <div class="body">
+        <span class="rest-label">↳ <b>rest — shower, eat</b> · 40 min</span>
+      </div>
+    </div>
+
+    <!-- ACTIVE (live marker sits here) -->
+    <div class="node active">
+      <span class="time">08:05<br>now</span>
+      <span class="dot"></span>
+      <div class="youare" style="top:-2px"><span class="lbl">you are here</span></div>
+      <div class="body">
+        <div class="kicker"><span>Next point</span><span class="badge">start</span></div>
+        <div class="title">Cut &amp; cook the chicken</div>
+        <div class="dur">runs 25 min · has its own stop <span class="len" style="--p:18%;width:52px"></span></div>
+        <button class="cta">Pick up the knife →</button>
+      </div>
+    </div>
+
+    <!-- REST -->
+    <div class="node rest upcoming">
+      <span class="dot"></span>
+      <div class="body">
+        <span class="rest-label">↳ rest · 15 min</span>
+      </div>
+    </div>
+
+    <!-- UPCOMING -->
+    <div class="node upcoming">
+      <span class="time">08:45</span>
+      <span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>Abstract · rides the lift</span></div>
+        <div class="title">ADM-201 — one Pomodoro</div>
+        <div class="dur">25 min timer, then stop <span class="len" style="width:52px"></span></div>
+      </div>
+    </div>
+
+    <!-- UPCOMING -->
+    <div class="node upcoming">
+      <span class="time">09:30</span>
+      <span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>Open point</span></div>
+        <div class="title">Rest of the day, unplanned</div>
+        <div class="dur">the path stops pushing here</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot">The route is set the night before, so morning holds <b>no decisions</b>.<br>Fall behind the marker? The path just waits — <b>it doesn't reset</b>.</p>
+
+</div>
+</body>
+</html>

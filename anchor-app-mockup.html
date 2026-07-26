@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a1f24;
+    --ink-2:#0f2a30;
+    --ink-3:#143a41;
+    --coral:#ff6b4a;
+    --coral-dim:#ff6b4a33;
+    --lime:#c8ff4d;
+    --lime-dim:#c8ff4d22;
+    --fog:#7fa0a4;
+    --fog-2:#b8d0d2;
+    --cream:#f3f7f4;
+    --radius:20px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 60px;
+    background-image:radial-gradient(circle at 18% 8%,#12333a 0%,transparent 45%),radial-gradient(circle at 88% 92%,#12333a 0%,transparent 42%);
+  }
+  .phone{
+    width:100%;
+    max-width:390px;
+  }
+
+  /* header */
+  .top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .date{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--fog);
+  }
+  .wordmark{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:-.5px;
+  }
+  .wordmark .dot{color:var(--coral)}
+  .greeting{
+    font-family:'Fraunces',serif;
+    font-size:30px;
+    font-weight:400;
+    line-height:1.15;
+    margin:22px 0 4px;
+    letter-spacing:-.5px;
+  }
+  .greeting b{font-weight:600}
+  .subline{
+    color:var(--fog);
+    font-size:14px;
+    margin-bottom:24px;
+  }
+  .subline .window{color:var(--lime);font-weight:600}
+
+  /* section label */
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    color:var(--fog);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .eyebrow::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg,var(--ink-3),transparent);
+  }
+
+  /* the anchor card — the signature element */
+  .anchor{
+    position:relative;
+    background:var(--ink-2);
+    border:1px solid var(--ink-3);
+    border-radius:var(--radius);
+    padding:24px 22px 22px;
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  /* raw → done fill: the visual "pile of cut chicken" */
+  .anchor .fill{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,var(--lime-dim),transparent 70%);
+    transform:translateY(62%);
+    pointer-events:none;
+  }
+  .anchor.done{
+    border-color:var(--lime);
+    box-shadow:0 0 0 1px var(--lime),0 12px 40px -12px #c8ff4d55;
+  }
+  .anchor.done .fill{transform:translateY(0)}
+  .anchor-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    position:relative;
+    margin-bottom:18px;
+  }
+  .tag{
+    font-family:'Space Mono',monospace;
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    padding:5px 10px;
+    border-radius:999px;
+    border:1px solid var(--coral);
+    color:var(--coral);
+  }
+  .anchor.done .tag{border-color:var(--lime);color:var(--lime)}
+  .kind{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    color:var(--fog);
+    text-align:right;
+    line-height:1.5;
+  }
+  .anchor h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:34px;
+    line-height:1.05;
+    letter-spacing:-1px;
+    position:relative;
+    margin-bottom:6px;
+  }
+  .anchor .meta{
+    position:relative;
+    color:var(--fog-2);
+    font-size:14px;
+    margin-bottom:22px;
+  }
+
+  /* the four ingredients, encoded as chips */
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    position:relative;
+    margin-bottom:24px;
+  }
+  .chip{
+    font-size:11px;
+    font-family:'Space Mono',monospace;
+    letter-spacing:.5px;
+    color:var(--fog-2);
+    background:var(--ink-3);
+    padding:6px 10px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .chip i{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--lime);
+    display:inline-block;
+  }
+
+  /* the start button */
+  .start{
+    position:relative;
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:18px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    letter-spacing:.3px;
+    background:var(--coral);
+    color:#2a0a02;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+  .start .arrow{font-size:19px}
+  .anchor.done .start{
+    background:transparent;
+    border:1px solid var(--lime);
+    color:var(--lime);
+  }
+
+  /* stop-point indicator */
+  .stopline{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    position:relative;
+    margin-top:16px;
+    font-size:12.5px;
+    color:var(--fog);
+  }
+  .stopline .bar{
+    flex:1;height:4px;border-radius:2px;
+    background:var(--ink-3);
+    overflow:hidden;
+  }
+  .stopline .bar span{
+    display:block;height:100%;width:100%;
+    background:var(--lime);
+  }
+
+  /* momentum stack — soft, optional */
+  .stack{
+    background:transparent;
+    border:1px dashed var(--ink-3);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:26px;
+  }
+  .stack .txt .l{
+    font-family:'Space Mono',monospace;
+    font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--fog);margin-bottom:5px;
+  }
+  .stack .txt .n{
+    font-family:'Fraunces',serif;font-weight:600;font-size:18px;
+  }
+  .stack .txt .n .muted{color:var(--fog);font-weight:400}
+  .stack button{
+    flex-shrink:0;
+    background:var(--lime);color:#141f00;
+    border:none;border-radius:10px;
+    padding:11px 16px;font-family:'Space Grotesk';font-weight:700;font-size:13px;
+    cursor:pointer;
+  }
+  .stack .skip{
+    background:none;color:var(--fog);
+    font-family:'Space Mono';font-size:11px;letter-spacing:1px;
+    text-transform:uppercase;padding:0;margin-top:0;
+    align-self:center;
+  }
+
+  /* momentum ledger — the anti-streak: total, not a fragile chain */
+  .ledger{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:26px;
+  }
+  .stat{
+    background:var(--ink-2);
+    border:1px solid var(--ink-3);
+    border-radius:16px;
+    padding:18px;
+  }
+  .stat .num{
+    font-family:'Fraunces',serif;font-weight:700;font-size:40px;
+    line-height:1;letter-spacing:-1px;
+  }
+  .stat .num.lime{color:var(--lime)}
+  .stat .lab{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--fog);margin-top:8px;
+  }
+  /* 14-day rolling window, dots — gaps allowed, no reset */
+  .window-row{
+    grid-column:1 / -1;
+    background:var(--ink-2);
+    border:1px solid var(--ink-3);
+    border-radius:16px;
+    padding:18px;
+  }
+  .window-row .lab{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--fog);margin-bottom:14px;
+    display:flex;justify-content:space-between;
+  }
+  .dots{display:flex;gap:6px;justify-content:space-between}
+  .dots i{
+    flex:1;aspect-ratio:1;border-radius:5px;max-width:20px;
+    background:var(--ink-3);
+  }
+  .dots i.on{background:var(--lime)}
+  .dots i.soft{background:var(--coral);opacity:.5}
+  .dots i.today{box-shadow:0 0 0 2px var(--coral)}
+
+  .footnote{
+    text-align:center;color:var(--fog);font-size:12px;
+    line-height:1.6;
+  }
+  .footnote b{color:var(--fog-2);font-weight:500}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="top">
+    <span class="wordmark">anchor<span class="dot">.</span></span>
+    <span class="date">Sun · 07:14</span>
+  </div>
+
+  <h1 class="greeting">Morning. <b>One thing</b><br>is already chosen.</h1>
+  <p class="subline">You're in your <span class="window">least-heavy window</span> — the quiet hour before the day gets loud.</p>
+
+  <div class="eyebrow">Today's anchor</div>
+
+  <!-- THE SIGNATURE CARD -->
+  <div class="anchor" id="card">
+    <div class="fill"></div>
+    <div class="anchor-head">
+      <span class="tag" id="tag">Start here</span>
+      <span class="kind">physical · has a stop<br>bar: did it happen</span>
+    </div>
+    <h2>Cut &amp; cook<br>the chicken.</h2>
+    <p class="meta">The board, the knife, the pan. That's the whole task.</p>
+
+    <div class="chips">
+      <span class="chip"><i></i>you can see it change</span>
+      <span class="chip"><i></i>no decisions left</span>
+      <span class="chip"><i></i>done when it's done</span>
+    </div>
+
+    <button class="start" id="startBtn" onclick="toggle()">
+      <span id="startTxt">Pick up the knife</span><span class="arrow" id="arrow">→</span>
+    </button>
+
+    <div class="stopline">
+      <span id="stopTxt">Ends on its own</span>
+      <span class="bar"><span></span></span>
+      <span>done</span>
+    </div>
+  </div>
+
+  <!-- MOMENTUM STACK: optional, never assumed -->
+  <div class="stack">
+    <div class="txt">
+      <div class="l">If the lift shows up</div>
+      <div class="n">Then <span class="muted">15 min of ADM-201</span></div>
+    </div>
+    <button>Ride it →</button>
+  </div>
+
+  <div class="eyebrow">Momentum, not streaks</div>
+
+  <div class="ledger">
+    <div class="stat">
+      <div class="num lime">38</div>
+      <div class="lab">anchors, all time</div>
+    </div>
+    <div class="stat">
+      <div class="num">9<span style="font-size:22px;color:var(--fog)">/14</span></div>
+      <div class="lab">last two weeks</div>
+    </div>
+    <div class="window-row">
+      <div class="lab"><span>Rolling window</span><span>gaps are fine</span></div>
+      <div class="dots">
+        <i class="on"></i><i class="on"></i><i></i><i class="on"></i>
+        <i class="soft"></i><i class="on"></i><i class="on"></i><i></i>
+        <i class="on"></i><i></i><i class="on"></i><i class="on"></i>
+        <i class="on"></i><i class="today"></i>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote">No chain to break. A missed day is <b>a gap, not a failure</b>.<br>You just show up in the next quiet hour.</p>
+
+</div>
+
+<script>
+  function toggle(){
+    const c=document.getElementById('card');
+    const done=c.classList.toggle('done');
+    document.getElementById('tag').textContent=done?'Done — that happened':'Start here';
+    document.getElementById('startTxt').textContent=done?'Marked done':'Pick up the knife';
+    document.getElementById('arrow').textContent=done?'✓':'→';
+    document.getElementById('stopTxt').textContent=done?'You stopped here':'Ends on its own';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANCHOR // ROUTE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#04080d;
+    --deep:#07121a;
+    --panel:#0a1b25;
+    --line:#14384a;
+    --line-2:#1d4d63;
+
+    --ember:#ff3d2e;      /* NOW — the thing pulling you */
+    --acid:#c6ff00;       /* PROOF — what happened */
+    --cyan:#00e5ff;       /* OPTIONAL — you may decline this */
+    --slate:#5f7391;      /* PASSED — neutral, never punitive */
+
+    --fog:#5d8896;
+    --fog-2:#a8d4e0;
+    --cream:#eafaff;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--void)}
+  body{
+    color:var(--cream);
+    font-family:'Chakra Petch',sans-serif;
+    min-height:100vh;
+    display:flex;justify-content:center;
+    padding:22px 16px 60px;
+    position:relative;overflow-x:hidden;
+  }
+
+  /* ── ATMOSPHERE (cheap: transform + opacity only) ── */
+  .atmo{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .pool{position:absolute;border-radius:50%;filter:blur(60px)}
+  .pool.a{width:120%;height:44%;left:-30%;top:-14%;background:#ff3d2e26;animation:breathe 19s ease-in-out infinite}
+  .pool.b{width:90%;height:38%;right:-26%;top:24%;background:#00e5ff1c;animation:breathe 27s ease-in-out infinite reverse}
+  .pool.c{width:130%;height:36%;left:-15%;bottom:-12%;background:#c6ff0018;animation:breathe 23s ease-in-out infinite}
+  @keyframes breathe{
+    50%{transform:translate3d(6%,4%,0) scale(1.14);opacity:.55}
+  }
+  /* receding city grid, two layers drifting at different rates */
+  .grid{
+    position:absolute;inset:-40% 0 -10%;
+    background-image:linear-gradient(#00e5ff14 1px,transparent 1px),linear-gradient(90deg,#00e5ff14 1px,transparent 1px);
+    background-size:52px 52px;
+    mask-image:radial-gradient(ellipse 90% 55% at 50% 42%,#000 0%,transparent 78%);
+    animation:drift 34s linear infinite;
+  }
+  .grid.far{
+    background-size:22px 22px;opacity:.5;
+    animation-duration:64s;
+  }
+  @keyframes drift{to{transform:translate3d(0,52px,0)}}
+  /* horizon: the city edge */
+  .horizon{
+    position:absolute;left:-10%;right:-10%;bottom:8%;height:180px;
+    background:linear-gradient(0deg,#ff3d2e1f 0%,transparent 72%);
+    filter:blur(28px);
+  }
+  .scan{
+    position:fixed;inset:0;z-index:98;pointer-events:none;
+    background:repeating-linear-gradient(180deg,#0000 0 2px,#0000004d 2px 4px);
+    opacity:.34;mix-blend-mode:multiply;
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pool,.grid{animation:none}
+  }
+
+  .shell{width:100%;max-width:392px;position:relative;z-index:2}
+
+  /* ── HEADER ── */
+  .bar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+  .mark{
+    font-weight:700;font-size:21px;letter-spacing:6px;
+    text-shadow:0 0 14px #ff3d2e99,2px 0 0 #ff3d2e77,-2px 0 0 #00e5ff55;
+  }
+  .mark i{font-style:normal;color:var(--ember);text-shadow:0 0 20px var(--ember)}
+  .clock{font-family:'Space Mono';font-size:10px;letter-spacing:1.4px;color:var(--fog);text-align:right;line-height:1.6}
+  .clock b{display:block;color:var(--acid);font-size:17px;text-shadow:0 0 16px var(--acid);letter-spacing:1px}
+
+  /* focus / scenic */
+  .modes{
+    display:inline-flex;border:1px solid var(--line);margin-bottom:20px;
+    font-family:'Space Mono';font-size:9px;letter-spacing:2.4px;
+  }
+  .modes span{padding:6px 13px;color:var(--fog);cursor:pointer}
+  .modes span.on{background:#ff3d2e1a;color:var(--ember);box-shadow:inset 0 0 18px #ff3d2e22}
+  .modes span:last-child{border-left:1px solid var(--line)}
+
+  .status{
+    font-family:'Fraunces',serif;font-weight:600;font-size:27px;line-height:1.08;
+    letter-spacing:-.6px;margin-bottom:7px;text-shadow:0 0 26px #c6ff0033;
+  }
+  .status i{font-style:normal;color:var(--acid);text-shadow:0 0 22px var(--acid)}
+  .meta{
+    font-family:'Space Mono';font-size:9.5px;letter-spacing:1.6px;color:var(--fog);
+    margin-bottom:26px;
+  }
+  .meta u{text-decoration:none;color:var(--cyan);text-shadow:0 0 12px var(--cyan)}
+
+  /* ── PATH ── */
+  .path{position:relative;padding-left:56px}
+  .n{position:relative}
+  /* trail — length is proportional to real duration */
+  .n::before{
+    content:"";position:absolute;left:-37px;top:0;bottom:0;width:2px;background:var(--line);
+  }
+  .n:first-child::before{top:22px}
+  .n:last-child::before{height:22px;bottom:auto}
+
+  .n.done::before{background:var(--acid);box-shadow:0 0 8px var(--acid),0 0 24px #c6ff0077}
+  .n.live::before{background:linear-gradient(180deg,var(--acid),var(--ember));box-shadow:0 0 12px var(--ember),0 0 32px #ff3d2e88}
+  .n.passed::before{background:var(--slate);opacity:.55;box-shadow:none}
+  .n.next::before{background:var(--line)}
+
+  .n.rest{min-height:var(--len,40px)}
+  .n.rest::before{
+    background:repeating-linear-gradient(180deg,#c6ff0077 0 4px,transparent 4px 12px);
+    box-shadow:0 0 8px #c6ff0044;
+  }
+  .n.rest.ahead::before{background:repeating-linear-gradient(180deg,var(--line) 0 4px,transparent 4px 12px);box-shadow:none}
+
+  /* node marker */
+  .pip{
+    position:absolute;left:-46px;top:14px;width:20px;height:20px;z-index:3;
+    transform:rotate(45deg);background:var(--void);border:2px solid var(--line-2);
+  }
+  .n.done .pip{background:var(--acid);border-color:var(--acid);box-shadow:0 0 12px var(--acid),0 0 34px #c6ff0088}
+  .n.live .pip{
+    border-color:var(--ember);
+    box-shadow:0 0 14px var(--ember),0 0 40px #ff3d2e99,inset 0 0 12px #ff3d2e66;
+    animation:thrum 1.9s ease-in-out infinite;
+  }
+  .n.live .pip::after{content:"";position:absolute;inset:4px;background:var(--ember);box-shadow:0 0 10px var(--ember)}
+  @keyframes thrum{50%{box-shadow:0 0 24px var(--ember),0 0 70px #ff3d2ecc,inset 0 0 16px #ff3d2e99}}
+  .n.passed .pip{border-color:var(--slate);opacity:.6}
+  .n.rest .pip{width:9px;height:9px;left:-41px;top:19px;border-width:1px;border-color:#c6ff0055}
+  .n.rest.ahead .pip{border-color:var(--line-2)}
+  @media (prefers-reduced-motion:reduce){.pip{animation:none!important}}
+
+  /* time rail */
+  .t{
+    position:absolute;left:-104px;top:12px;width:52px;text-align:right;
+    font-family:'Space Mono';font-size:10px;color:var(--fog);line-height:1.4;
+  }
+  .n.done .t{color:#c6ff0088}
+  .n.live .t{color:var(--ember);text-shadow:0 0 12px var(--ember)}
+  .n.passed .t{color:var(--slate)}
+
+  /* card */
+  .card{
+    background:linear-gradient(158deg,var(--panel),var(--deep));
+    border:1px solid var(--line);padding:13px 15px;margin:4px 0 10px;
+    clip-path:polygon(0 0,calc(100% - 13px) 0,100% 13px,100% 100%,13px 100%,0 calc(100% - 13px));
+  }
+  .n.done .card{opacity:.46;border-color:#c6ff0030}
+  .n.passed .card{opacity:.4;border-color:#5f739144;background:transparent}
+  .n.live .card{
+    border-color:var(--ember);background:linear-gradient(158deg,#1c0f11,#0a1b25 72%);
+    box-shadow:0 0 0 1px #ff3d2e40,0 16px 46px -16px #ff3d2eaa,inset 0 0 44px #ff3d2e0f;
+  }
+
+  .tag{
+    font-family:'Space Mono';font-size:8.5px;letter-spacing:2.4px;color:var(--fog);
+    margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .n.live .tag{color:#ff8a72}
+  .n.passed .tag{color:var(--slate)}
+  .tag b{font-weight:400;flex-shrink:0}
+  .flag{
+    border:1px solid var(--ember);color:var(--ember);padding:2px 7px;font-size:8px;letter-spacing:2px;
+    box-shadow:0 0 10px #ff3d2e55;animation:blink 1.5s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:.4}}
+
+  .act{font-family:'Fraunces',serif;font-weight:600;font-size:20px;line-height:1.1;letter-spacing:-.3px}
+  .n.live .act{color:#fff;text-shadow:0 0 22px #ff3d2e88,1px 0 0 #ff3d2e33,-1px 0 0 #00e5ff2b}
+  .n.done .act{font-size:16.5px;color:var(--fog-2)}
+  .n.passed .act{font-size:16.5px;color:var(--slate)}
+
+  .dur{
+    font-family:'Space Mono';font-size:9.5px;letter-spacing:.8px;color:var(--fog);
+    margin-top:6px;display:flex;align-items:center;gap:8px;
+  }
+  .rail{display:inline-block;height:3px;background:#14384a;position:relative;overflow:hidden;flex:1;max-width:78px}
+  .rail::after{content:"";position:absolute;inset:0;width:var(--p,100%);background:var(--acid);box-shadow:0 0 8px var(--acid)}
+  .n.live .rail::after{background:var(--ember);box-shadow:0 0 10px var(--ember)}
+  .n.passed .rail::after{background:var(--slate);width:0}
+
+  .go{
+    margin-top:13px;width:100%;border:0;cursor:pointer;padding:14px;
+    font-family:'Chakra Petch';font-weight:700;font-size:14.5px;letter-spacing:3px;text-transform:uppercase;
+    background:var(--ember);color:#150200;
+    clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+    box-shadow:0 0 22px #ff3d2e77,0 0 56px #ff3d2e3d;
+  }
+
+  /* rest strip */
+  .rest-strip{
+    font-family:'Space Mono';font-size:9px;letter-spacing:1.7px;color:var(--fog);
+    text-transform:uppercase;padding:7px 0 7px 2px;
+    display:flex;align-items:center;gap:9px;
+  }
+  .rest-strip b{color:#c6ff0099;font-weight:400}
+  .rest-strip em{
+    font-style:normal;border:1px solid #c6ff0033;color:#c6ff0077;
+    padding:1px 6px;font-size:7.5px;letter-spacing:1.6px;
+  }
+  .n.rest.ahead .rest-strip b{color:var(--fog)}
+  .n.rest.ahead .rest-strip em{border-color:var(--line);color:var(--fog)}
+
+  /* ── MOMENTUM OFFER — cyan = optional ── */
+  .offer{
+    position:relative;margin:2px 0 14px;padding:15px 16px;
+    border:1px dashed #00e5ff77;background:linear-gradient(158deg,#05202b,#04141c);
+    box-shadow:0 0 28px -6px #00e5ff44,inset 0 0 34px #00e5ff0a;
+  }
+  .offer::before{
+    content:"◄ YOU ARE HERE";position:absolute;top:-9px;left:13px;
+    font-family:'Space Mono';font-size:7.5px;letter-spacing:2.2px;color:var(--cyan);
+    background:#04141a;border:1px solid #00e5ff55;padding:2px 7px;box-shadow:0 0 14px #00e5ff44;
+  }
+  .offer .lead{
+    font-family:'Space Mono';font-size:8.5px;letter-spacing:2.4px;color:var(--cyan);
+    margin:6px 0 8px;text-transform:uppercase;
+  }
+  .offer .q{font-family:'Fraunces',serif;font-weight:600;font-size:19px;line-height:1.15;margin-bottom:3px}
+  .offer .q u{text-decoration:none;color:var(--cyan);text-shadow:0 0 18px #00e5ff88}
+  .offer .fine{font-family:'Space Mono';font-size:9px;color:var(--fog);letter-spacing:.6px;margin-bottom:13px}
+  .offer .row{display:flex;gap:9px}
+  .offer .yes{
+    flex:1;border:0;cursor:pointer;padding:12px;background:var(--cyan);color:#00181d;
+    font-family:'Chakra Petch';font-weight:700;font-size:13px;letter-spacing:2.4px;text-transform:uppercase;
+    box-shadow:0 0 20px #00e5ff66;
+  }
+  .offer .no{
+    flex:1;cursor:pointer;padding:12px;background:transparent;border:1px solid var(--line-2);
+    color:var(--fog-2);font-family:'Chakra Petch';font-weight:600;font-size:13px;letter-spacing:2.4px;
+    text-transform:uppercase;
+  }
+
+  /* ── LEDGER ── */
+  .ledger{margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
+  .ledger .hd{
+    font-family:'Space Mono';font-size:9px;letter-spacing:2.6px;color:var(--fog);
+    text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between;
+  }
+  .nums{display:flex;gap:11px;margin-bottom:18px}
+  .num{flex:1;border:1px solid var(--line);padding:13px 14px;background:linear-gradient(158deg,var(--panel),var(--deep))}
+  .num .v{font-family:'Fraunces',serif;font-weight:700;font-size:33px;line-height:1;letter-spacing:-1px;color:var(--acid);text-shadow:0 0 20px #c6ff0077}
+  .num .v small{font-size:16px;color:var(--fog);text-shadow:none}
+  .num .k{font-family:'Space Mono';font-size:8px;letter-spacing:1.8px;color:var(--fog);margin-top:8px;text-transform:uppercase}
+
+  .dots{display:flex;gap:5px;margin-bottom:12px}
+  .dots i{flex:1;height:22px;background:#0d2330;border:1px solid var(--line)}
+  .dots i.hit{background:var(--acid);border-color:var(--acid);box-shadow:0 0 10px #c6ff0099}
+  .dots i.gap{background:transparent;border-style:dashed;border-color:#5f739155}
+  .dots i.today{background:transparent;border-color:var(--ember);box-shadow:0 0 12px #ff3d2e77}
+
+  .foot{
+    font-family:'Space Mono';font-size:9px;letter-spacing:1.5px;color:var(--fog);
+    line-height:2;text-transform:uppercase;
+  }
+  .foot b{color:var(--acid);font-weight:400;text-shadow:0 0 10px #c6ff0066}
+</style>
+</head>
+<body>
+
+<div class="atmo">
+  <div class="grid far"></div>
+  <div class="grid"></div>
+  <div class="pool a"></div><div class="pool b"></div><div class="pool c"></div>
+  <div class="horizon"></div>
+</div>
+<div class="scan"></div>
+
+<div class="shell">
+
+  <div class="bar">
+    <span class="mark">ANCH<i>O</i>R</span>
+    <span class="clock">SUN · ROUTE 07<b>08:12</b></span>
+  </div>
+
+  <div class="modes"><span class="on">FOCUS</span><span>SCENIC</span></div>
+
+  <h1 class="status">Three points<br><i>behind you.</i></h1>
+  <p class="meta">ROUTE LOCKED 23:00 PREV · NOTHING LEFT TO DECIDE · <u>MARKER LIVE</u></p>
+
+  <div class="path">
+
+    <div class="n done">
+      <span class="t">06:00</span><span class="pip"></span>
+      <div class="card">
+        <div class="tag"><span>NODE 01 · PHYSICAL</span><b>CLEARED</b></div>
+        <div class="act">Bag by the door</div>
+        <div class="dur">2 MIN <span class="rail"></span></div>
+      </div>
+    </div>
+
+    <div class="n rest" style="--len:46px">
+      <span class="pip"></span>
+      <div class="rest-strip"><b>REST · COFFEE</b> 20 MIN <em>NO ACTION</em></div>
+    </div>
+
+    <div class="n done">
+      <span class="t">06:25</span><span class="pip"></span>
+      <div class="card">
+        <div class="tag"><span>NODE 02 · MOVEMENT</span><b>CLEARED</b></div>
+        <div class="act">Walk + gym session</div>
+        <div class="dur">55 MIN <span class="rail"></span></div>
+      </div>
+    </div>
+
+    <div class="n rest" style="--len:78px">
+      <span class="pip"></span>
+      <div class="rest-strip"><b>REST · SHOWER, EAT</b> 40 MIN <em>NO ACTION</em></div>
+    </div>
+
+    <!-- NEUTRAL MISS STATE — cold, unlit, never red -->
+    <div class="n passed">
+      <span class="t">07:40</span><span class="pip"></span>
+      <div class="card">
+        <div class="tag"><span>NODE 03 · ABSTRACT</span><b>PASSED</b></div>
+        <div class="act">Inbox sweep</div>
+        <div class="dur">NOT LOGGED · STILL ON THE ROUTE <span class="rail"></span></div>
+      </div>
+    </div>
+
+    <div class="n rest" style="--len:38px">
+      <span class="pip"></span>
+      <div class="rest-strip"><b>REST</b> 15 MIN <em>NO ACTION</em></div>
+    </div>
+
+    <div class="n live">
+      <span class="t">08:05<br>NOW</span><span class="pip"></span>
+      <div class="card">
+        <div class="tag"><span>NODE 04 · PHYSICAL</span><span class="flag">CLEARED 08:10</span></div>
+        <div class="act">Cut &amp; cook the chicken</div>
+        <div class="dur">25 MIN · SELF-TERMINATING <span class="rail" style="--p:100%"></span></div>
+      </div>
+
+      <!-- THE SIGNATURE MOMENT: offered, never forced -->
+      <div class="offer">
+        <div class="lead">MOMENTUM · OPTIONAL</div>
+        <div class="q">You're already moving.<br><u>Keep going?</u></div>
+        <div class="fine">NEXT: ADM-201 · ONE POMODORO · 25 MIN, HARD STOP</div>
+        <div class="row">
+          <button class="yes">Ride it</button>
+          <button class="no">Not now</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="n rest ahead" style="--len:38px">
+      <span class="pip"></span>
+      <div class="rest-strip"><b>REST</b> 15 MIN <em>NO ACTION</em></div>
+    </div>
+
+    <div class="n next">
+      <span class="t">08:45</span><span class="pip"></span>
+      <div class="card">
+        <div class="tag"><span>NODE 05 · ABSTRACT</span><b>QUEUED</b></div>
+        <div class="act">ADM-201 — one Pomodoro</div>
+        <div class="dur">25 MIN · HARD STOP <span class="rail" style="--p:0%"></span></div>
+      </div>
+    </div>
+
+    <div class="n next">
+      <span class="t">09:30</span><span class="pip"></span>
+      <div class="card">
+        <div class="tag"><span>END OF ROUTE</span><b>OPEN</b></div>
+        <div class="act">The path stops here</div>
+        <div class="dur">UNSCHEDULED · YOURS</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ledger">
+    <div class="hd"><span>MOMENTUM</span><span>NO CHAINS</span></div>
+    <div class="nums">
+      <div class="num"><div class="v">41</div><div class="k">points cleared</div></div>
+      <div class="num"><div class="v">9<small>/14</small></div><div class="k">last two weeks</div></div>
+    </div>
+    <div class="dots">
+      <i class="hit"></i><i class="hit"></i><i class="gap"></i><i class="hit"></i>
+      <i class="hit"></i><i class="hit"></i><i class="gap"></i><i class="hit"></i>
+      <i class="gap"></i><i class="hit"></i><i class="hit"></i><i class="hit"></i>
+      <i class="hit"></i><i class="today"></i>
+    </div>
+    <p class="foot">GAPS ARE PART OF THE ROUTE · <b>NOTHING RESETS</b><br>SHOW UP IN THE NEXT QUIET HOUR</p>
+  </div>
+
+</div>
+</body>
+</html>

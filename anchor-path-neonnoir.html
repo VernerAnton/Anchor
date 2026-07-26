@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANCHOR // NEON NOIR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#04080d;
+    --deep:#07121a;
+    --panel:#0a1b25;
+    --panel-2:#0d2532;
+    --edge:#123murky;
+    --edge:#14384a;
+    --ember:#ff3d2e;        /* coral, cranked */
+    --ember-hot:#ff7a5c;
+    --acid:#c6ff00;         /* lime, cranked */
+    --acid-hot:#e4ff6a;
+    --cyan:#00e5ff;
+    --fog:#5d8896;
+    --fog-2:#a8d4e0;
+    --cream:#eafaff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--void)}
+  body{
+    color:var(--cream);
+    font-family:'Chakra Petch',sans-serif;
+    min-height:100vh;
+    display:flex;justify-content:center;
+    padding:24px 16px 70px;
+    position:relative;
+    overflow-x:hidden;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% -5%, #ff3d2e18 0%, transparent 60%),
+      radial-gradient(ellipse 70% 45% at 90% 30%, #00e5ff14 0%, transparent 60%),
+      radial-gradient(ellipse 90% 50% at 50% 105%, #c6ff0012 0%, transparent 60%),
+      var(--void);
+  }
+  /* city grid haze */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(#0ff1 1px,transparent 1px),
+      linear-gradient(90deg,#0ff1 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 100% 60% at 50% 40%,#000 0%,transparent 75%);
+    opacity:.5;
+  }
+  /* scanlines */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+    background:repeating-linear-gradient(180deg,#0000 0 2px,#00000055 2px 4px);
+    opacity:.35;mix-blend-mode:multiply;
+  }
+  .phone{width:100%;max-width:390px;position:relative;z-index:2}
+
+  /* ── HEADER ── */
+  .top{
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid #14384a;padding-bottom:12px;margin-bottom:18px;
+  }
+  .wordmark{
+    font-family:'Chakra Petch';font-weight:700;font-size:22px;
+    letter-spacing:5px;text-transform:uppercase;
+    color:var(--cream);
+    text-shadow:0 0 12px #ff3d2eaa,2px 0 0 #ff3d2e88,-2px 0 0 #00e5ff66;
+  }
+  .wordmark span{color:var(--ember);text-shadow:0 0 18px var(--ember)}
+  .now{
+    font-family:'Space Mono';font-size:11px;letter-spacing:1px;
+    color:var(--fog);text-align:right;line-height:1.4;
+  }
+  .now b{
+    color:var(--acid);font-weight:700;font-size:14px;
+    text-shadow:0 0 14px var(--acid);
+  }
+
+  .heading{
+    font-family:'Fraunces',serif;font-weight:600;font-size:30px;
+    line-height:1.08;letter-spacing:-.8px;margin-bottom:8px;
+    text-shadow:0 0 30px #ff3d2e55;
+  }
+  .heading em{
+    font-style:normal;color:var(--ember);
+    text-shadow:0 0 22px var(--ember),0 0 60px #ff3d2e77;
+  }
+  .sub{
+    color:var(--fog);font-size:12px;margin-bottom:26px;
+    font-family:'Space Mono';letter-spacing:.5px;
+  }
+  .sub .live{
+    color:var(--cyan);text-shadow:0 0 14px var(--cyan);
+  }
+
+  /* ── PATH ── */
+  .path{position:relative;padding-left:8px}
+  .node{position:relative;padding-left:54px}
+
+  /* THE NEON LINE */
+  .node::before{
+    content:"";position:absolute;left:19px;top:0;bottom:0;width:2px;
+    background:#14384a;
+  }
+  .node:first-child::before{top:24px}
+  .node:last-child::before{height:24px;bottom:auto}
+
+  .node.done::before{
+    background:var(--acid);
+    box-shadow:0 0 10px var(--acid),0 0 26px #c6ff0088,0 0 50px #c6ff0044;
+  }
+  .node.active::before{
+    background:linear-gradient(180deg,var(--acid) 0%,var(--ember) 55%);
+    box-shadow:0 0 12px var(--ember),0 0 34px #ff3d2e88,0 0 70px #ff3d2e44;
+  }
+  .node.rest::before{
+    background:repeating-linear-gradient(180deg,#c6ff0088 0 5px,transparent 5px 13px);
+    box-shadow:0 0 10px #c6ff0055;
+  }
+  .node.rest.upcoming::before{
+    background:repeating-linear-gradient(180deg,#14384a 0 5px,transparent 5px 13px);
+    box-shadow:none;
+  }
+
+  /* STATION NODES */
+  .dot{
+    position:absolute;left:10px;top:15px;width:20px;height:20px;
+    z-index:3;transform:rotate(45deg);
+    background:var(--void);border:2px solid #1d4d63;
+  }
+  .node.done .dot{
+    background:var(--acid);border-color:var(--acid);
+    box-shadow:0 0 14px var(--acid),0 0 38px #c6ff0099;
+  }
+  .node.active .dot{
+    border-color:var(--ember);background:var(--void);
+    box-shadow:0 0 16px var(--ember),0 0 44px #ff3d2e99,inset 0 0 12px #ff3d2e55;
+    animation:thrum 1.8s ease-in-out infinite;
+  }
+  @keyframes thrum{
+    50%{box-shadow:0 0 26px var(--ember),0 0 76px #ff3d2ecc,inset 0 0 18px #ff3d2e88}
+  }
+  .node.active .dot::after{
+    content:"";position:absolute;inset:4px;background:var(--ember);
+    box-shadow:0 0 12px var(--ember);
+  }
+  .node.rest .dot{
+    width:10px;height:10px;left:15px;top:20px;border-width:1px;
+    border-color:#c6ff0066;background:var(--void);
+  }
+  .node.rest.upcoming .dot{border-color:#1d4d63}
+
+  /* TIME RAIL */
+  .time{
+    position:absolute;left:-44px;top:13px;width:46px;text-align:right;
+    font-family:'Space Mono';font-size:10px;color:var(--fog);line-height:1.35;
+  }
+  .node.done .time{color:#c6ff0099}
+  .node.active .time{color:var(--ember);text-shadow:0 0 12px var(--ember)}
+
+  /* PANELS */
+  .body{
+    position:relative;
+    background:linear-gradient(160deg,var(--panel) 0%,var(--deep) 100%);
+    border:1px solid #14384a;
+    padding:14px 16px;margin:6px 0 12px;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  }
+  .node.done .body{opacity:.5;border-color:#c6ff0033}
+  .node.active .body{
+    border-color:var(--ember);
+    background:linear-gradient(160deg,#1a0f12 0%,#0a1b25 70%);
+    box-shadow:0 0 0 1px #ff3d2e44,0 14px 50px -14px #ff3d2eaa,inset 0 0 40px #ff3d2e11;
+  }
+  .node.rest .body{
+    background:transparent;border:1px dashed #1d4d63;
+    padding:9px 14px;clip-path:none;
+  }
+
+  .kicker{
+    font-family:'Space Mono';font-size:9px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--fog);margin-bottom:6px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .node.active .kicker{color:var(--ember-hot)}
+  .badge{
+    border:1px solid var(--ember);color:var(--ember);padding:2px 8px;
+    font-size:8px;letter-spacing:2px;
+    box-shadow:0 0 12px #ff3d2e66;
+    animation:blink 1.4s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:.35}}
+
+  .title{
+    font-family:'Fraunces',serif;font-weight:600;font-size:21px;
+    letter-spacing:-.3px;line-height:1.08;
+  }
+  .node.active .title{
+    color:#fff;
+    text-shadow:0 0 24px #ff3d2e99,1px 0 0 #ff3d2e44,-1px 0 0 #00e5ff33;
+  }
+  .node.done .title{font-size:17px;color:var(--fog-2)}
+
+  .dur{
+    font-family:'Space Mono';font-size:10px;color:var(--fog);
+    margin-top:7px;display:flex;align-items:center;gap:8px;letter-spacing:.5px;
+  }
+  .len{display:inline-block;height:3px;background:#14384a;position:relative;overflow:hidden}
+  .len::after{content:"";position:absolute;inset:0;width:var(--p,100%);background:var(--acid);box-shadow:0 0 10px var(--acid)}
+  .node.active .len::after{background:var(--ember);box-shadow:0 0 12px var(--ember)}
+
+  .rest-label{
+    font-family:'Space Mono';font-size:10px;letter-spacing:1.5px;
+    color:var(--fog);display:flex;align-items:center;gap:8px;
+    text-transform:uppercase;
+  }
+  .rest-label b{color:#c6ff0099;font-weight:400}
+
+  .cta{
+    margin-top:14px;width:100%;border:none;cursor:pointer;
+    padding:14px;font-family:'Chakra Petch';font-weight:700;font-size:15px;
+    letter-spacing:3px;text-transform:uppercase;
+    background:var(--ember);color:#120300;
+    clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+    box-shadow:0 0 24px #ff3d2e88,0 0 60px #ff3d2e44;
+  }
+
+  /* YOU ARE HERE */
+  .youare{
+    position:absolute;left:44px;top:-14px;z-index:6;
+    font-family:'Space Mono';font-size:8px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--cyan);
+    border:1px solid #00e5ff66;background:#04141a;
+    padding:3px 8px;
+    box-shadow:0 0 18px #00e5ff55;
+  }
+
+  .foot{
+    text-align:center;color:var(--fog);font-size:10px;line-height:1.9;
+    margin-top:26px;padding-top:18px;border-top:1px solid #14384a;
+    font-family:'Space Mono';letter-spacing:1.5px;text-transform:uppercase;
+  }
+  .foot b{color:var(--acid);font-weight:400;text-shadow:0 0 12px #c6ff0088}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="top">
+    <span class="wordmark">ANCH<span>O</span>R</span>
+    <span class="now">SUN // ROUTE 07<br><b>08:12</b></span>
+  </div>
+
+  <h1 class="heading">TWO POINTS<br><em>BEHIND YOU.</em></h1>
+  <p class="sub">ROUTE LOCKED 23:00 PREV // <span class="live">MARKER TRACKING LIVE</span></p>
+
+  <div class="path">
+
+    <div class="node done">
+      <span class="time">06:00</span><span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>NODE 01 // PHYSICAL</span><span>CLEARED</span></div>
+        <div class="title">Bag by the door</div>
+        <div class="dur">02 MIN <span class="len" style="width:40px"></span></div>
+      </div>
+    </div>
+
+    <div class="node rest done">
+      <span class="dot"></span>
+      <div class="body"><span class="rest-label">↳ <b>REST // COFFEE</b> · 20 MIN</span></div>
+    </div>
+
+    <div class="node done">
+      <span class="time">06:25</span><span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>NODE 02 // MOVEMENT</span><span>CLEARED</span></div>
+        <div class="title">Walk + gym session</div>
+        <div class="dur">55 MIN <span class="len" style="width:62px"></span></div>
+      </div>
+    </div>
+
+    <div class="node rest done">
+      <span class="dot"></span>
+      <div class="body"><span class="rest-label">↳ <b>REST // SHOWER, EAT</b> · 40 MIN</span></div>
+    </div>
+
+    <div class="node active">
+      <span class="time">08:05<br>NOW</span><span class="dot"></span>
+      <span class="youare">◄ YOU ARE HERE</span>
+      <div class="body">
+        <div class="kicker"><span>NODE 03 // PHYSICAL</span><span class="badge">LIVE</span></div>
+        <div class="title">Cut &amp; cook the chicken</div>
+        <div class="dur">25 MIN // SELF-TERMINATING <span class="len" style="--p:18%;width:56px"></span></div>
+        <button class="cta">Pick up the knife ►</button>
+      </div>
+    </div>
+
+    <div class="node rest upcoming">
+      <span class="dot"></span>
+      <div class="body"><span class="rest-label">↳ REST · 15 MIN</span></div>
+    </div>
+
+    <div class="node upcoming">
+      <span class="time">08:45</span><span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>NODE 04 // ABSTRACT</span><span>QUEUED</span></div>
+        <div class="title">ADM-201 — one Pomodoro</div>
+        <div class="dur">25 MIN HARD STOP <span class="len" style="--p:0%;width:56px"></span></div>
+      </div>
+    </div>
+
+    <div class="node upcoming">
+      <span class="time">09:30</span><span class="dot"></span>
+      <div class="body">
+        <div class="kicker"><span>END OF ROUTE</span><span>OPEN</span></div>
+        <div class="title">Path stops pushing here</div>
+        <div class="dur">UNSCHEDULED // FREE</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot">ROUTE SET NIGHT PRIOR // <b>ZERO MORNING DECISIONS</b><br>FALL BEHIND MARKER → PATH HOLDS // <b>NO RESET</b></p>
+
+</div>
+</body>
+</html>
