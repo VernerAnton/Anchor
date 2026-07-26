@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+     <rect width="512" height="512" fill="#04080d"/>
+  <g transform="translate(256 256) scale(1) translate(-256 -256)">
+    <defs>
+      <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c6ff00"/>
+        <stop offset="60%" stop-color="#c6ff00"/>
+        <stop offset="100%" stop-color="#ff3d2e"/>
+      </linearGradient>
+    </defs>
+    <rect x="242" y="30" width="28" height="160" fill="url(#trail)"/>
+    <rect x="242" y="352" width="28" height="26" fill="#1d4d63"/>
+    <rect x="242" y="396" width="28" height="26" fill="#1d4d63"/>
+    <rect x="242" y="440" width="28" height="26" fill="#1d4d63"/>
+    <rect x="201" y="201" width="110" height="110" transform="rotate(45 256 256)"
+          fill="#04080d" stroke="#ff3d2e" stroke-width="26"/>
+    <rect x="228" y="228" width="56" height="56" transform="rotate(45 256 256)" fill="#ff3d2e"/>
+  </g></svg>

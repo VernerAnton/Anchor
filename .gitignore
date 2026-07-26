@@ -1,0 +1,11 @@
+node_modules
+dist
+dev-dist
+*.local
+.vercel
+.DS_Store
+
+# local verification artifacts
+shot-*.png
+tsconfig.tsbuildinfo
+*.tsbuildinfo
