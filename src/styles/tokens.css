@@ -1,0 +1,23 @@
+/**
+ * Colour carries meaning here, it isn't decoration. Each of these four is
+ * load-bearing, and using one for anything other than its meaning breaks the
+ * thing the user learns to read at a glance.
+ */
+:root {
+  --void: #04080d;
+  --deep: #07121a;
+  --panel: #0a1b25;
+  --line: #14384a;
+  --line-2: #1d4d63;
+
+  --ember: #ff3d2e; /* NOW — the thing pulling you */
+  --acid: #c6ff00; /* PROOF — something happened */
+  --cyan: #00e5ff; /* OPTIONAL — you may decline this */
+  --slate: #5f7391; /* PASSED — neutral, never punitive */
+
+  --fog: #5d8896;
+  --fog-2: #a8d4e0;
+  --cream: #eafaff;
+
+  --shell: 392px;
+}
