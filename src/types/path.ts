@@ -43,8 +43,13 @@ export interface Point {
   startsAt: number;
   duration: Duration;
   type: PointType;
-  /** Optional tag override for the node header, e.g. "MOVEMENT". */
-  label?: string;
+  /**
+   * Optional tag override for the node header, e.g. "MOVEMENT".
+   *
+   * Explicitly `null` rather than optional: Firestore rejects `undefined`
+   * outright, so every absent value in a stored document has to be a real null.
+   */
+  label: string | null;
   /**
    * Minutes from midnight the first move was actually made, or null. Kept
    * separate from `startsAt` because when you began and when the path said
@@ -58,8 +63,8 @@ export interface Point {
 export interface Rest {
   kind: 'rest';
   id: string;
-  /** Optional flavour: "COFFEE", "SHOWER, EAT". Rest without a label is fine. */
-  label?: string;
+  /** Flavour: "COFFEE", "SHOWER, EAT". Rest without a label is fine — null. */
+  label: string | null;
   minutes: number;
   // Deliberately no status, no completedAt, no anything. See rule 1 above.
 }
@@ -79,9 +84,17 @@ export type Segment = Point | Rest;
  */
 export type MarkerMode = 'live' | 'fixed';
 
+/**
+ * One day, one document.
+ *
+ * Keeping a whole day in a single document means a day is also the unit of
+ * conflict: two devices editing the same day resolve last-write-wins. That's
+ * the right trade here — you are essentially never editing the same day on two
+ * devices at once, and the alternative buys nothing for real use.
+ */
 export interface Path {
   id: string;
-  /** YYYY-MM-DD. */
+  /** YYYY-MM-DD. Also the document id, so a date addresses a day directly. */
   date: string;
   /**
    * Minutes from midnight the night before, or null if the path is still
@@ -91,7 +104,9 @@ export interface Path {
   /** Minutes from midnight. Past this the day is unscheduled and yours. */
   endsAt: number;
   segments: Segment[];
-  markerMode: MarkerMode;
+  schemaVersion: number;
+  /** Epoch ms. Last-write-wins when two devices disagree. */
+  updatedAt: number;
 }
 
 /**
@@ -103,7 +118,10 @@ export type PointStatus = 'done' | 'live' | 'passed' | 'next';
 
 /** A day's worth of logging, for the rolling window. Never a chain. */
 export interface DayRecord {
-  /** YYYY-MM-DD. */
+  /** YYYY-MM-DD. Also the document id. */
   date: string;
   pointsCleared: number;
+  schemaVersion: number;
+  /** Epoch ms. Last-write-wins when two devices disagree. */
+  updatedAt: number;
 }

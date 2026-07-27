@@ -1,4 +1,4 @@
-import type { Duration, Path, Point, PointStatus, Segment } from '../types/path';
+import type { Duration, MarkerMode, Path, Point, PointStatus, Segment } from '../types/path';
 
 export function durationMinutes(d: Duration): number {
   return d.kind === 'fixed' ? d.minutes : d.estimateMinutes;
@@ -38,6 +38,8 @@ export interface RouteView {
 interface Options {
   /** Minutes from midnight. */
   now: number;
+  /** A user preference, so it arrives from settings rather than off the path. */
+  markerMode: MarkerMode;
   /**
    * The point currently holding an open momentum offer. That point keeps
    * rendering as live even once it's cleared — the offer is what's holding
@@ -54,7 +56,7 @@ interface Options {
  * mode nothing is ever overtaken — the first unlogged point stays live for as
  * long as it takes, which is the entire difference between the two modes.
  */
-export function buildRoute(path: Path, { now, offerFor = null }: Options): RouteView {
+export function buildRoute(path: Path, { now, markerMode, offerFor = null }: Options): RouteView {
   const points = path.segments.filter((s): s is Point => s.kind === 'point');
   const firstUnlogged = points.find((p) => p.completedAt === null);
 
@@ -62,7 +64,7 @@ export function buildRoute(path: Path, { now, offerFor = null }: Options): Route
     if (offerFor === p.id) return 'live';
     if (p.completedAt !== null) return 'done';
 
-    if (path.markerMode === 'fixed') {
+    if (markerMode === 'fixed') {
       return p.id === firstUnlogged?.id ? 'live' : 'next';
     }
     const ends = p.startsAt + durationMinutes(p.duration);
