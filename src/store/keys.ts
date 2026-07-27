@@ -11,8 +11,12 @@ export const SCHEMA_VERSION = 1;
 
 const LOCAL_PREFIX = 'anchor:v1';
 
+export function pathsCollection(userId: string): string[] {
+  return ['users', userId, 'paths'];
+}
+
 export function pathDoc(userId: string, date: string): string[] {
-  return ['users', userId, 'paths', date];
+  return [...pathsCollection(userId), date];
 }
 
 export function daysCollection(userId: string): string[] {

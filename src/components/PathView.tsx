@@ -3,34 +3,55 @@ import { toClock } from '../lib/time';
 import { PointNode } from './PointNode';
 import { RestNode } from './RestNode';
 import { MomentumOffer } from './MomentumOffer';
+import { SegmentTools } from './SegmentTools';
 
 interface Props {
   route: RouteView;
   endsAt: number;
   /** The point holding an open offer, if any. */
   offerFor: string | null;
+  editing: boolean;
   onStart: (id: string) => void;
   onClear: (id: string) => void;
   onAcceptOffer: () => void;
   onDeclineOffer: () => void;
+  onEditSegment: (id: string) => void;
+  onMoveSegment: (id: string, direction: -1 | 1) => void;
+  onRemoveSegment: (id: string) => void;
 }
 
 export function PathView({
   route,
   endsAt,
   offerFor,
+  editing,
   onStart,
   onClear,
   onAcceptOffer,
   onDeclineOffer,
+  onEditSegment,
+  onMoveSegment,
+  onRemoveSegment,
 }: Props) {
   let ordinal = 0;
+
+  const toolsFor = (id: string) =>
+    editing ? (
+      <SegmentTools
+        onEdit={() => onEditSegment(id)}
+        onMoveUp={() => onMoveSegment(id, -1)}
+        onMoveDown={() => onMoveSegment(id, 1)}
+        onRemove={() => onRemoveSegment(id)}
+      />
+    ) : undefined;
 
   return (
     <ol className="path">
       {route.segments.map((segment) => {
         if (segment.kind === 'rest') {
-          return <RestNode key={segment.rest.id} view={segment} />;
+          return (
+            <RestNode key={segment.rest.id} view={segment} tools={toolsFor(segment.rest.id)} />
+          );
         }
 
         ordinal += 1;
@@ -43,6 +64,8 @@ export function PathView({
             ordinal={ordinal}
             onStart={onStart}
             onClear={onClear}
+            editing={editing}
+            tools={toolsFor(segment.point.id)}
           >
             {showOffer && route.upNext && (
               <MomentumOffer

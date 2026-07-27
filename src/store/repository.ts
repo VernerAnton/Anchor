@@ -22,8 +22,12 @@ export interface AnchorRepository {
   getPath(date: string): Promise<Path | null>;
   subscribePath(date: string, cb: (path: Path | null) => void): Unsubscribe;
   savePath(path: Path): Promise<void>;
+  deletePath(date: string): Promise<void>;
+  /** Inclusive date range, ordered oldest first. */
+  listPaths(from: string, to: string): Promise<Path[]>;
 
   /** Inclusive date range, ordered oldest first. */
+  getDays(from: string, to: string): Promise<DayRecord[]>;
   subscribeDays(from: string, to: string, cb: (days: DayRecord[]) => void): Unsubscribe;
   saveDay(day: DayRecord): Promise<void>;
 

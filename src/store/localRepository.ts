@@ -1,7 +1,14 @@
 import type { DayRecord, Path } from '../types/path';
 import type { Settings } from '../types/settings';
 import type { AnchorRepository, Unsubscribe } from './repository';
-import { dayDoc, daysCollection, localKey, pathDoc, settingsDoc } from './keys';
+import {
+  dayDoc,
+  daysCollection,
+  localKey,
+  pathDoc,
+  pathsCollection,
+  settingsDoc,
+} from './keys';
 
 /**
  * localStorage behind the Firestore-shaped interface.
@@ -28,6 +35,21 @@ function readJson<T>(key: string): T | null {
     // a day is bad; refusing to start the app is worse.
     return null;
   }
+}
+
+/**
+ * Stands in for a Firestore range query over a collection. Both `paths` and
+ * `days` are keyed by date, so the document id is the thing being filtered.
+ */
+function scan<T extends { date: string }>(prefix: string, from: string, to: string): T[] {
+  const found: T[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key === null || !key.startsWith(prefix)) continue;
+    const doc = readJson<T>(key);
+    if (doc && doc.date >= from && doc.date <= to) found.push(doc);
+  }
+  return found.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function createLocalRepository(userId: string): AnchorRepository {
@@ -77,21 +99,25 @@ export function createLocalRepository(userId: string): AnchorRepository {
       write(localKey(pathDoc(userId, path.date)), path);
     },
 
+    async deletePath(date) {
+      const key = localKey(pathDoc(userId, date));
+      localStorage.removeItem(key);
+      notify(key);
+    },
+
+    async listPaths(from, to) {
+      return scan<Path>(`${localKey(pathsCollection(userId))}:`, from, to);
+    },
+
+    async getDays(from, to) {
+      return scan<DayRecord>(`${localKey(daysCollection(userId))}:`, from, to);
+    },
+
     subscribeDays(from, to, cb) {
       const prefix = `${localKey(daysCollection(userId))}:`;
       return watch(
         (changed) => changed.startsWith(prefix),
-        () => {
-          const days: DayRecord[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key === null || !key.startsWith(prefix)) continue;
-            const day = readJson<DayRecord>(key);
-            if (day && day.date >= from && day.date <= to) days.push(day);
-          }
-          days.sort((a, b) => a.date.localeCompare(b.date));
-          cb(days);
-        },
+        () => cb(scan<DayRecord>(prefix, from, to)),
       );
     },
 
