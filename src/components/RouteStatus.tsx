@@ -8,28 +8,55 @@ const WORDS = [
 
 interface Props {
   cleared: number;
+  total: number;
+  /** A day still ahead reports what's set, not what's done. */
+  future: boolean;
   lockedAt: number | null;
   markerMode: MarkerMode;
   onToggleMarker: () => void;
+  onToggleLock: () => void;
 }
 
-export function RouteStatus({ cleared, lockedAt, markerMode, onToggleMarker }: Props) {
-  const word = WORDS[cleared] ?? String(cleared);
-  const noun = cleared === 1 ? 'point' : 'points';
+export function RouteStatus({
+  cleared,
+  total,
+  future,
+  lockedAt,
+  markerMode,
+  onToggleMarker,
+  onToggleLock,
+}: Props) {
+  const count = future ? total : cleared;
+  const word = WORDS[count] ?? String(count);
+  const noun = count === 1 ? 'point' : 'points';
 
   return (
     <>
       <h1 className="status">
         {word} {noun}
         <br />
-        <i>behind you.</i>
+        <i>{future ? 'waiting.' : 'behind you.'}</i>
       </h1>
       <p className="meta">
-        {lockedAt === null ? (
-          <>ROUTE OPEN · STILL YOURS TO SET</>
-        ) : (
-          <>ROUTE LOCKED {toClock(lockedAt)} PREV · NOTHING LEFT TO DECIDE</>
-        )}{' '}
+        {/*
+          Locking is the highest-leverage thing in the app, so it's a control
+          rather than a readout — and it stays reversible, because a plan you
+          can't amend on a bad morning is a trap rather than a support.
+        */}
+        <button
+          type="button"
+          className="lock"
+          onClick={onToggleLock}
+          title={
+            lockedAt === null
+              ? 'Lock it, so the morning has nothing left to decide.'
+              : 'Locked. You can still change it — the lock just stops it asking.'
+          }
+        >
+          {lockedAt === null
+            ? 'ROUTE OPEN · NOT LOCKED YET'
+            : `ROUTE LOCKED ${toClock(lockedAt)} · NOTHING LEFT TO DECIDE`}
+        </button>{' '}
         ·{' '}
         <button
           type="button"

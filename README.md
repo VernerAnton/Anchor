@@ -75,15 +75,66 @@ which reads as pressure is a per-person question.
 - **Held** — set and left alone. The first unlogged point stays live for as long as it takes,
   and nothing is ever overtaken by the clock. In this mode no point is ever passed.
 
+## Storage, and the sync that's coming
+
+State persists to `localStorage` through a repository interface shaped like Firestore, so
+live multi-device sync can be dropped in later by implementing one file. The subscription
+model is the part that matters: Firestore delivers data through a live listener, and code
+written against a synchronous `getItem` has to be torn up to accept that. So the app
+subscribes from the start, and the local backend fires its callbacks asynchronously —
+including the first — to keep it honest.
+
+Documents live at paths the Firestore implementation will reuse verbatim
+(`users/{uid}/paths/{YYYY-MM-DD}`), built by `src/store/keys.ts` and flattened into
+localStorage keys. A day is one document, so a day is also the unit of conflict:
+last-write-wins, which is the right trade when it's one person on two devices.
+
+**The two-tab test.** Open the app in two tabs and clear a point in one — it appears in the
+other without a refresh, over the `storage` event. That's genuinely two clients syncing, and
+it's how the subscription plumbing gets verified before any network is involved.
+
+Identity is stubbed at `src/store/identity.ts`. Whatever the eventual auth model, that one
+function is what changes.
+
+## Building a day
+
+Move between days with the arrows — tomorrow is a first-class destination, because a path
+meant to be set the night before needs somewhere easy to stand. **Edit** turns the path from
+something you walk into something you arrange: every segment gets edit, reorder and remove
+controls, and `+ Point` / `+ Rest` append to the route.
+
+Rest is editable — how long it runs, what it's for. What stays impossible is finishing it.
+There is no completion control on a rest segment in either mode, and no code path that
+produces one.
+
+**Locking** is a control rather than a readout, and it stays reversible. The lock removes the
+*invitation* to re-decide in the morning; it does not remove your ability to change the plan.
+A path you couldn't fix on a bad morning would be a trap rather than a support.
+
+Order is array order, and points are never silently re-sorted by time. Rest belongs *between*
+two particular things, which sorting can't express — and a path that rearranges itself under
+you is exactly the sort of surprise this app should never spring.
+
+The **empty state** asks one question: what's the smallest physical thing? Physical because
+it gives visible proof something moved; smallest because the bar has to be low enough that
+answering feels silly to refuse. Where a previous route exists, reusing it is offered first —
+rebuilding a day from nothing every night is itself a nightly chore requiring initiative,
+which is the failure this app exists to route around.
+
+Editing surfaces deliberately use none of the four meaning-carrying colours. Ember, acid,
+cyan and slate each say something specific about where you are on the route, and admin is not
+a place on the route.
+
 ## Where this is up to
 
 Built: the data model, the full front page driven by it, all five node states, proportional
-rest trails, the momentum offer, the anti-streak ledger, the marker toggle, and PWA install
-with genuine offline support (fonts are self-hosted and precached).
+rest trails, the momentum offer, the anti-streak ledger, the marker toggle, persistence with
+cross-tab sync, multiple days with ledger rollover, full path editing, the lock control,
+reuse-yesterday, the empty state, and PWA install with genuine offline support.
 
-Not built yet: path creation and editing, the lock-it-the-night-before flow, real timers with
-hard stops, persistence, templates and chains, task breakdown, skins, and scenic mode.
-State currently starts from `src/data/seed.ts` and lives in memory.
+Not built yet: real timers with hard stops, recurring rules, natural-language entry, saved
+templates and chains, task breakdown, notifications, export/backup, skins, and scenic mode.
+A fresh install is seeded once from `src/data/seed.ts` so there's something to look at.
 
 ## Stack
 

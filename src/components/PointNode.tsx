@@ -9,10 +9,21 @@ interface Props {
   ordinal: number;
   onStart: (id: string) => void;
   onClear: (id: string) => void;
+  /** While editing, doing controls give way to arranging controls. */
+  editing?: boolean;
+  tools?: ReactNode;
   children?: ReactNode;
 }
 
-export function PointNode({ view, ordinal, onStart, onClear, children }: Props) {
+export function PointNode({
+  view,
+  ordinal,
+  onStart,
+  onClear,
+  editing = false,
+  tools,
+  children,
+}: Props) {
   const { point, status, progress } = view;
   const style = { '--p': `${Math.round(progress * 100)}%` } as CSSProperties;
   const cleared = point.completedAt !== null;
@@ -57,7 +68,7 @@ export function PointNode({ view, ordinal, onStart, onClear, children }: Props) 
           the smallest move that begins it, because that's the version of the
           ask that's small enough to be trivial to say yes to.
         */}
-        {status === 'live' && !cleared && (
+        {!editing && status === 'live' && !cleared && (
           underway ? (
             <button type="button" className="go" onClick={() => onClear(point.id)}>
               Mark it cleared ►
@@ -70,6 +81,7 @@ export function PointNode({ view, ordinal, onStart, onClear, children }: Props) 
         )}
       </div>
 
+      {tools}
       {children}
     </li>
   );

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { RestView } from '../lib/route';
 import { restTrailLength } from '../lib/time';
 
@@ -8,7 +8,7 @@ import { restTrailLength } from '../lib/time';
  * complete, dismiss, or skip, because the whole job of this segment is to
  * take up legitimate room on the path.
  */
-export function RestNode({ view }: { view: RestView }) {
+export function RestNode({ view, tools }: { view: RestView; tools?: ReactNode }) {
   const { rest, ahead } = view;
   const style = { '--len': `${restTrailLength(rest.minutes)}px` } as CSSProperties;
 
@@ -19,6 +19,7 @@ export function RestNode({ view }: { view: RestView }) {
         <b>REST{rest.label ? ` · ${rest.label}` : ''}</b> {rest.minutes} MIN{' '}
         <em>NO ACTION</em>
       </div>
+      {tools}
     </li>
   );
 }
