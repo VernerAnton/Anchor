@@ -71,6 +71,18 @@ export function createLocalRepository(userId: string): AnchorRepository {
     notify(key);
   };
 
+  /**
+   * The stale-echo guard, mirrored from the Firestore side so the two backends
+   * behave identically: a document carrying a lower version than what's stored
+   * is an out-of-order write and is refused. Missing versions (docs written by
+   * an older build) count as 0 and never block.
+   */
+  const writeVersioned = (key: string, value: { version?: number }) => {
+    const existing = readJson<{ version?: number }>(key);
+    if (existing && (existing.version ?? 0) > (value.version ?? 0)) return;
+    write(key, value);
+  };
+
   const watch = (matches: (key: string) => boolean, run: () => void): Unsubscribe => {
     const watcher: Watcher = { matches, run };
     watchers.add(watcher);
@@ -96,7 +108,7 @@ export function createLocalRepository(userId: string): AnchorRepository {
     },
 
     async savePath(path) {
-      write(localKey(pathDoc(userId, path.date)), path);
+      writeVersioned(localKey(pathDoc(userId, path.date)), path);
     },
 
     async deletePath(date) {
@@ -122,7 +134,7 @@ export function createLocalRepository(userId: string): AnchorRepository {
     },
 
     async saveDay(day) {
-      write(localKey(dayDoc(userId, day.date)), day);
+      writeVersioned(localKey(dayDoc(userId, day.date)), day);
     },
 
     async getSettings() {
@@ -134,7 +146,7 @@ export function createLocalRepository(userId: string): AnchorRepository {
     },
 
     async saveSettings(settings) {
-      write(localKey(settingsDoc(userId)), settings);
+      writeVersioned(localKey(settingsDoc(userId)), settings);
     },
   };
 }

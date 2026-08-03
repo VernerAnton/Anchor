@@ -11,9 +11,16 @@ import { SCHEMA_VERSION } from './keys';
  * mutation can be reasoned about — and tested — without a store at all.
  */
 
-/** Stamps the write clock. Every mutation ends here. */
+/**
+ * Stamps the write. Every mutation ends here.
+ *
+ * The version bump is synchronous and happens before anything async — the
+ * discipline the working sync layer proved out. By the time a write is in
+ * flight, local state already carries the higher version, so a stale echo of
+ * the previous write can never overwrite what you just did.
+ */
 function touch(path: Path): Path {
-  return { ...path, updatedAt: Date.now() };
+  return { ...path, version: (path.version ?? 0) + 1, updatedAt: Date.now() };
 }
 
 function mapPoint(path: Path, id: string, fn: (point: Point) => Point): Path {
@@ -67,6 +74,7 @@ export function emptyPath(date: string): Path {
     endsAt: 9 * 60 + 30,
     segments: [],
     schemaVersion: SCHEMA_VERSION,
+    version: 0,
     updatedAt: Date.now(),
   };
 }

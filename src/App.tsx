@@ -24,7 +24,9 @@ import {
   updatePoint,
   updateRest,
 } from './store/mutations';
+import type { SyncMode } from './store';
 import { Atmosphere } from './components/Atmosphere';
+import { SyncSettings } from './components/SyncSettings';
 import { Header } from './components/Header';
 import { ModeToggle } from './components/ModeToggle';
 import { DayNav } from './components/DayNav';
@@ -41,7 +43,7 @@ type Editing =
   | { kind: 'point'; id: string | null }
   | { kind: 'rest'; id: string | null };
 
-export function App() {
+export function App({ syncMode }: { syncMode: SyncMode }) {
   const { now, date: clockDate } = useNow();
   const today = toDateKey(clockDate);
 
@@ -49,6 +51,7 @@ export function App() {
   const [arranging, setArranging] = useState(false);
   const [editor, setEditor] = useState<Editing>({ kind: 'none' });
   const [previous, setPrevious] = useState<Path | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const { settings } = useSettings();
   const { path, loading } = usePath(viewed);
@@ -127,6 +130,7 @@ export function App() {
     void repository.saveSettings({
       ...settings,
       markerMode: settings.markerMode === 'live' ? 'fixed' : 'live',
+      version: (settings.version ?? 0) + 1,
       updatedAt: Date.now(),
     });
 
@@ -188,7 +192,18 @@ export function App() {
       <Atmosphere />
       <main className="shell">
         <Header date={clockDate} now={now} routeNumber={routeNumber(days)} />
-        <ModeToggle />
+        <div className="toprow">
+          <ModeToggle />
+          <button
+            type="button"
+            className={`syncbtn${syncMode === 'cloud' ? ' cloud' : ''}`}
+            onClick={() => setSyncOpen((open) => !open)}
+            aria-expanded={syncOpen}
+          >
+            {syncMode === 'cloud' ? 'SYNC · ON' : 'SYNC'}
+          </button>
+        </div>
+        {syncOpen && <SyncSettings mode={syncMode} onClose={() => setSyncOpen(false)} />}
         <DayNav
           date={viewed}
           today={today}

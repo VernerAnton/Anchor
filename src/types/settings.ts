@@ -10,7 +10,9 @@ import { SCHEMA_VERSION } from '../store/keys';
  */
 export interface Settings {
   schemaVersion: number;
-  /** Epoch ms. Last-write-wins when two devices disagree. */
+  /** Monotonic write counter. See Path.version. */
+  version: number;
+  /** Epoch ms of the last write. Informational only. */
   updatedAt: number;
   markerMode: MarkerMode;
 }
@@ -18,6 +20,7 @@ export interface Settings {
 export function defaultSettings(): Settings {
   return {
     schemaVersion: SCHEMA_VERSION,
+    version: 1,
     updatedAt: Date.now(),
     markerMode: 'live',
   };

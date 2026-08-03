@@ -105,7 +105,14 @@ export interface Path {
   endsAt: number;
   segments: Segment[];
   schemaVersion: number;
-  /** Epoch ms. Last-write-wins when two devices disagree. */
+  /**
+   * Monotonic write counter, bumped synchronously before every write. This —
+   * not the wall clock — is what resolves two devices disagreeing: a snapshot
+   * carrying a lower version than local state is a stale echo and is refused.
+   * Proven pattern from the other app's sync layer; immune to clock skew.
+   */
+  version: number;
+  /** Epoch ms of the last write. Informational only — never used to resolve. */
   updatedAt: number;
 }
 
@@ -122,6 +129,8 @@ export interface DayRecord {
   date: string;
   pointsCleared: number;
   schemaVersion: number;
-  /** Epoch ms. Last-write-wins when two devices disagree. */
+  /** Monotonic write counter. See Path.version. */
+  version: number;
+  /** Epoch ms of the last write. Informational only. */
   updatedAt: number;
 }

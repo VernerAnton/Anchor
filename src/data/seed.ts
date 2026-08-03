@@ -22,6 +22,7 @@ export function buildSeedPath(date: string): Path {
     lockedAt: at(23, 0),
     endsAt: at(9, 30),
     schemaVersion: SCHEMA_VERSION,
+    version: 1,
     updatedAt: Date.now(),
     segments: [
       {
@@ -110,6 +111,7 @@ export function buildSeedDays(today: string): DayRecord[] {
     date: shiftDate(today, i - PAST_DAYS.length),
     pointsCleared,
     schemaVersion: SCHEMA_VERSION,
+    version: 1,
     updatedAt: Date.now(),
   }));
 }

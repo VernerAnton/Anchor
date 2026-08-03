@@ -18,6 +18,10 @@ export function dayRecordFor(path: Path): DayRecord {
     date: path.date,
     pointsCleared,
     schemaVersion: SCHEMA_VERSION,
+    // The path's own version, not a fresh counter: two devices holding the
+    // same path state derive byte-identical records, and a newer path state
+    // always carries the higher version. Monotonic and idempotent at once.
+    version: path.version,
     updatedAt: Date.now(),
   };
 }

@@ -93,8 +93,16 @@ last-write-wins, which is the right trade when it's one person on two devices.
 other without a refresh, over the `storage` event. That's genuinely two clients syncing, and
 it's how the subscription plumbing gets verified before any network is involved.
 
-Identity is stubbed at `src/store/identity.ts`. Whatever the eventual auth model, that one
-function is what changes.
+**Cloud sync** is the working system from the user's other app, ported. Identity is a
+sync key — a user-chosen phrase, no accounts, no sign-in; the same key on another device
+means the same data. With no key set (or no Firebase config in the build) the app runs
+purely local, which is a full mode rather than a degraded one. With a key, the Firestore
+backend loads via dynamic import (the SDK never reaches local-only users), Firestore's
+IndexedDB cache durably queues offline writes for replay, and connecting a device first
+pushes its local data up through a guarded migration that can never wipe existing cloud
+data. Conflicts resolve by per-document integer versions bumped synchronously before every
+write — immune to clock skew, and stale echoes are refused by both backends identically.
+Setup: `docs/firebase-setup.md`.
 
 ## Building a day
 

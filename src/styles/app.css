@@ -184,6 +184,35 @@ button {
   cursor: not-allowed;
 }
 
+.toprow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.syncbtn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--fog);
+  padding: 6px 13px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2.4px;
+}
+/* Connected = proof something is happening, hence acid. */
+.syncbtn.cloud {
+  color: var(--acid);
+  border-color: #c6ff0044;
+}
+.sync-note {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--fog);
+  line-height: 1.8;
+}
+
 /* ── DAY NAV ── */
 .daynav {
   display: flex;
