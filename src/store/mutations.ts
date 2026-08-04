@@ -1,4 +1,6 @@
 import type { Path, Point, Rest, Segment } from '../types/path';
+import type { Priority, Project, ProjectColor, Task } from '../types/task';
+import { PROJECT_COLOR_IDS } from '../types/task';
 import { newId } from '../lib/id';
 import { SCHEMA_VERSION } from './keys';
 
@@ -21,6 +23,24 @@ import { SCHEMA_VERSION } from './keys';
  */
 function touch(path: Path): Path {
   return { ...path, version: (path.version ?? 0) + 1, updatedAt: Date.now() };
+}
+
+/**
+ * Keeps the end of the route past the last thing on it. A point scheduled
+ * beyond the old end would otherwise sit on top of the "path stops here"
+ * marker, which would be claiming the day ended before its last task.
+ */
+function extendEnd(path: Path): Path {
+  const latest = path.segments.reduce((end, segment) => {
+    if (segment.kind !== 'point') return end;
+    const mins =
+      segment.duration.kind === 'fixed'
+        ? segment.duration.minutes
+        : segment.duration.estimateMinutes;
+    return Math.max(end, segment.startsAt + mins);
+  }, 0);
+  const endsAt = Math.min(24 * 60, Math.max(path.endsAt, latest + 15));
+  return endsAt === path.endsAt ? path : { ...path, endsAt };
 }
 
 function mapPoint(path: Path, id: string, fn: (point: Point) => Point): Path {
@@ -80,12 +100,68 @@ export function emptyPath(date: string): Path {
 }
 
 export function addPoint(path: Path, draft: PointDraft): Path {
-  const point: Point = { kind: 'point', id: newId(), ...draft, startedAt: null, completedAt: null };
-  return touch({ ...path, segments: [...path.segments, point] });
+  const point: Point = {
+    kind: 'point',
+    id: newId(),
+    taskId: null,
+    projectId: null,
+    ...draft,
+    startedAt: null,
+    completedAt: null,
+  };
+  return touch(extendEnd({ ...path, segments: [...path.segments, point] }));
+}
+
+/**
+ * Schedules a library task onto a day.
+ *
+ * The task's display fields are *copied*, not referenced. That's what freezes
+ * history: the day records what it said on the day, and renaming the task
+ * later changes the library and every future scheduling of it while reaching
+ * nothing already walked. `taskId` keeps the provenance so the two can still
+ * be related when that's useful.
+ */
+export function addPointFromTask(path: Path, task: Task, startsAt: number): Path {
+  const point: Point = {
+    kind: 'point',
+    id: newId(),
+    taskId: task.id,
+    projectId: task.projectId,
+    title: task.title,
+    firstMove: task.firstMove,
+    startsAt,
+    duration: task.defaultDuration,
+    type: task.type,
+    label: null,
+    startedAt: null,
+    completedAt: null,
+  };
+  return touch(extendEnd({ ...path, segments: [...path.segments, point] }));
+}
+
+/**
+ * Records that a point happened, whatever the clock says about it.
+ *
+ * Separate from `clearPoint` because this is logging rather than doing: a point
+ * done early, done late, or done while the path thought it had gone by is still
+ * done. Refusing to record it would make the ledger a record of compliance
+ * instead of a record of what happened.
+ */
+export function logPoint(path: Path, id: string, at: number): Path {
+  return mapPoint(path, id, (point) => ({
+    ...point,
+    startedAt: point.startedAt ?? at,
+    completedAt: at,
+  }));
+}
+
+/** Undoes a log. Mis-taps happen, and a wrong record is worse than none. */
+export function unlogPoint(path: Path, id: string): Path {
+  return mapPoint(path, id, (point) => ({ ...point, startedAt: null, completedAt: null }));
 }
 
 export function updatePoint(path: Path, id: string, draft: PointDraft): Path {
-  return mapPoint(path, id, (point) => ({ ...point, ...draft }));
+  return extendEnd(mapPoint(path, id, (point) => ({ ...point, ...draft })));
 }
 
 export function addRest(path: Path, minutes: number, label: string | null): Path {
@@ -134,4 +210,58 @@ export function moveSegment(path: Path, id: string, direction: -1 | 1): Path {
  */
 export function setLocked(path: Path, lockedAt: number | null): Path {
   return touch({ ...path, lockedAt });
+}
+
+// ── The library ────────────────────────────────────────────────────────────
+
+export type TaskDraft = Pick<
+  Task,
+  'title' | 'firstMove' | 'type' | 'defaultDuration' | 'projectId' | 'priority'
+>;
+
+export function newTask(draft: TaskDraft): Task {
+  return {
+    id: newId(),
+    ...draft,
+    archived: false,
+    schemaVersion: SCHEMA_VERSION,
+    version: 1,
+    updatedAt: Date.now(),
+  };
+}
+
+export function editTask(task: Task, draft: TaskDraft): Task {
+  return { ...task, ...draft, version: task.version + 1, updatedAt: Date.now() };
+}
+
+/**
+ * Archiving rather than deleting is the default for anything a past day might
+ * point at — the record should still be able to say where its work came from.
+ */
+export function archiveTask(task: Task, archived: boolean): Task {
+  return { ...task, archived, version: task.version + 1, updatedAt: Date.now() };
+}
+
+export function newProject(name: string, order: number, colorId?: ProjectColor): Project {
+  return {
+    id: newId(),
+    name,
+    colorId: colorId ?? PROJECT_COLOR_IDS[order % PROJECT_COLOR_IDS.length]!,
+    order,
+    archived: false,
+    schemaVersion: SCHEMA_VERSION,
+    version: 1,
+    updatedAt: Date.now(),
+  };
+}
+
+export function editProject(
+  project: Project,
+  changes: Partial<Pick<Project, 'name' | 'colorId' | 'order' | 'archived'>>,
+): Project {
+  return { ...project, ...changes, version: project.version + 1, updatedAt: Date.now() };
+}
+
+export function setTaskPriority(task: Task, priority: Priority | null): Task {
+  return { ...task, priority, version: task.version + 1, updatedAt: Date.now() };
 }

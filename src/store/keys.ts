@@ -7,7 +7,8 @@
  * relocate anything.
  */
 
-export const SCHEMA_VERSION = 1;
+/** 2 added the task library: Point.taskId and Point.projectId. */
+export const SCHEMA_VERSION = 2;
 
 const LOCAL_PREFIX = 'anchor:v1';
 
@@ -25,6 +26,22 @@ export function daysCollection(userId: string): string[] {
 
 export function dayDoc(userId: string, date: string): string[] {
   return [...daysCollection(userId), date];
+}
+
+export function tasksCollection(userId: string): string[] {
+  return ['users', userId, 'tasks'];
+}
+
+export function taskDoc(userId: string, id: string): string[] {
+  return [...tasksCollection(userId), id];
+}
+
+export function projectsCollection(userId: string): string[] {
+  return ['users', userId, 'projects'];
+}
+
+export function projectDoc(userId: string, id: string): string[] {
+  return [...projectsCollection(userId), id];
 }
 
 export function settingsDoc(userId: string): string[] {

@@ -28,6 +28,8 @@ export function buildSeedPath(date: string): Path {
       {
         kind: 'point',
         id: 'p1',
+        taskId: null,
+        projectId: null,
         title: 'Bag by the door',
         firstMove: 'Put the bag down by the door',
         startsAt: at(6, 0),
@@ -41,6 +43,8 @@ export function buildSeedPath(date: string): Path {
       {
         kind: 'point',
         id: 'p2',
+        taskId: null,
+        projectId: null,
         title: 'Walk + gym session',
         firstMove: 'Shoes on, out the door',
         startsAt: at(6, 25),
@@ -54,6 +58,8 @@ export function buildSeedPath(date: string): Path {
       {
         kind: 'point',
         id: 'p3',
+        taskId: null,
+        projectId: null,
         title: 'Inbox sweep',
         firstMove: 'Open the inbox, read one',
         startsAt: at(7, 40),
@@ -71,6 +77,8 @@ export function buildSeedPath(date: string): Path {
         // every refresh no matter how many times you declined it.
         kind: 'point',
         id: 'p4',
+        taskId: null,
+        projectId: null,
         title: 'Cut & cook the chicken',
         firstMove: 'Pick up the knife',
         startsAt: at(8, 5),
@@ -84,6 +92,8 @@ export function buildSeedPath(date: string): Path {
       {
         kind: 'point',
         id: 'p5',
+        taskId: null,
+        projectId: null,
         title: 'ADM-201 — one Pomodoro',
         firstMove: 'Open the file, write one line',
         startsAt: at(8, 45),

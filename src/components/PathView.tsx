@@ -1,57 +1,51 @@
 import type { RouteView } from '../lib/route';
+import type { Project } from '../types/task';
 import { toClock } from '../lib/time';
 import { PointNode } from './PointNode';
 import { RestNode } from './RestNode';
 import { MomentumOffer } from './MomentumOffer';
-import { SegmentTools } from './SegmentTools';
 
 interface Props {
   route: RouteView;
   endsAt: number;
   /** The point holding an open offer, if any. */
   offerFor: string | null;
-  editing: boolean;
+  projects: Project[];
   onStart: (id: string) => void;
   onClear: (id: string) => void;
+  onLog: (id: string) => void;
+  onUnlog: (id: string) => void;
   onAcceptOffer: () => void;
   onDeclineOffer: () => void;
-  onEditSegment: (id: string) => void;
-  onMoveSegment: (id: string, direction: -1 | 1) => void;
-  onRemoveSegment: (id: string) => void;
 }
 
+/**
+ * The route as a place you run, not a thing you arrange.
+ *
+ * Every control here either does something or records that something was done.
+ * Nothing adds, removes or reorders — that moved to the workshop, because
+ * re-deciding the plan while standing on it is the failure this app is built
+ * to route around.
+ */
 export function PathView({
   route,
   endsAt,
   offerFor,
-  editing,
+  projects,
   onStart,
   onClear,
+  onLog,
+  onUnlog,
   onAcceptOffer,
   onDeclineOffer,
-  onEditSegment,
-  onMoveSegment,
-  onRemoveSegment,
 }: Props) {
   let ordinal = 0;
-
-  const toolsFor = (id: string) =>
-    editing ? (
-      <SegmentTools
-        onEdit={() => onEditSegment(id)}
-        onMoveUp={() => onMoveSegment(id, -1)}
-        onMoveDown={() => onMoveSegment(id, 1)}
-        onRemove={() => onRemoveSegment(id)}
-      />
-    ) : undefined;
 
   return (
     <ol className="path">
       {route.segments.map((segment) => {
         if (segment.kind === 'rest') {
-          return (
-            <RestNode key={segment.rest.id} view={segment} tools={toolsFor(segment.rest.id)} />
-          );
+          return <RestNode key={segment.rest.id} view={segment} />;
         }
 
         ordinal += 1;
@@ -62,10 +56,11 @@ export function PathView({
             key={segment.point.id}
             view={segment}
             ordinal={ordinal}
+            project={projects.find((p) => p.id === segment.point.projectId)}
             onStart={onStart}
             onClear={onClear}
-            editing={editing}
-            tools={toolsFor(segment.point.id)}
+            onLog={onLog}
+            onUnlog={onUnlog}
           >
             {showOffer && route.upNext && (
               <MomentumOffer

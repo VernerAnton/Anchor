@@ -14,8 +14,18 @@ import {
 } from 'firebase/firestore';
 import type { DayRecord, Path } from '../types/path';
 import type { AnchorRepository, Unsubscribe } from './repository';
-import { dayDoc, daysCollection, pathDoc, pathsCollection, settingsDoc } from './keys';
-import { parseDayRecord, parsePath, parseSettings } from './schemas';
+import {
+  dayDoc,
+  daysCollection,
+  pathDoc,
+  pathsCollection,
+  projectDoc,
+  projectsCollection,
+  settingsDoc,
+  taskDoc,
+  tasksCollection,
+} from './keys';
+import { parseDayRecord, parsePath, parseProject, parseSettings, parseTask } from './schemas';
 import { createDb } from './firebase';
 
 /**
@@ -78,6 +88,29 @@ export function createFirestoreRepository(syncKey: string): AnchorRepository {
       (error) => console.warn(`Cloud sync error (${key}):`, error),
     );
   };
+
+  /**
+   * Whole-collection listener for the id-keyed library. No range: a personal
+   * task list is small enough to hold entirely, and holding it entirely is what
+   * lets build mode filter and group without a round trip per keystroke.
+   */
+  const subscribeCollection = <T>(
+    segments: string[],
+    parseFn: (data: unknown, context: string) => T | null,
+    cb: (items: T[]) => void,
+  ): Unsubscribe =>
+    onSnapshot(
+      collection(db, segments[0]!, ...segments.slice(1)),
+      { includeMetadataChanges: true },
+      (snap) => {
+        cb(
+          snap.docs
+            .map((d) => parseFn(d.data(), `${segments.join('/')}/${d.id}`))
+            .filter((item): item is T => item !== null),
+        );
+      },
+      (error) => console.warn(`Cloud sync error (${segments.join('/')}):`, error),
+    );
 
   const dateRange = (segments: string[], from: string, to: string): Query =>
     query(
@@ -147,6 +180,32 @@ export function createFirestoreRepository(syncKey: string): AnchorRepository {
 
     async saveDay(day) {
       await save(dayDoc(syncKey, day.date), day);
+    },
+
+    subscribeTasks(cb) {
+      return subscribeCollection(tasksCollection(syncKey), parseTask, cb);
+    },
+
+    async saveTask(task) {
+      await save(taskDoc(syncKey, task.id), task);
+    },
+
+    async deleteTask(id) {
+      delivered.delete(taskDoc(syncKey, id).join('/'));
+      await deleteDoc(ref(taskDoc(syncKey, id)));
+    },
+
+    subscribeProjects(cb) {
+      return subscribeCollection(projectsCollection(syncKey), parseProject, cb);
+    },
+
+    async saveProject(project) {
+      await save(projectDoc(syncKey, project.id), project);
+    },
+
+    async deleteProject(id) {
+      delivered.delete(projectDoc(syncKey, id).join('/'));
+      await deleteDoc(ref(projectDoc(syncKey, id)));
     },
 
     async getSettings() {

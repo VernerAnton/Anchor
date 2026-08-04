@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DayRecord, Path } from '../types/path';
+import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 import { defaultSettings } from '../types/settings';
 import { repository } from '../store';
@@ -40,6 +41,25 @@ export function useDays(from: string, to: string): { days: DayRecord[]; loading:
   }, [from, to]);
 
   return { days, loading };
+}
+
+/** The whole library, held in memory — small, and build mode filters it live. */
+export function useTasks(): Task[] {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  useEffect(() => repository.subscribeTasks(setTasks), []);
+  return tasks;
+}
+
+export function useProjects(): Project[] {
+  const [projects, setProjects] = useState<Project[]>([]);
+  useEffect(
+    () =>
+      repository.subscribeProjects((next) =>
+        setProjects([...next].sort((a, b) => a.order - b.order)),
+      ),
+    [],
+  );
+  return projects;
 }
 
 export function useSettings(): { settings: Settings; loading: boolean } {

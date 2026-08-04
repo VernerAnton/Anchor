@@ -6,6 +6,7 @@ import { initRepository } from './store';
 import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/app.css';
+import './styles/build.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('No #root element');

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Path, Point, Rest } from './types/path';
+import type { Path } from './types/path';
 import { buildRoute } from './lib/route';
 import { ALL_TIME, buildLedger } from './lib/ledger';
 import { dayRecordFor } from './lib/dayRecord';
@@ -7,54 +7,46 @@ import { newId } from './lib/id';
 import { runRollover } from './lib/rollover';
 import { shiftDate, toDateKey } from './lib/time';
 import { useNow } from './hooks/useNow';
-import { useDays, usePath, useSettings } from './hooks/useStore';
+import { useDays, usePath, useProjects, useSettings } from './hooks/useStore';
 import { repository } from './store';
+import type { SyncMode } from './store';
 import { bootstrap } from './store/bootstrap';
-import type { PointDraft } from './store/mutations';
 import {
   addPoint,
-  addRest,
   clearPoint,
   emptyPath,
-  moveSegment,
-  removeSegment,
+  logPoint,
   retimePoint,
   setLocked,
   startPoint,
-  updatePoint,
-  updateRest,
+  unlogPoint,
 } from './store/mutations';
-import type { SyncMode } from './store';
+import { seedRouteNumber } from './data/seed';
 import { Atmosphere } from './components/Atmosphere';
-import { SyncSettings } from './components/SyncSettings';
 import { Header } from './components/Header';
 import { ModeToggle } from './components/ModeToggle';
 import { DayNav } from './components/DayNav';
 import { RouteStatus } from './components/RouteStatus';
 import { PathView } from './components/PathView';
-import { PointEditor } from './components/PointEditor';
-import { RestEditor } from './components/RestEditor';
 import { EmptyRoute } from './components/EmptyRoute';
 import { Ledger } from './components/Ledger';
-
-/** Which editor is open, if any. */
-type Editing =
-  | { kind: 'none' }
-  | { kind: 'point'; id: string | null }
-  | { kind: 'rest'; id: string | null };
+import { BuildMode } from './components/build/BuildMode';
 
 export function App({ syncMode }: { syncMode: SyncMode }) {
   const { now, date: clockDate } = useNow();
   const today = toDateKey(clockDate);
 
   const [viewed, setViewed] = useState(today);
-  const [arranging, setArranging] = useState(false);
-  const [editor, setEditor] = useState<Editing>({ kind: 'none' });
   const [previous, setPrevious] = useState<Path | null>(null);
-  const [syncOpen, setSyncOpen] = useState(false);
+  /**
+   * The app always opens on the route. You never land in the workshop — you go
+   * there deliberately, which is the whole point of it being a separate place.
+   */
+  const [building, setBuilding] = useState(false);
 
   const { settings } = useSettings();
   const { path, loading } = usePath(viewed);
+  const projects = useProjects();
   // All of history, because the running total spans it. Daily records are tiny
   // and there is one per day; if this ever needs bounding, a rolled-up total
   // document replaces the sum rather than the window shrinking.
@@ -71,6 +63,9 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
     repository.listPaths(ALL_TIME, shiftDate(viewed, -1)).then((found) => {
       if (live) setPrevious(found.at(-1) ?? null);
     });
+    return () => {
+      live = false;
+    };
   }, [viewed, path]);
 
   /**
@@ -92,8 +87,8 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
    * Mutate, then write. The one place that will learn about the network.
    *
    * The day's ledger row is rewritten alongside the path, so the two can never
-   * drift — deleting a cleared point takes its credit with it, which is only
-   * correct because the row is derived rather than incremented.
+   * drift — un-logging a point takes its credit back, which is only correct
+   * because the row is derived rather than incremented.
    */
   const commit = (next: Path) => {
     void repository.savePath(next);
@@ -107,8 +102,9 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
   const clear = (id: string) => {
     if (!path) return;
     commit(clearPoint(path, id, now));
-    // Clearing a point is the only thing that ever raises the offer, and only
-    // when there's something left to offer.
+    // Clearing the live point is the only thing that ever raises the offer, and
+    // only when there's something left to offer. Logging a point out of order
+    // deliberately doesn't — you're recording history, not building momentum.
     setOfferFor(route?.upNext ? id : null);
   };
 
@@ -134,27 +130,13 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
       updatedAt: Date.now(),
     });
 
-  const saveDraft = (draft: PointDraft) => {
-    const id = editor.kind === 'point' ? editor.id : null;
-    const base = path ?? emptyPath(viewed);
-    commit(id ? updatePoint(base, id, draft) : addPoint(base, draft));
-    setEditor({ kind: 'none' });
-  };
-
-  const saveRest = (minutes: number, label: string | null) => {
-    const id = editor.kind === 'rest' ? editor.id : null;
-    const base = path ?? emptyPath(viewed);
-    commit(id ? updateRest(base, id, minutes, label) : addRest(base, minutes, label));
-    setEditor({ kind: 'none' });
-  };
-
-  /** One question in, one route out. */
+  /** One question in, one route out. Stays an ad-hoc point on purpose. */
   const startFromNothing = (firstThing: string) =>
     commit(
       addPoint(emptyPath(viewed), {
         title: firstThing,
         firstMove: firstThing,
-        startsAt: defaultStart(viewed === today ? now : 8 * 60, null),
+        startsAt: viewed === today ? Math.ceil(now / 30) * 30 : 8 * 60,
         duration: { kind: 'fixed', minutes: 15 },
         type: 'physical',
         label: null,
@@ -178,12 +160,14 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
     });
   };
 
-  const editingSegment =
-    editor.kind === 'point' && editor.id
-      ? (path?.segments.find((s) => s.id === editor.id) as Point | undefined)
-      : editor.kind === 'rest' && editor.id
-        ? (path?.segments.find((s) => s.id === editor.id) as Rest | undefined)
-        : undefined;
+  if (building) {
+    return (
+      <>
+        <Atmosphere />
+        <BuildMode syncMode={syncMode} onClose={() => setBuilding(false)} />
+      </>
+    );
+  }
 
   const hasRoute = Boolean(path && path.segments.length > 0);
 
@@ -196,26 +180,19 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
           <ModeToggle />
           <button
             type="button"
-            className={`syncbtn${syncMode === 'cloud' ? ' cloud' : ''}`}
-            onClick={() => setSyncOpen((open) => !open)}
-            aria-expanded={syncOpen}
+            className="syncbtn"
+            onClick={() => setBuilding(true)}
+            aria-label="Open the workshop"
           >
-            {syncMode === 'cloud' ? 'SYNC · ON' : 'SYNC'}
+            ⚙ BUILD
           </button>
         </div>
-        {syncOpen && <SyncSettings mode={syncMode} onClose={() => setSyncOpen(false)} />}
         <DayNav
           date={viewed}
           today={today}
-          editing={arranging}
           onChange={(next) => {
             setViewed(next);
-            setEditor({ kind: 'none' });
             setOfferFor(null);
-          }}
-          onToggleEditing={() => {
-            setArranging((on) => !on);
-            setEditor({ kind: 'none' });
           }}
         />
 
@@ -236,51 +213,18 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
               route={route}
               endsAt={path.endsAt}
               offerFor={offerFor}
-              editing={arranging}
+              projects={projects}
               onStart={(id) => withPath((current) => startPoint(current, id, now))}
               onClear={clear}
+              onLog={(id) => withPath((current) => logPoint(current, id, now))}
+              onUnlog={(id) => withPath((current) => unlogPoint(current, id))}
               onAcceptOffer={acceptOffer}
               onDeclineOffer={declineOffer}
-              onEditSegment={(id) => {
-                const segment = path.segments.find((s) => s.id === id);
-                setEditor({ kind: segment?.kind === 'rest' ? 'rest' : 'point', id });
-              }}
-              onMoveSegment={(id, direction) =>
-                withPath((current) => moveSegment(current, id, direction))
-              }
-              onRemoveSegment={(id) => withPath((current) => removeSegment(current, id))}
             />
           </>
         )}
 
-        {editor.kind === 'point' && (
-          <PointEditor
-            point={(editingSegment as Point | undefined) ?? null}
-            defaultStartsAt={defaultStart(viewed === today ? now : 8 * 60, path)}
-            onSave={saveDraft}
-            onCancel={() => setEditor({ kind: 'none' })}
-          />
-        )}
-        {editor.kind === 'rest' && (
-          <RestEditor
-            rest={(editingSegment as Rest | undefined) ?? null}
-            onSave={saveRest}
-            onCancel={() => setEditor({ kind: 'none' })}
-          />
-        )}
-
-        {arranging && editor.kind === 'none' && (
-          <div className="adders">
-            <button type="button" onClick={() => setEditor({ kind: 'point', id: null })}>
-              + Point
-            </button>
-            <button type="button" onClick={() => setEditor({ kind: 'rest', id: null })}>
-              + Rest
-            </button>
-          </div>
-        )}
-
-        {!loading && !hasRoute && editor.kind === 'none' && (
+        {!loading && !hasRoute && (
           <EmptyRoute
             previousLabel={previous ? labelFor(previous.date, today) : null}
             onStart={startFromNothing}
@@ -296,15 +240,7 @@ export function App({ syncMode }: { syncMode: SyncMode }) {
 
 /** Counts routes walked. Not days in a row — nothing here can be broken. */
 function routeNumber(days: { pointsCleared: number }[]): number {
-  return days.filter((day) => day.pointsCleared > 0).length;
-}
-
-/** A new point lands after whatever is already there, on the next half hour. */
-function defaultStart(fallback: number, path: Path | null): number {
-  const points = path?.segments.filter((s) => s.kind === 'point') ?? [];
-  const last = points.at(-1);
-  const base = last ? last.startsAt + 30 : fallback;
-  return Math.min(23 * 60 + 30, Math.ceil(base / 30) * 30);
+  return days.filter((day) => day.pointsCleared > 0).length || seedRouteNumber;
 }
 
 function labelFor(date: string, today: string): string {

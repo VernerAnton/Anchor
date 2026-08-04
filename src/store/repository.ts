@@ -1,4 +1,5 @@
 import type { DayRecord, Path } from '../types/path';
+import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 
 export type Unsubscribe = () => void;
@@ -30,6 +31,19 @@ export interface AnchorRepository {
   getDays(from: string, to: string): Promise<DayRecord[]>;
   subscribeDays(from: string, to: string, cb: (days: DayRecord[]) => void): Unsubscribe;
   saveDay(day: DayRecord): Promise<void>;
+
+  /**
+   * The library. Unlike paths and days these are id-keyed rather than
+   * date-keyed, and small enough to subscribe to whole — a personal task list
+   * is hundreds of documents, not millions.
+   */
+  subscribeTasks(cb: (tasks: Task[]) => void): Unsubscribe;
+  saveTask(task: Task): Promise<void>;
+  deleteTask(id: string): Promise<void>;
+
+  subscribeProjects(cb: (projects: Project[]) => void): Unsubscribe;
+  saveProject(project: Project): Promise<void>;
+  deleteProject(id: string): Promise<void>;
 
   getSettings(): Promise<Settings | null>;
   subscribeSettings(cb: (settings: Settings | null) => void): Unsubscribe;

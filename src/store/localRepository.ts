@@ -1,4 +1,5 @@
 import type { DayRecord, Path } from '../types/path';
+import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 import type { AnchorRepository, Unsubscribe } from './repository';
 import {
@@ -7,7 +8,11 @@ import {
   localKey,
   pathDoc,
   pathsCollection,
+  projectDoc,
+  projectsCollection,
   settingsDoc,
+  taskDoc,
+  tasksCollection,
 } from './keys';
 
 /**
@@ -50,6 +55,21 @@ function scan<T extends { date: string }>(prefix: string, from: string, to: stri
     if (doc && doc.date >= from && doc.date <= to) found.push(doc);
   }
   return found.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * The same, for id-keyed collections. Library documents have no date to filter
+ * on, so everything under the prefix comes back and the caller orders it.
+ */
+function scanAll<T>(prefix: string): T[] {
+  const found: T[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key === null || !key.startsWith(prefix)) continue;
+    const doc = readJson<T>(key);
+    if (doc) found.push(doc);
+  }
+  return found;
 }
 
 export function createLocalRepository(userId: string): AnchorRepository {
@@ -135,6 +155,42 @@ export function createLocalRepository(userId: string): AnchorRepository {
 
     async saveDay(day) {
       writeVersioned(localKey(dayDoc(userId, day.date)), day);
+    },
+
+    subscribeTasks(cb) {
+      const prefix = `${localKey(tasksCollection(userId))}:`;
+      return watch(
+        (changed) => changed.startsWith(prefix),
+        () => cb(scanAll<Task>(prefix)),
+      );
+    },
+
+    async saveTask(task) {
+      writeVersioned(localKey(taskDoc(userId, task.id)), task);
+    },
+
+    async deleteTask(id) {
+      const key = localKey(taskDoc(userId, id));
+      localStorage.removeItem(key);
+      notify(key);
+    },
+
+    subscribeProjects(cb) {
+      const prefix = `${localKey(projectsCollection(userId))}:`;
+      return watch(
+        (changed) => changed.startsWith(prefix),
+        () => cb(scanAll<Project>(prefix)),
+      );
+    },
+
+    async saveProject(project) {
+      writeVersioned(localKey(projectDoc(userId, project.id)), project);
+    },
+
+    async deleteProject(id) {
+      const key = localKey(projectDoc(userId, id));
+      localStorage.removeItem(key);
+      notify(key);
     },
 
     async getSettings() {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { DayRecord, Path } from '../types/path';
+import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 
 /**
@@ -23,6 +24,10 @@ const pointSchema = z
   .object({
     kind: z.literal('point'),
     id: z.string(),
+    // Absent on documents written before the library existed, so these default
+    // rather than failing the whole point — an old day stays a valid day.
+    taskId: z.string().nullable().catch(null),
+    projectId: z.string().nullable().catch(null),
     title: z.string(),
     firstMove: z.string(),
     startsAt: z.number(),
@@ -77,6 +82,43 @@ export const settingsSchema = z
     markerMode: z.enum(['live', 'fixed']),
   })
   .passthrough();
+
+export const projectSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    colorId: z.string(),
+    order: z.number().catch(0),
+    archived: z.boolean().catch(false),
+    schemaVersion: z.number(),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export const taskSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    firstMove: z.string(),
+    type: z.enum(['physical', 'abstract']),
+    defaultDuration: durationSchema,
+    projectId: z.string().nullable().catch(null),
+    priority: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).nullable().catch(null),
+    archived: z.boolean().catch(false),
+    schemaVersion: z.number(),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export function parseTask(data: unknown, context: string): Task | null {
+  return parse(taskSchema, data, context) as Task | null;
+}
+
+export function parseProject(data: unknown, context: string): Project | null {
+  return parse(projectSchema, data, context) as Project | null;
+}
 
 export function parsePath(data: unknown, context: string): Path | null {
   return parse(pathSchema, data, context) as Path | null;

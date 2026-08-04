@@ -31,6 +31,20 @@ export type Duration =
 export interface Point {
   kind: 'point';
   id: string;
+  /**
+   * Which library task this came from, or null for a point typed straight onto
+   * a day. Ad-hoc points are a supported first-class case, not a legacy one:
+   * routing every point through the library would add a decision to the moment
+   * you're trying to make decision-free.
+   */
+  taskId: string | null;
+  /**
+   * A *snapshot* of the project at scheduling time, not a live reference.
+   * Everything below is frozen the same way — the day records what it said on
+   * the day. Renaming a task or moving it between projects changes the library
+   * and every future scheduling of it, and reaches nothing already walked.
+   */
+  projectId: string | null;
   /** The action itself. */
   title: string;
   /**

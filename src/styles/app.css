@@ -1009,3 +1009,37 @@ button {
     animation: none !important;
   }
 }
+
+/* Logging controls — recording that something happened, as opposed to being
+   pulled toward it. Never ember: nothing should glow about a point that isn't
+   the one in front of you. */
+.log {
+  margin-top: 11px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--fog-2);
+  padding: 9px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.n.passed .log {
+  border-color: #5f739166;
+  color: var(--slate);
+}
+.undo {
+  margin-top: 8px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dashed #c6ff0033;
+  color: #c6ff0077;
+  padding: 0 0 1px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}

@@ -1,27 +1,30 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { PointView } from '../lib/route';
 import { durationMinutes } from '../lib/route';
+import type { Project } from '../types/task';
 import { toClock } from '../lib/time';
+import { ProjectMark } from './build/ProjectMark';
 
 interface Props {
   view: PointView;
   /** 1-based position among points only — rest doesn't take a node number. */
   ordinal: number;
+  project: Project | undefined;
   onStart: (id: string) => void;
   onClear: (id: string) => void;
-  /** While editing, doing controls give way to arranging controls. */
-  editing?: boolean;
-  tools?: ReactNode;
+  onLog: (id: string) => void;
+  onUnlog: (id: string) => void;
   children?: ReactNode;
 }
 
 export function PointNode({
   view,
   ordinal,
+  project,
   onStart,
   onClear,
-  editing = false,
-  tools,
+  onLog,
+  onUnlog,
   children,
 }: Props) {
   const { point, status, progress } = view;
@@ -47,6 +50,12 @@ export function PointNode({
           <span>
             NODE {String(ordinal).padStart(2, '0')} ·{' '}
             {(point.label ?? point.type).toUpperCase()}
+            {project && (
+              <>
+                {' · '}
+                <ProjectMark project={project} />
+              </>
+            )}
           </span>
           {status === 'live' ? (
             <span className="flag">
@@ -68,7 +77,7 @@ export function PointNode({
           the smallest move that begins it, because that's the version of the
           ask that's small enough to be trivial to say yes to.
         */}
-        {!editing && status === 'live' && !cleared && (
+        {status === 'live' && !cleared && (
           underway ? (
             <button type="button" className="go" onClick={() => onClear(point.id)}>
               Mark it cleared ►
@@ -79,9 +88,32 @@ export function PointNode({
             </button>
           )
         )}
+
+        {/*
+          Logging, as distinct from doing. A point done early, done late, or
+          done after the clock moved past it is still done, and the ledger is a
+          record of what happened rather than of compliance.
+
+          Deliberately quiet: no ember, because nothing should glow at you about
+          a point that isn't the one pulling you now.
+        */}
+        {status !== 'live' && !cleared && (
+          <button type="button" className="log" onClick={() => onLog(point.id)}>
+            Log it
+          </button>
+        )}
+        {/*
+          Undo stays small and off to the side. A completed point should read as
+          settled — giving every one of them a full-width control would make the
+          proof section look like a row of things still asking to be dealt with.
+        */}
+        {cleared && status !== 'live' && (
+          <button type="button" className="undo" onClick={() => onUnlog(point.id)}>
+            {toClock(point.completedAt!)} · undo
+          </button>
+        )}
       </div>
 
-      {tools}
       {children}
     </li>
   );
