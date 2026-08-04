@@ -151,7 +151,12 @@ Ask once, early. Don't relitigate.
 Branch `claude/nice-davinci-eve0kc`.
 
 **`src/store/` — the sync layer. Take this wholesale.** It is the owner's own working
-Firestore system, ported and verified, and it knows nothing about paths:
+Firestore system, ported and verified, and it knows nothing about paths.
+
+> **See `handover-firebase-sync.md` for the full picture** — architecture, the mechanics that
+> make it reliable, the exact files to copy, setup steps, and the deployment gotchas around
+> the existing Vercel domain and the PWA already installed on several devices. Read it before
+> touching storage in the rebuild. Summary follows:
 
 - **Sync-key identity** — a user-chosen phrase is the credential. No accounts, no sign-in.
   Same key on another device means the same data; no key means the app runs fully local,
@@ -186,7 +191,7 @@ Also worth taking:
 
 `anchor-frontpage.html` (canonical visual reference), `anchor-handover-v2.md` (full scope),
 `anchor-feature-spec.md`, `momentum-rules.md`, `scope-decisions.md`, the research report,
-and this document.
+`handover-firebase-sync.md` (everything about cloud sync), and this document.
 
 Also put `CLAUDE.md` (see `design/CLAUDE-template.md`) at the new repo root before starting.
 It carries the structural rules into every future session, rather than only the one where
