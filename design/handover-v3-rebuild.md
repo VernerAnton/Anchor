@@ -148,7 +148,9 @@ Ask once, early. Don't relitigate.
 
 ## What to carry over from the old repo
 
-Branch `claude/nice-davinci-eve0kc`.
+**The code is not in this repo.** This repo holds documentation only. The previous
+implementation lives in the renamed repository — `anchor-old` or whatever it was renamed to —
+on branch `claude/nice-davinci-eve0kc`. Every file path below is relative to that repo.
 
 **`src/store/` — the sync layer. Take this wholesale.** It is the owner's own working
 Firestore system, ported and verified, and it knows nothing about paths.

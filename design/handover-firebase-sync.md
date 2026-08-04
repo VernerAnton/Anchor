@@ -137,7 +137,9 @@ subscriptions, keep them as they are.
 
 ## 5. Files to copy
 
-From the old repo, branch `claude/nice-davinci-eve0kc`:
+**These files are not in this repo** — it holds documentation only. They're in the renamed
+previous repository (`anchor-old`, or whatever it became), branch
+`claude/nice-davinci-eve0kc`:
 
 | File | What it is |
 |---|---|
