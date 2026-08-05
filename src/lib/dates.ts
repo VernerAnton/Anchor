@@ -96,6 +96,23 @@ export function addMonths(date: string, months: number): string {
 }
 
 /**
+ * How many dates in [from, to] fall on a weekday in `set`. Closed-form —
+ * whole weeks contribute the set's size each, then the remainder tail is
+ * checked day by day (at most six of them) — so callers can ask about spans
+ * of years without paying for a scan.
+ */
+export function countMatchingWeekdays(from: string, to: string, set: ReadonlySet<number>): number {
+  if (to < from) return 0;
+  const span = daysBetween(from, to) + 1;
+  const weeks = Math.floor(span / 7);
+  let count = weeks * set.size;
+  for (let i = weeks * 7; i < span; i++) {
+    if (set.has((weekdayOf(from) + i) % 7)) count++;
+  }
+  return count;
+}
+
+/**
  * The Monday beginning this date's week. Used to compare weeks when a rule
  * repeats every N weeks — Monday-based to match the Monday-first weekday
  * picker, so "every other week" means what the UI shows.

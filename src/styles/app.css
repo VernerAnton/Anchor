@@ -522,6 +522,24 @@ h2 {
   gap: var(--space-1);
 }
 
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.day-grid .weekday-toggle {
+  padding: var(--space-1);
+  text-align: center;
+}
+
+.recurrence-preview {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
 .segmented {
   flex: 1;
   padding: var(--space-2) var(--space-3);

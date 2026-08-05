@@ -74,8 +74,17 @@ export type TaskType = 'physical' | 'abstract';
  */
 export type RecurrenceSpec =
   | { freq: 'daily' }
-  | { freq: 'weekly'; weekdays: number[] }
-  | { freq: 'monthlyByDate'; day: number }
+  /**
+   * `count` chooses what the interval counts. `'weeks'` is the calendar
+   * reading: interval 2 over Mon–Fri means the weekdays of alternate weeks.
+   * `'occurrences'` counts matching days themselves: interval 2 over Mon–Fri
+   * means every second weekday — Mon, Wed, Fri, Tue, Thu, … Only weekly has
+   * the distinction; every other frequency yields at most one occurrence per
+   * calendar unit, so the two readings coincide.
+   */
+  | { freq: 'weekly'; weekdays: number[]; count: 'weeks' | 'occurrences' }
+  /** Several days per month are allowed — "the 1st and the 15th" is one rule. */
+  | { freq: 'monthlyByDate'; days: number[] }
   | { freq: 'monthlyByWeekday'; week: number; weekday: number }
   | { freq: 'yearlyByDate'; months: number[]; day: number }
   | { freq: 'yearlyByWeekday'; months: number[]; week: number; weekday: number };
@@ -91,7 +100,7 @@ export type RecurrenceSpec =
 export type RecurrenceMode = 'grid' | 'fromCompletion';
 
 export type Recurrence = RecurrenceSpec & {
-  /** Every N days / weeks / months / years. */
+  /** Every N days / weeks / months / years — or matching days, for weekly `'occurrences'`. */
   interval: number;
   /**
    * Phase reference, and the reason "every other Saturday" is answerable at
@@ -100,6 +109,15 @@ export type Recurrence = RecurrenceSpec & {
    */
   anchor: string | null;
   mode: RecurrenceMode;
+  /** Last date the rule may produce; `null` means it runs forever. */
+  until: string | null;
+  /**
+   * Occurrences left; `null` means unlimited. Decremented on each completion —
+   * "repeat 5 times" needs its count kept somewhere, and the rule on the task
+   * is where the schedule already lives. When it runs out the task completes
+   * like a non-recurring one.
+   */
+  remaining: number | null;
 };
 
 export interface Task {

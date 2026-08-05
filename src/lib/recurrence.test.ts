@@ -1,14 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import type { Recurrence, RecurrenceSpec } from '../types/task';
-import { describeRecurrence, matches, nextOccurrence, recurrenceBase } from './recurrence';
+import {
+  describeRecurrence,
+  matches,
+  nextOccurrence,
+  previewOccurrences,
+  recurrenceBase,
+} from './recurrence';
 import { addDays, todayStr, weekdayOf, addMonths, weekStart, nthWeekdayOfMonth } from './dates';
 
 // 2026-08-04 is a Tuesday.
 const TUE = '2026-08-04';
 
 /** Rules default to the calendar grid with no interval; tests override what they mean. */
-function rule(spec: RecurrenceSpec, extra: Partial<Recurrence> = {}): Recurrence {
-  return { interval: 1, anchor: null, mode: 'grid', ...spec, ...extra } as Recurrence;
+type SpecInput =
+  | Exclude<RecurrenceSpec, { freq: 'weekly' }>
+  | { freq: 'weekly'; weekdays: number[]; count?: 'weeks' | 'occurrences' };
+
+function rule(spec: SpecInput, extra: Partial<Recurrence> = {}): Recurrence {
+  const withDefaults = spec.freq === 'weekly' ? { count: 'weeks' as const, ...spec } : spec;
+  return {
+    interval: 1,
+    anchor: null,
+    mode: 'grid',
+    until: null,
+    remaining: null,
+    ...withDefaults,
+    ...extra,
+  } as Recurrence;
 }
 
 describe('daily', () => {
@@ -97,37 +116,37 @@ describe('weekly', () => {
 
 describe('monthlyByDate', () => {
   it('stays in the current month when the day is still ahead', () => {
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 15 }), TUE)).toBe('2026-08-15');
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [15] }), TUE)).toBe('2026-08-15');
   });
 
   it('moves to next month when the day has passed', () => {
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 1 }), TUE)).toBe('2026-09-01');
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [1] }), TUE)).toBe('2026-09-01');
   });
 
   it('is strictly after: due on its own day rolls a month forward', () => {
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 4 }), TUE)).toBe('2026-09-04');
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [4] }), TUE)).toBe('2026-09-04');
   });
 
   it('clamps day 31 to shorter months', () => {
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 31 }), '2026-04-01')).toBe(
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [31] }), '2026-04-01')).toBe(
       '2026-04-30',
     );
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 31 }), '2026-04-30')).toBe(
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [31] }), '2026-04-30')).toBe(
       '2026-05-31',
     );
   });
 
   it('clamps in February, including leap years', () => {
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 30 }), '2026-02-01')).toBe(
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [30] }), '2026-02-01')).toBe(
       '2026-02-28',
     );
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 30 }), '2028-02-01')).toBe(
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [30] }), '2028-02-01')).toBe(
       '2028-02-29',
     );
   });
 
   it('day -1 tracks the last day rather than clamping to a fixed number', () => {
-    const r = rule({ freq: 'monthlyByDate', day: -1 });
+    const r = rule({ freq: 'monthlyByDate', days: [-1] });
     expect(nextOccurrence(r, '2026-01-31')).toBe('2026-02-28');
     expect(nextOccurrence(r, '2026-02-28')).toBe('2026-03-31');
     expect(nextOccurrence(r, '2026-03-31')).toBe('2026-04-30');
@@ -136,21 +155,21 @@ describe('monthlyByDate', () => {
   });
 
   it('every 3 months holds the phase', () => {
-    const r = rule({ freq: 'monthlyByDate', day: 15 }, { interval: 3, anchor: '2026-08-15' });
+    const r = rule({ freq: 'monthlyByDate', days: [15] }, { interval: 3, anchor: '2026-08-15' });
     const first = nextOccurrence(r, '2026-08-15')!;
     expect(first).toBe('2026-11-15');
     expect(nextOccurrence(r, first)).toBe('2027-02-15');
   });
 
   it('every 3 months skips the intervening months', () => {
-    const r = rule({ freq: 'monthlyByDate', day: 15 }, { interval: 3, anchor: '2026-08-15' });
+    const r = rule({ freq: 'monthlyByDate', days: [15] }, { interval: 3, anchor: '2026-08-15' });
     expect(matches(r, '2026-09-15')).toBe(false);
     expect(matches(r, '2026-10-15')).toBe(false);
     expect(matches(r, '2026-11-15')).toBe(true);
   });
 
   it('crosses the year boundary', () => {
-    expect(nextOccurrence(rule({ freq: 'monthlyByDate', day: 5 }), '2026-12-20')).toBe(
+    expect(nextOccurrence(rule({ freq: 'monthlyByDate', days: [5] }), '2026-12-20')).toBe(
       '2027-01-05',
     );
   });
@@ -260,7 +279,7 @@ describe('mode: fromCompletion', () => {
 
   it('monthly steps whole months and clamps the day', () => {
     const r = rule(
-      { freq: 'monthlyByDate', day: 31 },
+      { freq: 'monthlyByDate', days: [31] },
       { interval: 1, mode: 'fromCompletion' },
     );
     expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
@@ -288,11 +307,11 @@ describe('describeRecurrence', () => {
       describeRecurrence(rule({ freq: 'weekly', weekdays: [6] }, { interval: 2 })),
     ).toBe('every 2 weeks · Sat');
 
-    expect(describeRecurrence(rule({ freq: 'monthlyByDate', day: 15 }, { interval: 3 }))).toBe(
+    expect(describeRecurrence(rule({ freq: 'monthlyByDate', days: [15] }, { interval: 3 }))).toBe(
       'every 3 months · day 15',
     );
 
-    expect(describeRecurrence(rule({ freq: 'monthlyByDate', day: -1 }))).toBe(
+    expect(describeRecurrence(rule({ freq: 'monthlyByDate', days: [-1] }))).toBe(
       'every month · last day',
     );
 
@@ -324,5 +343,130 @@ describe('dates', () => {
     expect(weekStart('2026-08-04')).toBe('2026-08-03'); // Tuesday → Monday
     expect(weekStart('2026-08-09')).toBe('2026-08-03'); // Sunday ends that same week
     expect(weekStart('2026-08-10')).toBe('2026-08-10'); // Monday is its own start
+  });
+});
+
+describe('occurrence-counted intervals', () => {
+  // The gap that motivated this: "every other weekday".
+  it('every 2nd weekday steps Mon → Wed → Fri → Tue → Thu → Mon', () => {
+    const r = rule(
+      { freq: 'weekly', weekdays: [1, 2, 3, 4, 5], count: 'occurrences' },
+      { interval: 2, anchor: '2026-08-03' }, // a Monday
+    );
+    const seq = ['2026-08-03'];
+    for (let i = 0; i < 5; i++) seq.push(nextOccurrence(r, seq[seq.length - 1]!)!);
+    expect(seq).toEqual([
+      '2026-08-03', // Mon (anchor, occurrence 0)
+      '2026-08-05', // Wed
+      '2026-08-07', // Fri
+      '2026-08-11', // Tue (skipping Mon 10th)
+      '2026-08-13', // Thu
+      '2026-08-17', // Mon
+    ]);
+  });
+
+  it('phase holds against the anchor: off-days do not match', () => {
+    const r = rule(
+      { freq: 'weekly', weekdays: [1, 2, 3, 4, 5], count: 'occurrences' },
+      { interval: 2, anchor: '2026-08-03' },
+    );
+    expect(matches(r, '2026-08-03')).toBe(true); // Mon, occurrence 0
+    expect(matches(r, '2026-08-04')).toBe(false); // Tue, occurrence 1
+    expect(matches(r, '2026-08-05')).toBe(true); // Wed, occurrence 2
+    expect(matches(r, '2026-08-08')).toBe(false); // Saturday is never selected
+  });
+
+  it('every 3rd Sat-or-Sun', () => {
+    const r = rule(
+      { freq: 'weekly', weekdays: [0, 6], count: 'occurrences' },
+      { interval: 3, anchor: '2026-08-08' }, // a Saturday
+    );
+    // Weekend days from the anchor, indexed: Sat 8 (0), Sun 9 (1), Sat 15 (2),
+    // Sun 16 (3), Sat 22 (4), Sun 23 (5), Sat 29 (6) — on-phase at 0, 3, 6.
+    expect(nextOccurrence(r, '2026-08-08')).toBe('2026-08-16');
+    expect(nextOccurrence(r, '2026-08-16')).toBe('2026-08-29');
+  });
+
+  it('fromCompletion counts matching days from the completion date', () => {
+    const r = rule(
+      { freq: 'weekly', weekdays: [1, 2, 3, 4, 5], count: 'occurrences' },
+      { interval: 2, mode: 'fromCompletion' },
+    );
+    // Completed Wed 5th: weekdays after are Thu 6, Fri 7 → the 2nd is Friday.
+    expect(nextOccurrence(r, '2026-08-05')).toBe('2026-08-07');
+    // Completed Sat 8th: weekdays after are Mon 10, Tue 11 → Tuesday.
+    expect(nextOccurrence(r, '2026-08-08')).toBe('2026-08-11');
+  });
+
+  it('interval 1 over all selected days is just every matching day', () => {
+    const r = rule(
+      { freq: 'weekly', weekdays: [1, 2, 3, 4, 5], count: 'occurrences' },
+      { anchor: '2026-08-03' },
+    );
+    expect(nextOccurrence(r, '2026-08-06')).toBe('2026-08-07'); // Thu → Fri
+    expect(nextOccurrence(r, '2026-08-07')).toBe('2026-08-10'); // Fri → Mon
+  });
+});
+
+describe('day lists', () => {
+  it('the 1st and the 15th both fire each month', () => {
+    const r = rule({ freq: 'monthlyByDate', days: [1, 15] });
+    expect(nextOccurrence(r, '2026-08-04')).toBe('2026-08-15');
+    expect(nextOccurrence(r, '2026-08-15')).toBe('2026-09-01');
+    expect(nextOccurrence(r, '2026-09-01')).toBe('2026-09-15');
+  });
+
+  it('a list may include the tracking last day', () => {
+    const r = rule({ freq: 'monthlyByDate', days: [15, -1] });
+    expect(nextOccurrence(r, '2026-02-15')).toBe('2026-02-28');
+    expect(nextOccurrence(r, '2026-02-28')).toBe('2026-03-15');
+  });
+
+  it('describes a list in day order with last-day last', () => {
+    expect(describeRecurrence(rule({ freq: 'monthlyByDate', days: [15, 1, -1] }))).toBe(
+      'every month · day 1, day 15, last day',
+    );
+  });
+});
+
+describe('end conditions', () => {
+  it('until stops production past the boundary date', () => {
+    const r = rule({ freq: 'daily' }, { until: '2026-08-06' });
+    expect(nextOccurrence(r, '2026-08-04')).toBe('2026-08-05');
+    expect(nextOccurrence(r, '2026-08-05')).toBe('2026-08-06');
+    expect(nextOccurrence(r, '2026-08-06')).toBeNull();
+  });
+
+  it('preview truncates at until and says so', () => {
+    const r = rule({ freq: 'daily' }, { until: '2026-08-06' });
+    expect(previewOccurrences(r, '2026-08-04', 4)).toEqual({
+      dates: ['2026-08-05', '2026-08-06'],
+      ends: true,
+    });
+  });
+
+  it('preview shows at most remaining occurrences and marks the end', () => {
+    const r = rule({ freq: 'daily' }, { remaining: 2 });
+    expect(previewOccurrences(r, '2026-08-04', 4)).toEqual({
+      dates: ['2026-08-05', '2026-08-06'],
+      ends: true,
+    });
+  });
+
+  it('preview reports an open horizon when nothing ends inside it', () => {
+    const r = rule({ freq: 'daily' });
+    expect(previewOccurrences(r, '2026-08-04', 3)).toEqual({
+      dates: ['2026-08-05', '2026-08-06', '2026-08-07'],
+      ends: false,
+    });
+  });
+
+  it('describe mentions the end conditions', () => {
+    expect(describeRecurrence(rule({ freq: 'daily' }, { until: '2026-09-30' }))).toBe(
+      'every day · until 30 Sep',
+    );
+    expect(describeRecurrence(rule({ freq: 'daily' }, { remaining: 3 }))).toBe(
+      'every day · 3 times left',
+    );
   });
 });

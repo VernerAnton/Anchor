@@ -2,6 +2,7 @@ import type { Recurrence, RecurrenceSpec } from '../types/task';
 import {
   addDays,
   addMonths,
+  countMatchingWeekdays,
   dateOf,
   dayOf,
   daysBetween,
@@ -51,7 +52,7 @@ function matchesSelectors(spec: RecurrenceSpec, date: string): boolean {
       return spec.weekdays.includes(weekdayOf(date));
 
     case 'monthlyByDate':
-      return dayOf(date) === resolveDay(spec.day, year, month);
+      return spec.days.some((day) => dayOf(date) === resolveDay(day, year, month));
 
     case 'monthlyByWeekday':
       return date === nthWeekdayOfMonth(year, month, spec.week, spec.weekday);
@@ -78,6 +79,16 @@ function matchesSelectors(spec: RecurrenceSpec, date: string): boolean {
  * missing anchor as "no constraint" would quietly turn every N days into
  * every day.
  */
+/** The first date on or after `from` whose weekday is in `set`. */
+function firstMatchingWeekday(from: string, set: ReadonlySet<number>): string {
+  let candidate = from;
+  for (let i = 0; i < 7; i++) {
+    if (set.has(weekdayOf(candidate))) return candidate;
+    candidate = addDays(candidate, 1);
+  }
+  return candidate;
+}
+
 function matchesPhase(rule: Recurrence, date: string): boolean {
   if (rule.interval <= 1 || rule.anchor === null) return true;
 
@@ -85,10 +96,24 @@ function matchesPhase(rule: Recurrence, date: string): boolean {
     case 'daily':
       return mod(daysBetween(rule.anchor, date), rule.interval) === 0;
 
-    case 'weekly':
+    case 'weekly': {
+      if (rule.count === 'occurrences') {
+        // The interval counts matching days themselves: index this date within
+        // the sequence of matching days starting at the anchor (snapped to the
+        // first matching day, which is occurrence zero).
+        const set = new Set(rule.weekdays.filter((d) => d >= 0 && d <= 6));
+        if (set.size === 0) return false;
+        const start = firstMatchingWeekday(rule.anchor, set);
+        if (date < start) {
+          // Dates before the anchor phase backwards from it.
+          return mod(countMatchingWeekdays(date, start, set) - 1, rule.interval) === 0;
+        }
+        return mod(countMatchingWeekdays(start, date, set) - 1, rule.interval) === 0;
+      }
       return (
         mod(daysBetween(weekStart(rule.anchor), weekStart(date)) / 7, rule.interval) === 0
       );
+    }
 
     case 'monthlyByDate':
     case 'monthlyByWeekday':
@@ -159,9 +184,32 @@ function advanceOneInterval(rule: Recurrence, from: string): string {
  * to allow, but an honest answer is better than an invented date.
  */
 export function nextOccurrence(rule: Recurrence, after: string): string | null {
+  const next = nextIgnoringUntil(rule, after);
+  // The end condition is checked in exactly one place, so every caller —
+  // completion, preview, anything later — agrees on when a rule stops.
+  if (next !== null && rule.until !== null && next > rule.until) return null;
+  return next;
+}
+
+function nextIgnoringUntil(rule: Recurrence, after: string): string | null {
   const limit = scanLimitDays(rule);
 
   if (rule.mode === 'fromCompletion') {
+    if (rule.freq === 'weekly' && rule.count === 'occurrences') {
+      // The interval-th matching day strictly after the completion — counting
+      // is the whole computation, no snap step.
+      const wanted = new Set(rule.weekdays.filter((d) => d >= 0 && d <= 6));
+      if (wanted.size === 0) return null;
+      let seen = 0;
+      let candidate = after;
+      for (let i = 0; i < limit; i++) {
+        candidate = addDays(candidate, 1);
+        if (wanted.has(weekdayOf(candidate)) && ++seen === Math.max(1, rule.interval)) {
+          return candidate;
+        }
+      }
+      return null;
+    }
     // Measured from when it was actually finished: step a whole interval, then
     // settle on the first date the selectors accept. Phase is deliberately
     // ignored — the anchor describes a calendar the user has opted out of.
@@ -179,6 +227,34 @@ export function nextOccurrence(rule: Recurrence, after: string): string | null {
     if (matches(anchored, candidate)) return candidate;
   }
   return null;
+}
+
+export interface OccurrencePreview {
+  dates: string[];
+  /** True when the rule stops within (or at the end of) the previewed span. */
+  ends: boolean;
+}
+
+/**
+ * The next few dates a rule will actually produce, for the editor to show —
+ * a rule assembled from controls is easy to get subtly wrong, and a list of
+ * concrete dates is the fastest way to see what was really built.
+ */
+export function previewOccurrences(rule: Recurrence, from: string, max: number): OccurrencePreview {
+  const dates: string[] = [];
+  const budget = rule.remaining !== null ? Math.min(max, Math.max(0, rule.remaining)) : max;
+  let cursor = from;
+
+  for (let i = 0; i < budget; i++) {
+    const next = nextOccurrence(rule, cursor);
+    if (next === null) return { dates, ends: true };
+    dates.push(next);
+    cursor = next;
+  }
+
+  if (rule.remaining !== null && rule.remaining <= max) return { dates, ends: true };
+  // One occurrence past the window tells us whether an `until` lands inside it.
+  return { dates, ends: dates.length > 0 && nextOccurrence(rule, cursor) === null };
 }
 
 /**
@@ -211,8 +287,29 @@ function everyPhrase(interval: number, unit: string): string {
   return interval <= 1 ? `every ${unit}` : `every ${interval} ${unit}s`;
 }
 
+function ordinal(n: number): string {
+  const tail = n % 100;
+  if (tail >= 11 && tail <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
 function dayPhrase(day: number): string {
   return day === -1 ? 'last day' : `day ${day}`;
+}
+
+function daysPhrase(days: number[]): string {
+  // Last-day sorts after the numbered days rather than before them.
+  const ordered = [...days].sort((a, b) => (a === -1 ? 32 : a) - (b === -1 ? 32 : b));
+  return ordered.map(dayPhrase).join(', ');
 }
 
 function monthsPhrase(months: number[]): string {
@@ -234,17 +331,20 @@ export function describeRecurrence(rule: Recurrence): string {
 
     case 'weekly': {
       const ordered = DISPLAY_ORDER.filter((d) => rule.weekdays.includes(d));
-      parts.push(everyPhrase(rule.interval, 'week'));
-      if (ordered.length > 0 && ordered.length < 7) {
-        parts.push(ordered.map((d) => WEEKDAY_NAMES[d]).join(' '));
-      } else if (ordered.length === 7) {
-        parts.push('every day');
+      const dayList =
+        ordered.length === 7 ? 'any day' : ordered.map((d) => WEEKDAY_NAMES[d]).join(' ');
+      if (rule.count === 'occurrences' && rule.interval > 1) {
+        parts.push(`every ${ordinal(rule.interval)} of`, dayList);
+      } else {
+        parts.push(everyPhrase(rule.interval, 'week'));
+        if (ordered.length === 7) parts.push('every day');
+        else if (ordered.length > 0) parts.push(dayList);
       }
       break;
     }
 
     case 'monthlyByDate':
-      parts.push(everyPhrase(rule.interval, 'month'), dayPhrase(rule.day));
+      parts.push(everyPhrase(rule.interval, 'month'), daysPhrase(rule.days));
       break;
 
     case 'monthlyByWeekday':
@@ -268,8 +368,34 @@ export function describeRecurrence(rule: Recurrence): string {
   }
 
   if (rule.mode === 'fromCompletion') parts.push('from completion');
+  if (rule.until !== null) {
+    const { month } = yearMonthOf(rule.until);
+    parts.push(`until ${dayOf(rule.until)} ${MONTH_NAMES[month - 1]}`);
+  }
+  if (rule.remaining !== null) {
+    parts.push(rule.remaining === 1 ? '1 time left' : `${rule.remaining} times left`);
+  }
 
   return parts.filter(Boolean).join(' · ');
+}
+
+/**
+ * The preview as one display-ready line: "Sat 22 Aug · Sat 5 Sep · …", with
+ * years shown only when they differ from the starting date's, and an explicit
+ * "then ends" when the rule stops inside the window.
+ */
+export function describePreview(rule: Recurrence, from: string, max: number): string {
+  const { dates, ends } = previewOccurrences(rule, from, max);
+  if (dates.length === 0) return 'No upcoming dates.';
+
+  const refYear = yearMonthOf(from).year;
+  const labels = dates.map((date) => {
+    const { year, month } = yearMonthOf(date);
+    const base = `${WEEKDAY_NAMES[weekdayOf(date)]} ${dayOf(date)} ${MONTH_NAMES[month - 1]}`;
+    return year === refYear ? base : `${base} ${year}`;
+  });
+
+  return `Next: ${labels.join(' · ')}${ends ? ' · then ends' : ' · …'}`;
 }
 
 // ── Building a rule ────────────────────────────────────────────────────────
@@ -298,16 +424,16 @@ export function frequencyOf(rule: Recurrence): Frequency {
  * arbitrary default the user has to correct.
  */
 export function defaultRule(frequency: Frequency, from: string): Recurrence {
-  const base = { interval: 1, anchor: from, mode: 'grid' as const };
+  const base = { interval: 1, anchor: from, mode: 'grid' as const, until: null, remaining: null };
   const { month } = yearMonthOf(from);
 
   switch (frequency) {
     case 'daily':
       return { freq: 'daily', ...base, mode: 'fromCompletion' };
     case 'weekly':
-      return { freq: 'weekly', weekdays: [weekdayOf(from)], ...base };
+      return { freq: 'weekly', weekdays: [weekdayOf(from)], count: 'weeks', ...base };
     case 'monthly':
-      return { freq: 'monthlyByDate', day: dayOf(from), ...base };
+      return { freq: 'monthlyByDate', days: [dayOf(from)], ...base };
     case 'yearly':
       return { freq: 'yearlyByDate', months: [month], day: dayOf(from), ...base };
   }

@@ -1,5 +1,11 @@
 import type { Recurrence, RecurrenceMode } from '../types/task';
-import { describeRecurrence, defaultRule, frequencyOf, type Frequency } from '../lib/recurrence';
+import {
+  describePreview,
+  describeRecurrence,
+  defaultRule,
+  frequencyOf,
+  type Frequency,
+} from '../lib/recurrence';
 import { MONTH_NAMES } from '../lib/dates';
 import { NumberField } from './NumberField';
 
@@ -53,11 +59,17 @@ export function RecurrenceEditor({ recurrence, from, onChange }: Props) {
   const setFrequency = (next: string) => {
     if (next === 'none') return onChange(null);
     const rule = defaultRule(next as Frequency, from);
-    // Interval and mode are properties of the schedule, not of the frequency,
-    // so they survive switching between weekly and monthly.
+    // Interval, mode and end conditions are properties of the schedule, not of
+    // the frequency, so they survive switching between weekly and monthly.
     onChange(
       recurrence
-        ? { ...rule, interval: recurrence.interval, mode: recurrence.mode }
+        ? {
+            ...rule,
+            interval: recurrence.interval,
+            mode: recurrence.mode,
+            until: recurrence.until,
+            remaining: recurrence.remaining,
+          }
         : rule,
     );
   };
@@ -89,10 +101,25 @@ export function RecurrenceEditor({ recurrence, from, onChange }: Props) {
     onChange({ ...recurrence, months });
   };
 
+  /** One day toggled in the monthly day grid; at least one stays selected. */
+  const toggleMonthDay = (day: number) => {
+    if (recurrence?.freq !== 'monthlyByDate') return;
+    const has = recurrence.days.includes(day);
+    const days = has ? recurrence.days.filter((d) => d !== day) : [...recurrence.days, day];
+    if (days.length === 0) return;
+    onChange({ ...recurrence, days });
+  };
+
   /** Monthly and yearly each have a by-date form and a by-weekday form. */
   const setForm = (byWeekday: boolean) => {
     if (!recurrence) return;
-    const shared = { interval: recurrence.interval, anchor: recurrence.anchor, mode: recurrence.mode };
+    const shared = {
+      interval: recurrence.interval,
+      anchor: recurrence.anchor,
+      mode: recurrence.mode,
+      until: recurrence.until,
+      remaining: recurrence.remaining,
+    };
     const months =
       recurrence.freq === 'yearlyByDate' || recurrence.freq === 'yearlyByWeekday'
         ? recurrence.months
@@ -102,7 +129,7 @@ export function RecurrenceEditor({ recurrence, from, onChange }: Props) {
       onChange(
         byWeekday
           ? { freq: 'monthlyByWeekday', week: 1, weekday: 1, ...shared }
-          : { freq: 'monthlyByDate', day: 1, ...shared },
+          : { freq: 'monthlyByDate', days: [1], ...shared },
       );
     } else if (frequency === 'yearly') {
       onChange(
@@ -192,7 +219,18 @@ export function RecurrenceEditor({ recurrence, from, onChange }: Props) {
               label="Repeat interval"
               onCommit={(interval) => patch({ interval })}
             />
-            <span>{UNIT_LABEL[frequency]}</span>
+            {recurrence.freq === 'weekly' ? (
+              <select
+                value={recurrence.count}
+                onChange={(e) => patch({ count: e.target.value as 'weeks' | 'occurrences' })}
+                aria-label="What the interval counts"
+              >
+                <option value="weeks">weeks</option>
+                <option value="occurrences">selected days</option>
+              </select>
+            ) : (
+              <span>{UNIT_LABEL[frequency]}</span>
+            )}
           </div>
 
           {recurrence.freq === 'weekly' && (
@@ -248,7 +286,29 @@ export function RecurrenceEditor({ recurrence, from, onChange }: Props) {
             </div>
           )}
 
-          {recurrence.freq === 'monthlyByDate' && dayControls(recurrence.day)}
+          {recurrence.freq === 'monthlyByDate' && (
+            <div className="field-row day-grid" role="group" aria-label="Days of the month">
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  className="weekday-toggle"
+                  aria-pressed={recurrence.days.includes(day)}
+                  onClick={() => toggleMonthDay(day)}
+                >
+                  {day}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="weekday-toggle"
+                aria-pressed={recurrence.days.includes(LAST_DAY)}
+                onClick={() => toggleMonthDay(LAST_DAY)}
+              >
+                last
+              </button>
+            </div>
+          )}
           {recurrence.freq === 'yearlyByDate' && dayControls(recurrence.day)}
           {recurrence.freq === 'monthlyByWeekday' &&
             positionControls(recurrence.week, recurrence.weekday)}
@@ -267,7 +327,64 @@ export function RecurrenceEditor({ recurrence, from, onChange }: Props) {
             </select>
           </label>
 
+          {recurrence.interval > 1 && recurrence.mode === 'grid' && (
+            // The phase, made visible. "Every other Saturday" is defined by
+            // which Saturday is the on-week, and that should be inspectable
+            // and correctable rather than an invisible default.
+            <label className="field-row">
+              <span>Counting from</span>
+              <input
+                type="date"
+                value={recurrence.anchor ?? from}
+                onChange={(e) => patch({ anchor: e.target.value || from })}
+                aria-label="Interval counted from"
+              />
+            </label>
+          )}
+
+          <label className="field-row">
+            <span>Ends</span>
+            <select
+              value={recurrence.until !== null ? 'until' : recurrence.remaining !== null ? 'times' : 'never'}
+              onChange={(e) => {
+                // The three endings are mutually exclusive; choosing one
+                // clears the other.
+                switch (e.target.value) {
+                  case 'never':
+                    return patch({ until: null, remaining: null });
+                  case 'until':
+                    return patch({ until: from, remaining: null });
+                  case 'times':
+                    return patch({ until: null, remaining: 5 });
+                }
+              }}
+              aria-label="When the repeat ends"
+            >
+              <option value="never">Never</option>
+              <option value="until">On a date</option>
+              <option value="times">After N times</option>
+            </select>
+            {recurrence.until !== null && (
+              <input
+                type="date"
+                value={recurrence.until}
+                onChange={(e) => patch({ until: e.target.value || null })}
+                aria-label="Last date to repeat"
+              />
+            )}
+            {recurrence.remaining !== null && (
+              <NumberField
+                value={recurrence.remaining}
+                min={1}
+                max={999}
+                label="Times left to repeat"
+                onCommit={(remaining) => patch({ remaining })}
+              />
+            )}
+          </label>
+
           <p className="recurrence-summary">{describeRecurrence(recurrence)}</p>
+          <p className="recurrence-preview">{describePreview(recurrence, from, 4)}</p>
         </>
       )}
     </fieldset>
