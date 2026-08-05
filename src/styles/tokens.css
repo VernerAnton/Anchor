@@ -1,0 +1,79 @@
+/*
+ * The theme file. Every raw value in the app lives here and only here —
+ * colours, shadows, radii, fonts, spacing. Swapping themes means swapping
+ * this file and nothing else. (The test: blank this file and the app must
+ * stay fully usable — ugly, but every state distinguishable.)
+ *
+ * This is the plain default theme. Deliberately neutral: structure and
+ * behaviour are built against it, and the neon-noir theme lands on top later
+ * without touching a component.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Type. The self-hosted display faces ship with the app for the later
+     theme; the plain theme reads best in the system stack. */
+  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --text-xs: 0.72rem;
+  --text-s: 0.83rem;
+  --text-m: 0.94rem;
+  --text-l: 1.1rem;
+  --text-xl: 1.35rem;
+
+  /* Surfaces */
+  --bg: #f4f4f2;
+  --surface: #ffffff;
+  --surface-sunken: #ededea;
+  --surface-hover: #f2f2ef;
+  --surface-active: #e9e9e5;
+  --backdrop: rgba(24, 24, 28, 0.35);
+
+  /* Lines */
+  --border: #e2e2de;
+  --border-strong: #c8c8c3;
+
+  /* Text */
+  --text: #26262b;
+  --text-muted: #66666d;
+  --text-faint: #9d9da3;
+  --text-invert: #ffffff;
+
+  /* Interaction */
+  --accent: #3a5f9e;
+  --accent-hover: #2f4e83;
+  --accent-soft: #3a5f9e1a;
+  --focus-ring: #3a5f9e59;
+
+  /* Depth & shape */
+  --shadow-raised: 0 10px 32px rgba(20, 20, 24, 0.16);
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --radius-l: 12px;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Priority — backlog ordering only; P1 pulls hardest. */
+  --priority-1: #b0512e;
+  --priority-2: #af8434;
+  --priority-3: #3a5f9e;
+  --priority-4: #8a8f98;
+
+  /* Project identity — the muted axis. Neon will mean state, muted means
+     identity; these stay low-saturation in every theme. */
+  --project-steel: #6a8ca8;
+  --project-violet: #8f7bc4;
+  --project-teal: #4fa89b;
+  --project-sage: #84a172;
+  --project-ochre: #b8944e;
+  --project-plum: #a86e8c;
+  --project-indigo: #6b78bd;
+  --project-clay: #b07a63;
+}

@@ -54,17 +54,35 @@ the task has since been renamed to something else entirely.
 
 ---
 
+## Decided at the start of the rebuild (2026-08-04)
+
+**Labels: out.** Projects are the only organising axis, matching how the owner actually
+works. The Zod schemas use `.catch()` defaults, so a labels field can be added later without
+invalidating existing documents — skipping now doesn't close the door.
+
+**Recurrence: built new, explicit rules only.** The existing engine is not being ported.
+Three rule shapes: every N days, weekly on chosen weekdays, monthly by date (clamped to
+month length). Entered through explicit controls, never parsed from text. Completing a
+recurring task advances its due date — from the due date when completing early, from today
+when overdue, so nothing ever backfills a "missed" occurrence. The engine is pure functions
+in `src/lib/recurrence.ts`, unit-tested.
+
+**Subtasks: in, one level flat.** `parentId` on Task, checklist-style children under a
+top-level task. Covers the Todoist-parity need without deep-nesting complexity.
+
+**Sync layer: ported as decided.** The rebuild copies the verified store from the previous
+attempt wholesale (`src/store/`), with only schemas and mutations rewritten for the
+task-first model. New namespaces (`v2-tasks`, `v2-projects`, `v2-settings`, localStorage
+`anchor:v2:*`) so old and new data coexist in the same Firebase project and on installed
+devices.
+
+---
+
 ## Still open
 
-- **The existing recurrence/routine logic and offline-first sync.** To be ported rather than
-  rebuilt. Needed before the task backend is designed: whether it's one codebase or two, and
-  whether its model can express `type: physical/abstract/rest` and "runs to natural
-  completion" durations, or needs adapting.
 - **Weekly programming.** Whether this is a recurring week template that generates paths you
   then tweak per day, or a week laid out by hand each time. The first mostly falls out of
   recurrence; the second is a separate feature.
-- **Subtasks.** The feature spec calls them table-stakes for this audience; v2 doesn't
-  mention them either way.
 
 ---
 
