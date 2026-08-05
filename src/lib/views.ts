@@ -1,5 +1,5 @@
 import type { Project, Task } from '../types/task';
-import { todayStr, weekdayOf, dayOf } from './dates';
+import { MONTH_NAMES, todayStr, weekdayOf, dayOf } from './dates';
 
 /**
  * Everything the views derive from raw data, as pure functions returning data.
@@ -67,7 +67,6 @@ function withSubtasks(parents: Task[], all: Task[]): TaskListItem[] {
 }
 
 const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 /** "Wednesday · 5 Aug" — explicit, no relative phrasing beyond Today/Tomorrow. */
 export function dateLabel(date: string, today: string = todayStr()): string {
