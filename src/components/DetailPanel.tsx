@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Project, Task } from '../types/task';
+import type { Project, Recurrence, Task } from '../types/task';
 import type { TaskDraft } from '../store/mutations';
 import { PRIORITIES } from '../lib/priorities';
 import { RecurrenceEditor } from './RecurrenceEditor';
@@ -11,6 +11,11 @@ interface Props {
   today: string;
   onClose: () => void;
   onUpdate: (task: Task, changes: Partial<TaskDraft>) => void;
+  /**
+   * Separate from `onUpdate` because setting a rule also stamps its anchor,
+   * which is a rule of the model rather than a plain field write.
+   */
+  onSetRecurrence: (task: Task, recurrence: Recurrence | null) => void;
   onToggle: (task: Task) => void;
   onDelete: (task: Task) => void;
   onAddSubtask: (parent: Task, title: string) => void;
@@ -34,8 +39,10 @@ function TaskForm({
   task,
   tasks,
   projects,
+  today,
   onClose,
   onUpdate,
+  onSetRecurrence,
   onToggle,
   onDelete,
   onAddSubtask,
@@ -174,7 +181,8 @@ function TaskForm({
 
       <RecurrenceEditor
         recurrence={task.recurrence}
-        onChange={(recurrence) => onUpdate(task, { recurrence })}
+        from={task.dueDate ?? today}
+        onChange={(recurrence) => onSetRecurrence(task, recurrence)}
       />
 
       {task.parentId === null && (

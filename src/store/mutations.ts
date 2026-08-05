@@ -78,10 +78,11 @@ export function editTask(task: Task, changes: Partial<TaskDraft>): Task {
  */
 export function completeTask(task: Task, now: number, today: string): Task {
   if (task.recurrence) {
-    return touch({
-      ...task,
-      dueDate: nextOccurrence(task.recurrence, recurrenceBase(task.dueDate, today)),
-    });
+    const next = nextOccurrence(task.recurrence, recurrenceBase(task.dueDate, today));
+    // A rule that can't produce a date leaves the task where it is rather than
+    // being handed an invented one. It stays visible, which is the honest
+    // outcome — a silently wrong date would be worse than none.
+    return next === null ? task : touch({ ...task, dueDate: next });
   }
   return touch({ ...task, completedAt: now });
 }
@@ -104,8 +105,19 @@ export function setTaskPriority(task: Task, priority: Priority | null): Task {
   return touch({ ...task, priority });
 }
 
-export function setTaskRecurrence(task: Task, recurrence: Recurrence | null): Task {
-  return touch({ ...task, recurrence });
+/**
+ * Sets a rule, stamping the phase it should count from when it doesn't carry
+ * one. The task's own due date is the natural reference — picking "every other
+ * Saturday" on a task due this Saturday should mean *this* Saturday's cadence.
+ */
+export function setTaskRecurrence(
+  task: Task,
+  recurrence: Recurrence | null,
+  today: string,
+): Task {
+  if (recurrence === null) return touch({ ...task, recurrence: null });
+  const anchor = recurrence.anchor ?? task.dueDate ?? today;
+  return touch({ ...task, recurrence: { ...recurrence, anchor } });
 }
 
 // ── Projects ───────────────────────────────────────────────────────────────
