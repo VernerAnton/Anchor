@@ -1,8 +1,15 @@
 import { useMemo, useState } from 'react';
-import type { Project, Task } from './types/task';
+import type { Project, Recurrence, Task } from './types/task';
 import type { SyncMode } from './store';
 import { repository } from './store';
-import { completeTask, editTask, newTask, reopenTask, emptyTaskDraft } from './store/mutations';
+import {
+  completeTask,
+  editTask,
+  newTask,
+  reopenTask,
+  emptyTaskDraft,
+  setTaskRecurrence,
+} from './store/mutations';
 import { todayStr } from './lib/dates';
 import {
   buildTaskList,
@@ -68,17 +75,21 @@ export function App({ syncMode }: Props) {
 
   const addTask = (title: string) => {
     const order = tasks.length === 0 ? 0 : Math.max(...tasks.map((t) => t.order)) + 1;
-    saveTask(
-      newTask(
-        {
-          ...emptyTaskDraft(),
-          title,
-          dueDate: defaultDueDate(selection, today),
-          projectId: defaultProjectId(selection),
-        },
-        order,
-      ),
+    const task = newTask(
+      {
+        ...emptyTaskDraft(),
+        title,
+        dueDate: defaultDueDate(selection, today),
+        projectId: defaultProjectId(selection),
+      },
+      order,
     );
+    saveTask(task);
+    // Open the new task straight away, so date, priority and recurrence can be
+    // set without hunting for the row you just created. On mobile this is what
+    // slides the detail overlay in — `.detail--open` keys off a selected task,
+    // so one line covers both layouts.
+    setSelectedTaskId(task.id);
   };
 
   const addSubtask = (parent: Task, title: string) => {
@@ -93,6 +104,10 @@ export function App({ syncMode }: Props) {
 
   const updateTask = (task: Task, changes: Parameters<typeof editTask>[1]) => {
     saveTask(editTask(task, changes));
+  };
+
+  const setRecurrence = (task: Task, recurrence: Recurrence | null) => {
+    saveTask(setTaskRecurrence(task, recurrence, today));
   };
 
   const deleteTask = (task: Task) => {
@@ -154,6 +169,7 @@ export function App({ syncMode }: Props) {
         today={today}
         onClose={() => setSelectedTaskId(null)}
         onUpdate={updateTask}
+        onSetRecurrence={setRecurrence}
         onToggle={toggleTask}
         onDelete={deleteTask}
         onAddSubtask={addSubtask}
