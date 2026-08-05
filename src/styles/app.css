@@ -193,6 +193,15 @@ h2 {
   color: var(--text-faint);
 }
 
+.sidebar__build {
+  margin: var(--space-2) 0 0;
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  overflow-wrap: anywhere;
+}
+
 .row-action {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-s);

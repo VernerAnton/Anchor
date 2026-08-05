@@ -1,6 +1,10 @@
 import type { Project, Task } from '../types/task';
 import type { SyncMode } from '../store';
 import { countFor, projectTree, selectionKey, type Selection } from '../lib/views';
+import { buildInfo } from '../lib/build';
+
+// Constant for the lifetime of the bundle — computed once, not per render.
+const build = buildInfo();
 
 interface Props {
   open: boolean;
@@ -121,6 +125,9 @@ export function Sidebar({
             {syncMode === 'cloud' ? 'connected' : 'this device'}
           </span>
         </button>
+        <p className="sidebar__build" title={build.detail}>
+          {build.label}
+        </p>
       </div>
     </nav>
   );

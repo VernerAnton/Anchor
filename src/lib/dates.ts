@@ -7,11 +7,26 @@
  * The string format also compares correctly with plain `<`/`>`.
  */
 
+export const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
 export function todayStr(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-function pad(n: number): string {
+export function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
 
