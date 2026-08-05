@@ -66,13 +66,41 @@ export type TaskType = 'physical' | 'abstract';
 
 /**
  * Recurrence, as explicit rules — no natural-language parsing anywhere.
- * `weekdays` uses JavaScript's convention: 0 = Sunday … 6 = Saturday.
- * `monthlyByDate` clamps to the month's length (31 → Apr 30, Feb 28/29).
+ *
+ * Weekdays use JavaScript's convention: 0 = Sunday … 6 = Saturday. Months are
+ * 1-based. A `week` of 1–4 counts from the start of the month; -1 means the
+ * last one. A `day` of -1 means the last day of the month, which is different
+ * from 31 — 31 clamps to the month's length, while -1 tracks it.
  */
-export type Recurrence =
-  | { kind: 'everyNDays'; n: number }
-  | { kind: 'weekly'; weekdays: number[] }
-  | { kind: 'monthlyByDate'; day: number };
+export type RecurrenceSpec =
+  | { freq: 'daily' }
+  | { freq: 'weekly'; weekdays: number[] }
+  | { freq: 'monthlyByDate'; day: number }
+  | { freq: 'monthlyByWeekday'; week: number; weekday: number }
+  | { freq: 'yearlyByDate'; months: number[]; day: number }
+  | { freq: 'yearlyByWeekday'; months: number[]; week: number; weekday: number };
+
+/**
+ * How the next date is found once a task is completed.
+ *
+ * `grid` keeps the rule on the calendar — every other Saturday stays on its
+ * Saturdays however late you are. `fromCompletion` measures from when you
+ * actually finished, so the rhythm follows you rather than accumulating
+ * against a schedule you didn't keep.
+ */
+export type RecurrenceMode = 'grid' | 'fromCompletion';
+
+export type Recurrence = RecurrenceSpec & {
+  /** Every N days / weeks / months / years. */
+  interval: number;
+  /**
+   * Phase reference, and the reason "every other Saturday" is answerable at
+   * all — without a fixed point, which Saturday is the on-week is undefined.
+   * Only consulted when `interval > 1`.
+   */
+  anchor: string | null;
+  mode: RecurrenceMode;
+};
 
 export interface Task {
   id: string;

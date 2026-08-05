@@ -68,3 +68,63 @@ export function dateOf(year: number, month: number, day: number): string {
 export function dayOf(date: string): number {
   return Number(date.slice(8, 10));
 }
+
+const MS_PER_DAY = 86_400_000;
+
+/** Whole days from `from` to `to`; negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / MS_PER_DAY);
+}
+
+/** Whole calendar months between two dates, ignoring day-of-month. */
+export function monthsBetween(from: string, to: string): number {
+  const a = yearMonthOf(from);
+  const b = yearMonthOf(to);
+  return (b.year - a.year) * 12 + (b.month - a.month);
+}
+
+/**
+ * Adds months, clamping the day to the target month's length so 31 January
+ * plus one month is 28 February rather than spilling into March.
+ */
+export function addMonths(date: string, months: number): string {
+  const { year, month } = yearMonthOf(date);
+  const total = year * 12 + (month - 1) + months;
+  const targetYear = Math.floor(total / 12);
+  const targetMonth = (total % 12) + 1;
+  return dateOf(targetYear, targetMonth, Math.min(dayOf(date), daysInMonth(targetYear, targetMonth)));
+}
+
+/**
+ * The Monday beginning this date's week. Used to compare weeks when a rule
+ * repeats every N weeks — Monday-based to match the Monday-first weekday
+ * picker, so "every other week" means what the UI shows.
+ */
+export function weekStart(date: string): string {
+  // Sunday is 0 in JS but the end of a Monday-based week, so it steps back 6.
+  const offset = (weekdayOf(date) + 6) % 7;
+  return addDays(date, -offset);
+}
+
+/**
+ * The date of the `week`-th `weekday` in a month — week 1..4 counting from the
+ * start, or -1 for the last one. Returns null when the month has no such date
+ * (there is no fifth Friday in most months), which the caller reads as "this
+ * month doesn't qualify" rather than as an error.
+ */
+export function nthWeekdayOfMonth(
+  year: number,
+  month: number,
+  week: number,
+  weekday: number,
+): string | null {
+  if (week === -1) {
+    const last = dateOf(year, month, daysInMonth(year, month));
+    return addDays(last, -((weekdayOf(last) - weekday + 7) % 7));
+  }
+  if (week < 1 || week > 4) return null;
+  const first = dateOf(year, month, 1);
+  const firstMatch = 1 + ((weekday - weekdayOf(first) + 7) % 7);
+  const day = firstMatch + (week - 1) * 7;
+  return day > daysInMonth(year, month) ? null : dateOf(year, month, day);
+}
