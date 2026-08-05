@@ -77,12 +77,23 @@ export function editTask(task: Task, changes: Partial<TaskDraft>): Task {
  * Nothing stores missed; that includes recurrence.
  */
 export function completeTask(task: Task, now: number, today: string): Task {
-  if (task.recurrence) {
-    const next = nextOccurrence(task.recurrence, recurrenceBase(task.dueDate, today));
-    // A rule that can't produce a date leaves the task where it is rather than
-    // being handed an invented one. It stays visible, which is the honest
-    // outcome — a silently wrong date would be worse than none.
-    return next === null ? task : touch({ ...task, dueDate: next });
+  const rule = task.recurrence;
+  if (rule) {
+    const next = nextOccurrence(rule, recurrenceBase(task.dueDate, today));
+    // The rule has run its course — past its until-date, out of repeats, or
+    // (rarely) shaped so no date exists. This completion is its last: the task
+    // closes like a non-recurring one, keeping the rule as a record of how it
+    // used to repeat. Reopening just clears the completion; an ended rule
+    // stays ended until it is re-edited, with no hidden counter resurrecting.
+    const lastRepeat = rule.remaining !== null && rule.remaining <= 1;
+    if (next === null || lastRepeat) {
+      return touch({ ...task, completedAt: now });
+    }
+    return touch({
+      ...task,
+      dueDate: next,
+      recurrence: rule.remaining === null ? rule : { ...rule, remaining: rule.remaining - 1 },
+    });
   }
   return touch({ ...task, completedAt: now });
 }

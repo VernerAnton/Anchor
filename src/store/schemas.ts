@@ -31,57 +31,74 @@ const recurrenceCommon = {
   interval: z.number().catch(1),
   anchor: z.string().nullable().catch(null),
   mode: z.enum(['grid', 'fromCompletion']).catch('grid'),
+  until: z.string().nullable().catch(null),
+  remaining: z.number().nullable().catch(null),
 };
 
 /**
- * Rules written before the engine grew intervals used a `kind` discriminator
- * and no shared fields. Upgrading them here — at the boundary that already
- * treats stored data as untrusted — means every task saved by an earlier build
- * keeps working with no separate migration pass.
+ * Two earlier generations of stored rules are upgraded here — at the boundary
+ * that already treats stored data as untrusted — so every task saved by an
+ * earlier build keeps working with no separate migration pass.
  *
- * `everyNDays` becomes a completion-relative daily rule because that is what
- * it did: it added N days to the completion base, never consulting a calendar.
+ * Generation one used a `kind` discriminator and no shared fields.
+ * (`everyNDays` becomes a completion-relative daily rule because that is what
+ * it did: it added N days to the completion base, never consulting a
+ * calendar.) Generation two used `freq` but a single monthly `day` where the
+ * model now holds a list. Fields merely *added* since then (`count`, `until`,
+ * `remaining`) need no rewriting — `.catch()` defaults cover absence.
  */
 function upgradeLegacyRecurrence(value: unknown): unknown {
   if (value === null || typeof value !== 'object') return value;
   const raw = value as Record<string, unknown>;
-  if (typeof raw.kind !== 'string') return value;
 
-  switch (raw.kind) {
-    case 'everyNDays':
-      return {
-        freq: 'daily',
-        interval: typeof raw.n === 'number' ? raw.n : 1,
-        anchor: null,
-        mode: 'fromCompletion',
-      };
-    case 'weekly':
-      return {
-        freq: 'weekly',
-        weekdays: Array.isArray(raw.weekdays) ? raw.weekdays : [],
-        interval: 1,
-        anchor: null,
-        mode: 'grid',
-      };
-    case 'monthlyByDate':
-      return {
-        freq: 'monthlyByDate',
-        day: typeof raw.day === 'number' ? raw.day : 1,
-        interval: 1,
-        anchor: null,
-        mode: 'grid',
-      };
-    default:
-      return value;
+  if (typeof raw.kind === 'string') {
+    switch (raw.kind) {
+      case 'everyNDays':
+        return {
+          freq: 'daily',
+          interval: typeof raw.n === 'number' ? raw.n : 1,
+          anchor: null,
+          mode: 'fromCompletion',
+        };
+      case 'weekly':
+        return {
+          freq: 'weekly',
+          weekdays: Array.isArray(raw.weekdays) ? raw.weekdays : [],
+          interval: 1,
+          anchor: null,
+          mode: 'grid',
+        };
+      case 'monthlyByDate':
+        return {
+          freq: 'monthlyByDate',
+          days: [typeof raw.day === 'number' ? raw.day : 1],
+          interval: 1,
+          anchor: null,
+          mode: 'grid',
+        };
+      default:
+        return value;
+    }
   }
+
+  if (raw.freq === 'monthlyByDate' && !Array.isArray(raw.days)) {
+    return { ...raw, days: [typeof raw.day === 'number' ? raw.day : 1] };
+  }
+
+  return value;
 }
 
 export const recurrenceSchema = z.preprocess(
   upgradeLegacyRecurrence,
   z.discriminatedUnion('freq', [
     z.object({ freq: z.literal('daily'), ...recurrenceCommon }),
-    z.object({ freq: z.literal('weekly'), weekdays: z.array(z.number()), ...recurrenceCommon }),
-    z.object({ freq: z.literal('monthlyByDate'), day: z.number(), ...recurrenceCommon }),
+    z.object({
+      freq: z.literal('weekly'),
+      weekdays: z.array(z.number()),
+      count: z.enum(['weeks', 'occurrences']).catch('weeks'),
+      ...recurrenceCommon,
+    }),
+    z.object({ freq: z.literal('monthlyByDate'), days: z.array(z.number()), ...recurrenceCommon }),
     z.object({
       freq: z.literal('monthlyByWeekday'),
       week: z.number(),
