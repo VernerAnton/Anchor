@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { initRepository } from './store';
 
 import './styles/fonts.css';
@@ -16,7 +17,9 @@ if (!root) throw new Error('No #root element');
 initRepository().then((mode) => {
   createRoot(root).render(
     <StrictMode>
-      <App syncMode={mode} />
+      <ErrorBoundary>
+        <App syncMode={mode} />
+      </ErrorBoundary>
     </StrictMode>,
   );
 });

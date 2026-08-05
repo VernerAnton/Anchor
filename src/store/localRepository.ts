@@ -1,5 +1,4 @@
 import type { Project, Task } from '../types/task';
-import type { Settings } from '../types/settings';
 import type { AnchorRepository, Unsubscribe } from './repository';
 import {
   localKey,
@@ -9,6 +8,7 @@ import {
   taskDoc,
   tasksCollection,
 } from './keys';
+import { parseProject, parseSettings, parseTask } from './schemas';
 
 /**
  * localStorage behind the Firestore-shaped interface.
@@ -40,13 +40,21 @@ function readJson<T>(key: string): T | null {
 /**
  * Stands in for a Firestore whole-collection read. Library documents are
  * id-keyed, so everything under the prefix comes back and the caller orders it.
+ *
+ * Everything is validated on the way out, exactly as the Firestore backend
+ * validates its snapshots. Stored data goes stale the moment the model moves
+ * on, and the schemas are where a stale shape gets upgraded — a backend that
+ * skips them hands components fields they were written before, which is a
+ * crash during render rather than a bad pixel.
  */
-function scanAll<T>(prefix: string): T[] {
+function scanAll<T>(prefix: string, parse: (data: unknown, context: string) => T | null): T[] {
   const found: T[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key === null || !key.startsWith(prefix)) continue;
-    const doc = readJson<T>(key);
+    const raw = readJson<unknown>(key);
+    if (raw === null) continue;
+    const doc = parse(raw, key);
     if (doc) found.push(doc);
   }
   return found;
@@ -92,24 +100,18 @@ export function createLocalRepository(userId: string): AnchorRepository {
     return () => void watchers.delete(watcher);
   };
 
-  const watchKey = <T>(key: string, cb: (value: T | null) => void): Unsubscribe =>
-    watch(
-      (changed) => changed === key,
-      () => cb(readJson<T>(key)),
-    );
-
   const tasksPrefix = `${localKey(tasksCollection(userId))}:`;
   const projectsPrefix = `${localKey(projectsCollection(userId))}:`;
 
   return {
     async getTasks() {
-      return scanAll<Task>(tasksPrefix);
+      return scanAll<Task>(tasksPrefix, parseTask);
     },
 
     subscribeTasks(cb) {
       return watch(
         (changed) => changed.startsWith(tasksPrefix),
-        () => cb(scanAll<Task>(tasksPrefix)),
+        () => cb(scanAll<Task>(tasksPrefix, parseTask)),
       );
     },
 
@@ -124,13 +126,13 @@ export function createLocalRepository(userId: string): AnchorRepository {
     },
 
     async getProjects() {
-      return scanAll<Project>(projectsPrefix);
+      return scanAll<Project>(projectsPrefix, parseProject);
     },
 
     subscribeProjects(cb) {
       return watch(
         (changed) => changed.startsWith(projectsPrefix),
-        () => cb(scanAll<Project>(projectsPrefix)),
+        () => cb(scanAll<Project>(projectsPrefix, parseProject)),
       );
     },
 
@@ -145,11 +147,19 @@ export function createLocalRepository(userId: string): AnchorRepository {
     },
 
     async getSettings() {
-      return readJson<Settings>(localKey(settingsDoc(userId)));
+      const raw = readJson<unknown>(localKey(settingsDoc(userId)));
+      return raw === null ? null : parseSettings(raw, 'settings');
     },
 
     subscribeSettings(cb) {
-      return watchKey<Settings>(localKey(settingsDoc(userId)), cb);
+      const key = localKey(settingsDoc(userId));
+      return watch(
+        (changed) => changed === key,
+        () => {
+          const raw = readJson<unknown>(key);
+          cb(raw === null ? null : parseSettings(raw, 'settings'));
+        },
+      );
     },
 
     async saveSettings(settings) {

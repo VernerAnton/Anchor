@@ -533,6 +533,28 @@ h2 {
   text-align: center;
 }
 
+.crash {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.crash__detail {
+  width: 100%;
+  overflow-x: auto;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
 .recurrence-preview {
   margin: 0;
   font-size: var(--text-xs);
