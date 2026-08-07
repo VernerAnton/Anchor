@@ -40,26 +40,32 @@ VITE_FIREBASE_APP_ID=...
 
 ## 3. Firestore rules
 
-Build → Firestore Database → **Rules** tab, replace with:
+Pick your sync key now — the phrase you're about to use in the app — and put it directly in
+the rule. Build → Firestore Database → **Rules** tab, replace with:
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{syncKey}/{document=**} {
-      allow read, write: if true;
+      allow read, write: if syncKey == "YOUR-CHOSEN-KEY-HERE";
     }
   }
 }
 ```
 
-The `{document=**}` wildcard covers every path the app uses — `users/{syncKey}/v2-tasks/…`,
-`v2-projects/…` and `v2-settings/app` (see `src/store/keys.ts`).
+Swap in your real key (keep the quotes) and publish. The `{document=**}` wildcard covers
+every path the app uses — `users/{syncKey}/v2-tasks/…`, `v2-projects/…` and
+`v2-settings/app` (see `src/store/keys.ts`) — and `allow read` already covers both `get` and
+`list`, which is what the live task/project subscriptions need.
 
-**The trust model is deliberate.** The sync key *is* the credential, so treat it like a
-password. Anyone who knows a key can read and write that key's data — and nothing else.
-This matches the working app it was ported from. If that ever stops being acceptable, the fix
-is real auth, not tighter rules on top of a guessable key.
+**The key is verified server-side, not just obscure.** Only requests carrying the exact key
+you put in the rule are allowed through; a wrong or guessed key gets denied by Firestore
+itself. Rules text isn't visible to end users, only to people with access to the Firebase
+project, so this is a real password check, not security by obscurity.
+
+The one cost: changing your key later means editing and republishing this rule, not just
+retyping it in the app's Sync field. Fine for a personal key you're not rotating often.
 
 ## 4. Vercel
 
@@ -90,7 +96,9 @@ changes without risking real data:
 npx firebase-tools emulators:start --only firestore --project anchor-emu-test
 ```
 
-with a `firebase.json` pointing at the rules above, then in `.env.local`:
+with a `firebase.json` pointing at an open `allow read, write: if true` rules file — the
+emulator has no real data to protect, so there's no reason to key-gate it — then in
+`.env.local`:
 
 ```
 VITE_FIRESTORE_EMULATOR=127.0.0.1:8080
