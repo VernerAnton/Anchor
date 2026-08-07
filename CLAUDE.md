@@ -53,6 +53,9 @@ because a timeline doesn't improve by being stretched.
 
 ## Working style
 
+- **Bump `APP_VERSION` in `src/version.ts` whenever work ships.** It's the number shown in
+  the app, and the only way to tell at a glance whether a device is running the current
+  build — several devices have this installed as a PWA and can silently sit on an old one.
 - Don't ask permission for things already decided in the handover.
 - When something genuinely needs a decision, ask once and record the answer in
   `design/scope-decisions.md` rather than asking again later.
