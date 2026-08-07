@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
+  connectFirestoreEmulator,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -30,8 +31,20 @@ export function createDb() {
     throw new Error('Firebase config missing — check VITE_FIREBASE_* in .env.local');
   }
   const app = initializeApp(config);
-  return initializeFirestore(app, {
+  const db = initializeFirestore(app, {
     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     ignoreUndefinedProperties: true,
   });
+
+  // Point at a local Firestore emulator when asked, as `host:port`. Absent in
+  // any real build, so the production path is untouched — it exists so the
+  // sync layer can be exercised end to end (two devices converging, offline
+  // replay, the version guard) without a live project or real data at risk.
+  const emulator = import.meta.env.VITE_FIRESTORE_EMULATOR;
+  if (emulator) {
+    const [host, port] = String(emulator).split(':');
+    connectFirestoreEmulator(db, host || 'localhost', Number(port) || 8080);
+  }
+
+  return db;
 }
