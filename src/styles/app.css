@@ -533,6 +533,27 @@ h2 {
   text-align: center;
 }
 
+.update-prompt {
+  position: fixed;
+  left: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: min(24rem, calc(100vw - var(--space-6)));
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-raised);
+}
+
+.update-prompt__text {
+  margin: 0;
+  font-size: var(--text-s);
+}
+
 .crash {
   display: flex;
   flex-direction: column;
