@@ -42,6 +42,11 @@ export default defineConfig({
     // this build claim those installs immediately.
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered by hand through `virtual:pwa-register` (see
+      // src/hooks/useAppUpdate.ts) so the app can watch for updates rather than
+      // only picking them up on a cold load. Without this the plugin would
+      // inject its own registration script and the worker would register twice.
+      injectRegister: null,
       includeAssets: ['favicon.svg', 'icons/*.png'],
       workbox: {
         // Fonts are self-hosted, so precaching them is what makes the

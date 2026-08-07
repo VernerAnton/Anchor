@@ -24,6 +24,8 @@ import { TaskListPanel } from './components/TaskListPanel';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
 import { SyncSettings } from './components/SyncSettings';
+import { UpdatePrompt } from './components/UpdatePrompt';
+import { useAppUpdate } from './hooks/useAppUpdate';
 
 interface Props {
   syncMode: SyncMode;
@@ -40,6 +42,7 @@ interface Props {
 export function App({ syncMode }: Props) {
   const tasks = useTasks();
   const projects = useProjects();
+  const update = useAppUpdate();
 
   const [selection, setSelection] = useState<Selection>({ kind: 'today' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -196,6 +199,10 @@ export function App({ syncMode }: Props) {
       )}
 
       {syncOpen && <SyncSettings mode={syncMode} onClose={() => setSyncOpen(false)} />}
+
+      {update.needRefresh && (
+        <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />
+      )}
     </div>
   );
 }
