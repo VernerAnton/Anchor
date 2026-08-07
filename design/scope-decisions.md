@@ -78,11 +78,43 @@ devices.
 
 ---
 
-## Still open
+## Decided during path-view design discussion (2026-08-07)
 
-- **Weekly programming.** Whether this is a recurring week template that generates paths you
-  then tweak per day, or a week laid out by hand each time. The first mostly falls out of
-  recurrence; the second is a separate feature.
+**Path generation is pattern-based, not a daily or weekly chore — this settles the weekly
+programming question above.** Build mode assembles a pattern once — a week, or open-ended —
+not a single day at a time. Path view for any given day derives its points from whichever
+tasks' recurrence rules say "today," the same mechanism the list view's Today section already
+uses to decide what's due. This is exactly why `firstMove`, `type` and `defaultDuration` were
+carried onto `Task` as nullable fields from the first session: a task with those set isn't
+just a to-do, it's a template for a recurring point. Completing a point in path view advances
+the underlying task's due date, identical to completing it in the list view — nothing
+regenerates unless the pattern itself changes. If nothing changes for months, the same
+structure keeps repeating with no return to build mode required.
+
+**"Run" commits a pattern and transitions into path view — a named, deliberate threshold.**
+Mirrors `setLocked` / `addPointFromTask` from the old reference code: assembling in build mode
+produces the artifact, Run is the moment it's committed and launched. A short transition
+animation marks the crossing — scoped separately and far more modestly than scenic mode,
+which stays the last, most expensive phase. Reaching back into build mode to change a
+committed pattern is the deliberate door back, not an accident — no inline editing controls
+live in path view itself.
+
+**Build mode is where you go only to change something, never on a schedule.** The app's
+default view is the path (unchanged from the v3 handover); build mode is a destination you
+visit deliberately when something needs to change, then leave.
+
+**The path builder gets its own sidebar destination, not a sub-view of All Tasks.** Sits as a
+fourth item in the views group, next to Today / Upcoming / All tasks — reachable in one click
+from the same region, but its own screen. Assembling a route (times, order, rest) is a
+different interaction from browsing a flat list, and merging the two risks both jobs working
+worse.
+
+**Build mode carries the cyberpunk aesthetic too, turned down rather than turned off.** Not a
+calmer, different theme — the same dark surfaces, the same ember/acid/cyan grammar, the same
+three typefaces, just fewer things glowing at once. Path mode's continuous pulsing animation
+on the active point stays reserved for path mode specifically, where "this is live, pay
+attention" is the actual point; a task list triaged for ten minutes shouldn't be animating the
+whole time you're in it.
 
 ---
 
