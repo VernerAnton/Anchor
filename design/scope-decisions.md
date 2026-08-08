@@ -78,7 +78,14 @@ devices.
 
 ---
 
-## Decided during path-view design discussion (2026-08-07)
+## Decided during path-view design discussion (2026-08-07) — superseded
+
+**Superseded by the 2026-08-08 section below.** Kept as a record of what was thought at the
+time, per this file's convention. The approach here — a day's contents derived from due dates,
+assembled in a builder and committed by pressing "Run" — was replaced before any of it
+shipped. What survives from it: the path builder as its own sidebar destination, and the
+cyberpunk aesthetic carried into build mode turned down rather than turned off.
+
 
 **Path generation is pattern-based, not a daily or weekly chore — this settles the weekly
 programming question above.** Build mode assembles a pattern once — a week, or open-ended —
@@ -115,6 +122,41 @@ three typefaces, just fewer things glowing at once. Path mode's continuous pulsi
 on the active point stays reserved for path mode specifically, where "this is live, pay
 attention" is the actual point; a task list triaged for ten minutes shouldn't be animating the
 whole time you're in it.
+
+---
+
+## Decided for the path builder (2026-08-08)
+
+**The path builder is two screens: a multi-week overview, and a single-day editor.** The
+overview shows up to four weeks at once — enough to see how things lay out and whether
+anything is piled up — with the current day's row picked out. It is for looking, not for
+changing. Clicking a day opens that day in the editor.
+
+Editing a whole week in one screen was tried on paper and dropped: seven days across one
+screen gives each day a seventh of the width, which is cramped for something being arranged
+carefully. One day at a time gets the whole screen, and it is the same editor on desktop and
+phone — one thing to build, one thing to learn. It also removes dragging between days
+entirely, which never had a workable phone gesture.
+
+**Editing a day edits the rule, not that one day.** Moving something to 8am moves it
+everywhere it appears; the overview is a projection of the rules four weeks forward, not four
+weeks of separately editable days. A one-off override ("just today, 6am instead") is
+deliberately left out for now — it can be added later without disturbing anything.
+
+**Times are optional.** An item may carry a fixed clock time, or simply follow the one before
+it in order. "Gym at 7:00" then "shower" then "emails" is a valid day — only the first has a
+clock. Requiring a time on everything would turn arranging a day into filling in a form.
+
+**Day editor layout: the day on the left, the library on the right.** The opened day sits on
+the left and needs no great width. The right side lists every to-do in the app, sortable and
+groupable by the obvious axes (A–Z, by project), and items are dragged or selected across into
+the day. Selecting an item already placed on the path opens its repeat settings.
+
+**The repeat engine stands, and is what "how often" means.** Every day, every other weekday,
+six days a week, chosen weekdays — all already built and unit-tested in `src/lib/recurrence.ts`.
+An item's repeat rule is how it says how often it appears on the path. The same rules also
+drive due dates on the to-do side, which is what lets Anchor work as a plain task manager for
+anyone who never opens the path.
 
 ---
 
