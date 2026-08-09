@@ -23,6 +23,7 @@ const VIEWS: { selection: Selection; label: string }[] = [
   { selection: { kind: 'today' }, label: 'Today' },
   { selection: { kind: 'upcoming' }, label: 'Upcoming' },
   { selection: { kind: 'all' }, label: 'All tasks' },
+  { selection: { kind: 'path' }, label: 'Path' },
 ];
 
 export function Sidebar({

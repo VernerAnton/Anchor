@@ -21,6 +21,7 @@ import {
 import { useProjects, useTasks } from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
+import { PathOverview } from './components/PathOverview';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
 import { SyncSettings } from './components/SyncSettings';
@@ -153,17 +154,27 @@ export function App({ syncMode }: Props) {
         syncMode={syncMode}
       />
 
-      <TaskListPanel
-        selection={selection}
-        model={model}
-        projects={projects}
-        today={today}
-        selectedTaskId={selectedTaskId}
-        onOpenDrawer={() => setDrawerOpen(true)}
-        onSelectTask={setSelectedTaskId}
-        onToggleTask={toggleTask}
-        onAddTask={addTask}
-      />
+      {selection.kind === 'path' ? (
+        <PathOverview
+          tasks={tasks}
+          projects={projects}
+          today={today}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onSelectTask={setSelectedTaskId}
+        />
+      ) : (
+        <TaskListPanel
+          selection={selection}
+          model={model}
+          projects={projects}
+          today={today}
+          selectedTaskId={selectedTaskId}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onSelectTask={setSelectedTaskId}
+          onToggleTask={toggleTask}
+          onAddTask={addTask}
+        />
+      )}
 
       <DetailPanel
         task={selectedTask}
