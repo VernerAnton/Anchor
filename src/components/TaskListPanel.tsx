@@ -23,6 +23,8 @@ function panelTitle(selection: Selection, projects: Project[]): string {
       return 'Upcoming';
     case 'all':
       return 'All tasks';
+    case 'path':
+      return 'Path';
     case 'project':
       return projects.find((p) => p.id === selection.projectId)?.name ?? 'Project';
   }

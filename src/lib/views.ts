@@ -12,6 +12,8 @@ export type Selection =
   | { kind: 'today' }
   | { kind: 'upcoming' }
   | { kind: 'all' }
+  /** The path overview. Renders its own screen rather than a task list. */
+  | { kind: 'path' }
   | { kind: 'project'; projectId: string };
 
 export function selectionKey(selection: Selection): string {
@@ -129,6 +131,10 @@ export function buildTaskList(
       };
     }
 
+    // The path renders its own screen from the repeat rules, not a task list.
+    case 'path':
+      return { sections: [], completed: [] };
+
     case 'project': {
       const top = tasks.filter(
         (t) => active(t) && t.projectId === selection.projectId && t.parentId === null,
@@ -154,6 +160,9 @@ export function countFor(selection: Selection, tasks: Task[], today: string = to
       return tasks.filter((t) => active(t) && t.dueDate !== null && t.dueDate > today).length;
     case 'all':
       return tasks.filter(active).length;
+    // No badge: a count here would only repeat what Today already says.
+    case 'path':
+      return 0;
     case 'project':
       return tasks.filter((t) => active(t) && t.projectId === selection.projectId).length;
   }

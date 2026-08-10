@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { repository } from '../store';
 import type { Project, Task } from '../types/task';
+import type { Settings } from '../types/settings';
 
 /**
  * The app's window onto the store: live subscriptions, rendered directly.
@@ -20,4 +21,15 @@ export function useProjects(): Project[] | null {
   const [projects, setProjects] = useState<Project[] | null>(null);
   useEffect(() => repository.subscribeProjects(setProjects), []);
   return projects;
+}
+
+/**
+ * `null` here means two different things that behave the same way: not
+ * delivered yet, and never written. Both resolve to defaults at the call
+ * site, so a fresh install and a slow first snapshot look identical.
+ */
+export function useSettings(): Settings | null {
+  const [settings, setSettings] = useState<Settings | null>(null);
+  useEffect(() => repository.subscribeSettings(setSettings), []);
+  return settings;
 }

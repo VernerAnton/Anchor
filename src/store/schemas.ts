@@ -162,6 +162,7 @@ export const projectSchema = z
 
 export const settingsSchema = z
   .object({
+    pathMode: z.boolean().catch(false),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),
