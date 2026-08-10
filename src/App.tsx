@@ -18,10 +18,13 @@ import {
   selectionKey,
   type Selection,
 } from './lib/views';
-import { useProjects, useTasks } from './hooks/useStore';
+import { useProjects, useSettings, useTasks } from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
-import { PathOverview } from './components/PathOverview';
+import { PathArea } from './components/PathArea';
+import { PathLibrary } from './components/PathLibrary';
+import { ExitPathMode } from './components/ExitPathMode';
+import { defaultSettings } from './types/settings';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
 import { SyncSettings } from './components/SyncSettings';
@@ -43,6 +46,7 @@ interface Props {
 export function App({ syncMode }: Props) {
   const tasks = useTasks();
   const projects = useProjects();
+  const settings = useSettings();
   const update = useAppUpdate();
 
   const [selection, setSelection] = useState<Selection>({ kind: 'today' });
@@ -125,6 +129,22 @@ export function App({ syncMode }: Props) {
 
   const saveProject = (project: Project) => void repository.saveProject(project);
 
+  /**
+   * Switching sides is a stored setting, not navigation — it survives a
+   * restart and reaches your other devices, so the app opens where you left
+   * it rather than asking again every morning.
+   */
+  const setPathMode = (pathMode: boolean) => {
+    const base = settings ?? defaultSettings();
+    void repository.saveSettings({
+      ...base,
+      pathMode,
+      version: base.version + 1,
+      updatedAt: Date.now(),
+    });
+    setSelectedTaskId(null);
+  };
+
   const deleteProject = (project: Project) => {
     // Its tasks live on, unfiled — deleting a folder shouldn't delete the work.
     for (const task of tasks.filter((t) => t.projectId === project.id)) {
@@ -138,6 +158,58 @@ export function App({ syncMode }: Props) {
       select({ kind: 'today' });
     }
   };
+
+  const detailPanel = (
+    <DetailPanel
+      task={selectedTask}
+      tasks={tasks}
+      projects={projects}
+      today={today}
+      onClose={() => setSelectedTaskId(null)}
+      onUpdate={updateTask}
+      onSetRecurrence={setRecurrence}
+      onToggle={toggleTask}
+      onDelete={deleteTask}
+      onAddSubtask={addSubtask}
+      onSelectTask={setSelectedTaskId}
+    />
+  );
+
+  /**
+   * Path mode takes the whole screen. No sidebar, no views list, no project
+   * tree — the projects come back as the sections of the library on the right,
+   * and the left of the screen belongs entirely to the day. The only way back
+   * is the exit in the corner, deliberately small.
+   */
+  if (settings?.pathMode === true) {
+    return (
+      <div className="app app--path">
+        <PathArea
+          tasks={tasks}
+          projects={projects}
+          today={today}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={setSelectedTaskId}
+          onToggleTask={toggleTask}
+        />
+
+        <PathLibrary
+          tasks={tasks}
+          projects={projects}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={setSelectedTaskId}
+        />
+
+        {detailPanel}
+
+        <ExitPathMode onExit={() => setPathMode(false)} />
+
+        {update.needRefresh && (
+          <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="app" data-selection={selectionKey(selection)}>
@@ -155,12 +227,30 @@ export function App({ syncMode }: Props) {
       />
 
       {selection.kind === 'path' ? (
-        <PathOverview
+        <PathArea
           tasks={tasks}
           projects={projects}
           today={today}
-          onOpenDrawer={() => setDrawerOpen(true)}
+          selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
+          onToggleTask={toggleTask}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          header={
+            <header className="panel-header">
+              <button
+                type="button"
+                className="drawer-button"
+                aria-label="Open menu"
+                onClick={() => setDrawerOpen(true)}
+              >
+                ☰
+              </button>
+              <h1>Path</h1>
+              <button type="button" className="btn btn--primary" onClick={() => setPathMode(true)}>
+                Turn on path mode
+              </button>
+            </header>
+          }
         />
       ) : (
         <TaskListPanel
@@ -176,19 +266,7 @@ export function App({ syncMode }: Props) {
         />
       )}
 
-      <DetailPanel
-        task={selectedTask}
-        tasks={tasks}
-        projects={projects}
-        today={today}
-        onClose={() => setSelectedTaskId(null)}
-        onUpdate={updateTask}
-        onSetRecurrence={setRecurrence}
-        onToggle={toggleTask}
-        onDelete={deleteTask}
-        onAddSubtask={addSubtask}
-        onSelectTask={setSelectedTaskId}
-      />
+      {detailPanel}
 
       {drawerOpen && (
         <button

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Recurrence, Task } from '../types/task';
-import { buildGrid, landsOn } from './pathGrid';
+import type { Project, Recurrence, Task } from '../types/task';
+import { buildGrid, groupByProject, landsOn } from './pathGrid';
 
 // 2026-08-04 is a Tuesday; the Monday of its week is 2026-08-03.
 const TUE = '2026-08-04';
@@ -136,5 +136,67 @@ describe('buildGrid', () => {
   it('leaves days genuinely empty rather than inventing filler', () => {
     const grid = buildGrid([], TUE, 2);
     expect(grid.flatMap((w) => w.days).every((d) => d.tasks.length === 0)).toBe(true);
+  });
+});
+
+function project(id: string, name: string, order = 0): Project {
+  return {
+    id,
+    name,
+    colorId: 'steel',
+    parentId: null,
+    order,
+    archived: false,
+    schemaVersion: 1,
+    version: 1,
+    updatedAt: 0,
+  };
+}
+
+describe('groupByProject', () => {
+  it('leads with All tasks, holding everything unfiled', () => {
+    const loose = task({ title: 'Loose', dueDate: TUE });
+    const filed = task({ title: 'Filed', projectId: 'p1', dueDate: TUE });
+    const sections = groupByProject([loose, filed], [project('p1', 'Health')]);
+
+    expect(sections[0]!.title).toBe('All tasks');
+    expect(sections[0]!.project).toBeNull();
+    expect(sections[0]!.tasks.map((t) => t.title)).toEqual(['Loose']);
+    expect(sections[1]!.title).toBe('Health');
+    expect(sections[1]!.tasks.map((t) => t.title)).toEqual(['Filed']);
+  });
+
+  it('keeps a project with nothing in it, so it can still be scrolled to', () => {
+    const sections = groupByProject([], [project('p1', 'Health')]);
+    expect(sections.map((s) => s.title)).toEqual(['All tasks', 'Health']);
+    expect(sections[1]!.tasks).toEqual([]);
+  });
+
+  it('orders projects by their own order, then name', () => {
+    const sections = groupByProject(
+      [],
+      [project('p2', 'Study', 2), project('p1', 'Health', 1), project('p3', 'Admin', 1)],
+    );
+    expect(sections.map((s) => s.title)).toEqual(['All tasks', 'Admin', 'Health', 'Study']);
+  });
+
+  it('leaves out archived projects, subtasks, and finished or archived tasks', () => {
+    const sub = task({ title: 'Sub', parentId: 'parent', dueDate: TUE });
+    const done = task({ title: 'Done', completedAt: 1 });
+    const gone = task({ title: 'Gone', archived: true });
+    const live = task({ title: 'Live', dueDate: TUE });
+    const sections = groupByProject(
+      [sub, done, gone, live],
+      [project('p1', 'Health'), { ...project('p2', 'Old'), archived: true }],
+    );
+
+    expect(sections.map((s) => s.title)).toEqual(['All tasks', 'Health']);
+    expect(sections[0]!.tasks.map((t) => t.title)).toEqual(['Live']);
+  });
+
+  it('includes a task with no date at all — the library is not the path', () => {
+    const someday = task({ title: 'Someday' });
+    const sections = groupByProject([someday], []);
+    expect(sections[0]!.tasks.map((t) => t.title)).toEqual(['Someday']);
   });
 });

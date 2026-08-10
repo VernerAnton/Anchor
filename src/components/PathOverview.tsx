@@ -7,8 +7,11 @@ interface Props {
   tasks: Task[];
   projects: Project[];
   today: string;
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   onSelectTask: (id: string) => void;
+  /** Picking a day is what the calendar is for — it opens that day. */
+  onSelectDay: (date: string) => void;
+  onClose: () => void;
 }
 
 const WEEKS = 4;
@@ -26,7 +29,15 @@ const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as cons
  * from the rules every time it renders, so looking at a future week never
  * creates anything.
  */
-export function PathOverview({ tasks, projects, today, onOpenDrawer, onSelectTask }: Props) {
+export function PathOverview({
+  tasks,
+  projects,
+  today,
+  onOpenDrawer,
+  onSelectTask,
+  onSelectDay,
+  onClose,
+}: Props) {
   const weeks = useMemo(() => buildGrid(tasks, today, WEEKS), [tasks, today]);
   const colorOf = (projectId: string | null) =>
     projects.find((p) => p.id === projectId)?.colorId ?? null;
@@ -42,14 +53,25 @@ export function PathOverview({ tasks, projects, today, onOpenDrawer, onSelectTas
   return (
     <main className="path-overview">
       <header className="panel-header">
-        <button type="button" className="drawer-button" aria-label="Open menu" onClick={onOpenDrawer}>
-          ☰
+        {onOpenDrawer && (
+          <button
+            type="button"
+            className="drawer-button"
+            aria-label="Open menu"
+            onClick={onOpenDrawer}
+          >
+            ☰
+          </button>
+        )}
+        <h1>Four weeks</h1>
+        <button type="button" className="btn btn--quiet" onClick={onClose}>
+          Back to the day
         </button>
-        <h1>Path</h1>
       </header>
 
       <p className="path-overview__hint">
-        The next four weeks, as your repeat rules lay them out. Scroll down to go further ahead.
+        As your repeat rules lay them out. Scroll down to go further ahead, or pick a day to open
+        it.
       </p>
 
       <ol className="path-weeks">
@@ -77,7 +99,11 @@ export function PathOverview({ tasks, projects, today, onOpenDrawer, onSelectTas
                       className={classes.join(' ')}
                       aria-current={day.date === today ? 'date' : undefined}
                     >
-                      <p className="path-day__date">
+                      <button
+                        type="button"
+                        className="path-day__date"
+                        onClick={() => onSelectDay(day.date)}
+                      >
                         {/*
                           Today says so in words, not only in colour. Colour is
                           the theme's job and a theme can be swapped out; which
@@ -92,7 +118,7 @@ export function PathOverview({ tasks, projects, today, onOpenDrawer, onSelectTas
                             {MONTH_NAMES[Number(day.date.slice(5, 7)) - 1]}
                           </span>
                         )}
-                      </p>
+                      </button>
 
                       {day.tasks.length === 0 ? (
                         <p className="path-day__clear">—</p>

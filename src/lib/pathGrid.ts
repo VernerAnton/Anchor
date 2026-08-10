@@ -1,4 +1,4 @@
-import type { Task } from '../types/task';
+import type { Project, Task } from '../types/task';
 import { addDays, weekStart, weekdayOf } from './dates';
 import { matches } from './recurrence';
 
@@ -64,4 +64,45 @@ export function buildGrid(tasks: Task[], from: string, weeks: number): GridWeek[
     grid.push({ start, days });
   }
   return grid;
+}
+
+export interface LibrarySection {
+  key: string;
+  title: string;
+  /** `null` for the catch-all section holding everything unfiled. */
+  project: Project | null;
+  tasks: Task[];
+}
+
+/**
+ * Every live task, grouped into project sections — what the sidebar's project
+ * list turns into once path mode hides it.
+ *
+ * "All tasks" leads, holding everything with no project, so nothing is ever
+ * only reachable by knowing which project it went into. Projects follow in
+ * their own order. Subtasks stay out: they belong under their parent, not
+ * loose in a list you drag from.
+ */
+export function groupByProject(tasks: Task[], projects: Project[]): LibrarySection[] {
+  const live = tasks.filter((t) => active(t) && t.parentId === null);
+  const byOrder = (a: Project, b: Project) =>
+    a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name);
+
+  return [
+    {
+      key: 'unfiled',
+      title: 'All tasks',
+      project: null,
+      tasks: live.filter((t) => t.projectId === null),
+    },
+    ...projects
+      .filter((p) => !p.archived)
+      .sort(byOrder)
+      .map((project) => ({
+        key: project.id,
+        title: project.name,
+        project,
+        tasks: live.filter((t) => t.projectId === project.id),
+      })),
+  ];
 }
