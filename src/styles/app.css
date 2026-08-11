@@ -13,7 +13,10 @@ body {
   font-family: var(--font-ui);
   font-size: var(--text-m);
   color: var(--text);
+  /* Falls back to the flat ground wherever a theme defines no atmosphere. */
   background: var(--bg);
+  background: var(--bg-atmosphere, var(--bg));
+  background-attachment: fixed;
 }
 
 button {
@@ -84,11 +87,23 @@ h2 {
   overflow-y: auto;
 }
 
+/*
+ * The wordmark, at the theme's lower setting: the mockup's letterspaced caps
+ * and a single ember glow, without the chromatic split it uses on the path.
+ * Enough that the app is recognisably itself; not so much that a task list
+ * hums at you while you triage it.
+ */
 .sidebar__brand {
   font-size: var(--text-l);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
   padding: var(--space-2) var(--space-2) 0;
+  text-shadow: var(--ember-glow, none);
+}
+
+.sidebar__brand::first-letter {
+  color: var(--ember, inherit);
 }
 
 .nav-link {
@@ -232,9 +247,16 @@ h2 {
   gap: var(--space-3);
 }
 
+/*
+ * Headings take the display face. It's the one place in the task manager
+ * that gets a voice rather than a label, and it's most of what stops a dark
+ * palette reading as a generic dark mode.
+ */
 .panel-header h1 {
+  font-family: var(--font-display, inherit);
   font-size: var(--text-xl);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .drawer-button {
@@ -725,8 +747,10 @@ h2 {
 }
 
 .path-day-view__heading {
+  font-family: var(--font-display, inherit);
   font-size: var(--text-xl);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .path-day-view__calendar {
@@ -849,11 +873,15 @@ h2 {
 
 /* ── Path overview ────────────────────────────────────────────────────── */
 
+/*
+ * Deliberately not its own scroller. It sits inside `.path-area`, which
+ * already scrolls, and two nested scrollers meant scrolling to today moved
+ * the inner one while the outer one kept its header half off-screen.
+ */
 .path-overview {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow-y: auto;
   padding: var(--space-5) var(--space-6);
   gap: var(--space-4);
 }

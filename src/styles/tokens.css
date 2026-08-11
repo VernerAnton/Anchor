@@ -4,50 +4,83 @@
  * this file and nothing else. (The test: blank this file and the app must
  * stay fully usable — ugly, but every state distinguishable.)
  *
- * This is the plain default theme. Deliberately neutral: structure and
- * behaviour are built against it, and the neon-noir theme lands on top later
- * without touching a component.
+ * Neon-noir. Taken from `design/anchor-path-neonnoir.html`, which is the
+ * reference for the path itself. The task manager and the path builder use
+ * this same palette turned down rather than turned off: same surfaces, same
+ * grammar, fewer things glowing at once. Nothing here is a second theme.
+ *
+ * The three state colours — ember, acid, cyan — carry meaning on the path and
+ * are named for what they mean rather than what they are. They live here
+ * because the path will need them; nothing outside the path may use them to
+ * decorate, or their meaning stops being reliable.
  */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* Type. The self-hosted display faces ship with the app for the later
-     theme; the plain theme reads best in the system stack. */
-  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Type. Chakra Petch carries the interface, Space Mono anything numeric or
+     stamped, Fraunces the few places that want a voice rather than a label.
+     All three are self-hosted, so an installed app renders right offline. */
+  --font-ui: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-display: 'Fraunces', Georgia, serif;
   --text-xs: 0.72rem;
   --text-s: 0.83rem;
   --text-m: 0.94rem;
   --text-l: 1.1rem;
   --text-xl: 1.35rem;
 
-  /* Surfaces */
-  --bg: #f4f4f2;
-  --surface: #ffffff;
-  --surface-sunken: #ededea;
-  --surface-hover: #f2f2ef;
-  --surface-active: #e9e9e5;
-  --backdrop: rgba(24, 24, 28, 0.35);
+  /* Surfaces — void is the ground, panels sit above it. */
+  --bg: #04080d;
+  --surface: #0a1b25;
+  --surface-sunken: #07121a;
+  --surface-hover: #0d2532;
+  --surface-active: #123241;
+  --backdrop: rgba(4, 8, 13, 0.72);
+
+  /*
+   * The ground is not flat: three coloured hazes sit far back, one per state
+   * colour, well below the threshold where they'd read as meaning. Set as a
+   * whole stack so the only raw colour stays in this file.
+   */
+  --bg-atmosphere:
+    radial-gradient(ellipse 80% 50% at 20% -5%, #ff3d2e14 0%, transparent 60%),
+    radial-gradient(ellipse 70% 45% at 90% 30%, #00e5ff10 0%, transparent 60%),
+    radial-gradient(ellipse 90% 50% at 50% 105%, #c6ff000e 0%, transparent 60%),
+    #04080d;
+
+  /*
+   * Ember: the thing pulling you now. The path will use it for the live
+   * point; outside the path it appears only on the wordmark, because the
+   * wordmark is the app's identity rather than a piece of state.
+   * Acid (proof something happened) and cyan (optional, you may decline)
+   * join it when the path itself is built — no token before it has a job.
+   */
+  --ember: #ff3d2e;
+  --ember-glow: 0 0 14px #ff3d2e88;
 
   /* Lines */
-  --border: #e2e2de;
-  --border-strong: #c8c8c3;
+  --border: #14384a;
+  --border-strong: #1d4d63;
 
   /* Text */
-  --text: #26262b;
-  --text-muted: #66666d;
-  --text-faint: #9d9da3;
-  --text-invert: #ffffff;
+  --text: #eafaff;
+  --text-muted: #a8d4e0;
+  --text-faint: #5d8896;
+  --text-invert: #04080d;
 
-  /* Interaction */
-  --accent: #3a5f9e;
-  --accent-hover: #2f4e83;
-  --accent-soft: #3a5f9e1a;
-  --focus-ring: #3a5f9e59;
+  /*
+   * Interaction is cyan rather than ember. Ember means "this is the thing
+   * pulling you now" on the path, and spending it on every selected row and
+   * primary button would leave it meaning nothing by the time it matters.
+   */
+  --accent: #00e5ff;
+  --accent-hover: #6df2ff;
+  --accent-soft: #00e5ff1f;
+  --focus-ring: #00e5ff88;
 
   /* Depth & shape */
-  --shadow-raised: 0 10px 32px rgba(20, 20, 24, 0.16);
+  --shadow-raised: 0 16px 44px rgba(2, 6, 12, 0.72);
   --radius-s: 4px;
   --radius-m: 8px;
   --radius-l: 12px;
@@ -60,20 +93,21 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* Priority — backlog ordering only; P1 pulls hardest. */
-  --priority-1: #b0512e;
-  --priority-2: #af8434;
-  --priority-3: #3a5f9e;
-  --priority-4: #8a8f98;
+  /* Priority — backlog ordering only; P1 pulls hardest. Deliberately kept
+     off the three state colours so a list can never imitate the path. */
+  --priority-1: #ff8f6b;
+  --priority-2: #e0b45c;
+  --priority-3: #7fb2d9;
+  --priority-4: #6d8b99;
 
-  /* Project identity — the muted axis. Neon will mean state, muted means
+  /* Project identity — the muted axis. Neon means state, muted means
      identity; these stay low-saturation in every theme. */
-  --project-steel: #6a8ca8;
-  --project-violet: #8f7bc4;
-  --project-teal: #4fa89b;
-  --project-sage: #84a172;
-  --project-ochre: #b8944e;
-  --project-plum: #a86e8c;
-  --project-indigo: #6b78bd;
-  --project-clay: #b07a63;
+  --project-steel: #7fa6c4;
+  --project-violet: #a693dd;
+  --project-teal: #5fc0b2;
+  --project-sage: #9bba86;
+  --project-ochre: #d0aa63;
+  --project-plum: #c286a3;
+  --project-indigo: #8592d6;
+  --project-clay: #c89179;
 }

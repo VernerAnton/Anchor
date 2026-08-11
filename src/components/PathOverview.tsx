@@ -47,7 +47,10 @@ export function PathOverview({
   // fills the width. Opening on today is the whole point, so scroll to it.
   const todayRef = useRef<HTMLLIElement>(null);
   useEffect(() => {
-    todayRef.current?.scrollIntoView({ block: 'start' });
+    // `nearest` scrolls the least it can, so it does nothing when today is
+    // already on screen. `start` dragged the header off the top of a desktop
+    // view where today was visible in the first row anyway.
+    todayRef.current?.scrollIntoView({ block: 'nearest' });
   }, [today]);
 
   return (
