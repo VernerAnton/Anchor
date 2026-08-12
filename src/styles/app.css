@@ -457,9 +457,9 @@ h2 {
 
 /*
  * The spine. The path's own trail borrowed into the list: a hairline running
- * down the gutter with a marker per row, lighting acid behind every task
- * that's been cleared. It isn't claiming the list is a route — it's saying
- * proof accumulates here too, in the same language the path uses.
+ * down the gutter with a marker per row, lit along everything still open and
+ * dark behind everything finished. Weight follows what's left to do — a
+ * cleared row has already had your attention and shouldn't keep asking for it.
  */
 .task-list {
   position: relative;
@@ -473,7 +473,7 @@ h2 {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--border);
+  background: var(--trail-spent, var(--border));
 }
 
 .task-list > .task-row {
@@ -481,15 +481,15 @@ h2 {
   position: relative;
 }
 
-.task-list > .task-row--done::before {
+.task-list > .task-row:not(.task-row--done)::before {
   content: '';
   position: absolute;
   left: calc(var(--space-5) * -1 + 9px);
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--acid, currentColor);
-  box-shadow: var(--acid-trail-glow, none);
+  background: var(--trail-live, currentColor);
+  box-shadow: var(--trail-live-glow, none);
 }
 
 .task-row__main {
@@ -528,21 +528,28 @@ h2 {
   z-index: 2;
 }
 
-.task-check:hover {
-  border-color: var(--accent);
+/* Open: hollow and lit, sitting on the live spine, waiting to be filled. */
+.task-check[aria-checked='false'] {
+  border-color: var(--trail-live, currentColor);
 }
 
+.task-check:hover {
+  border-color: var(--accent);
+  box-shadow: var(--trail-live-glow, none);
+}
+
+/* Cleared: filled but quiet. Handled, and no longer asking for anything. */
 .task-check[aria-checked='true'] {
-  background: var(--acid, var(--accent));
-  border-color: var(--acid, var(--accent));
-  box-shadow: var(--acid-glow, none);
+  background: var(--trail-spent, var(--surface-active));
+  border-color: var(--trail-spent, var(--border-strong));
+  box-shadow: none;
 }
 
 /* The glyph, not just the fill, marks completion — a themeless build must
    still tell done from not-done. */
 .task-check[aria-checked='true']::after {
   content: '✓';
-  color: var(--text-invert);
+  color: var(--text-faint, currentColor);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -562,8 +569,7 @@ h2 {
 }
 
 .task-row--done .task-ref {
-  color: var(--acid, inherit);
-  opacity: 0.6;
+  color: var(--trail-spent, inherit);
 }
 
 .task-row__body {
@@ -580,17 +586,19 @@ h2 {
 }
 
 /*
- * Struck through in acid rather than greyed out. Acid means proof something
- * happened, and a finished task is exactly that — so a cleared row reads as
- * lit, not as deleted. `line-through` stays underneath as the fallback, so a
- * themeless build still distinguishes done from not-done.
+ * A cleared row recedes rather than lighting up: it has already had your
+ * attention, and a list should put its weight on what is still open. The
+ * strike stays plain `line-through`, which also means a themeless build keeps
+ * telling done from not-done for free.
  */
 .task-row--done .task-title {
   color: var(--text-faint);
   text-decoration: line-through;
-  text-decoration-color: var(--acid, currentColor);
   text-decoration-thickness: 1px;
-  text-shadow: var(--acid-strike-halo, none);
+}
+
+.task-row--done .task-row__main {
+  opacity: 0.62;
 }
 
 .task-meta {

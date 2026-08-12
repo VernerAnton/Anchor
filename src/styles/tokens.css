@@ -62,7 +62,22 @@
   --ember-glow: 0 0 14px #ff3d2e88;
   --acid: #c6ff00;
   --acid-glow: 0 0 6px #c6ff00, 0 0 16px #c6ff0088;
-  --acid-trail-glow: 0 0 8px #c6ff00, 0 0 22px #c6ff0055;
+
+  /*
+   * The library's spine runs lit along everything still open and goes dark
+   * behind everything finished, so attention falls on what's left rather than
+   * on what's already handled.
+   *
+   * Cyan, not acid. Acid means "proof this happened" on the path, and a colour
+   * cannot mean done on one screen and not-done on another without both
+   * readings becoming unreliable. Cyan already means available-to-you, which
+   * is exactly what an open task is. The glow is deliberately slight: most of
+   * a list is open most of the time, and a line that glows along its whole
+   * length is a line that has stopped saying anything.
+   */
+  --trail-live: #1c7f96;
+  --trail-live-glow: 0 0 6px #00e5ff33;
+  --trail-spent: #0e2836;
 
   /* Lines */
   --border: #14384a;
