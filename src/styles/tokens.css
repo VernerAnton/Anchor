@@ -50,18 +50,55 @@
     #04080d;
 
   /*
-   * Ember: the thing pulling you now. The path will use it for the live
-   * point; outside the path it appears only on the wordmark, because the
-   * wordmark is the app's identity rather than a piece of state.
-   * Acid (proof something happened) and cyan (optional, you may decline)
-   * join it when the path itself is built — no token before it has a job.
+   * The three state colours. Ember means the thing pulling you now, so it
+   * stays on the path and on the one control that launches it — spend it on
+   * ordinary buttons and it means nothing by the time it matters. Acid means
+   * proof something happened, which is exactly what a finished task is, so
+   * acid travels back into the library freely. Cyan means optional; it also
+   * does duty as the interaction colour, where "you may decline this" is a
+   * fair reading of every button that isn't the one.
    */
   --ember: #ff3d2e;
   --ember-glow: 0 0 14px #ff3d2e88;
+  --acid: #c6ff00;
+  --acid-glow: 0 0 6px #c6ff00, 0 0 16px #c6ff0088;
+  --acid-trail-glow: 0 0 8px #c6ff00, 0 0 22px #c6ff0055;
 
   /* Lines */
   --border: #14384a;
   --border-strong: #1d4d63;
+
+  /*
+   * Surface treatment. The raked gradient gives every panel one light source;
+   * the hairline sits along its top edge so the light has somewhere to land.
+   * The notch is the app's silhouette — one shape, used everywhere.
+   */
+  --surface-raked: linear-gradient(158deg, var(--surface), var(--surface-sunken));
+  --edge-highlight: linear-gradient(90deg, #ffffff2b, #ffffff08 55%, transparent);
+  --clip-notch: polygon(
+    0 0,
+    calc(100% - 13px) 0,
+    100% 13px,
+    100% 100%,
+    13px 100%,
+    0 calc(100% - 13px)
+  );
+  --clip-notch-s: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
+
+  /*
+   * Film grain. Kept at the strength where you'd argue it isn't there — at
+   * the point you notice it consciously it has already become texture you're
+   * reading through rather than a surface you're reading on.
+   */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.035;
 
   /* Text */
   --text: #eafaff;

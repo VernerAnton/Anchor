@@ -1,5 +1,6 @@
 import type { Project, Task } from '../types/task';
 import { describeRecurrence } from '../lib/recurrence';
+import { taskRef } from '../lib/taskRef';
 import { dateLabel, type Selection } from '../lib/views';
 
 interface Props {
@@ -48,7 +49,16 @@ export function TaskRow({
           aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
           onClick={() => onToggle(task)}
         />
-        <button type="button" className="task-row__body" onClick={() => onSelect(task.id)}>
+        <button
+          type="button"
+          className="task-row__body brackets"
+          onClick={() => onSelect(task.id)}
+        >
+          {/* Subtasks belong to their parent's reference; giving them their
+              own would imply they're filed separately, which they aren't. */}
+          {task.parentId === null && (
+            <span className="task-ref">{taskRef(task, projects)}</span>
+          )}
           <span className="task-title">{task.title}</span>
           <span className="task-meta">
             {task.priority !== null && (

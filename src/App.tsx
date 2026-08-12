@@ -24,6 +24,7 @@ import { TaskListPanel } from './components/TaskListPanel';
 import { PathArea } from './components/PathArea';
 import { PathLibrary } from './components/PathLibrary';
 import { ExitPathMode } from './components/ExitPathMode';
+import { StatusBar } from './components/StatusBar';
 import { defaultSettings } from './types/settings';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
@@ -159,6 +160,16 @@ export function App({ syncMode }: Props) {
     }
   };
 
+  const live = tasks.filter((t) => !t.archived);
+  const statusBar = (
+    <StatusBar
+      today={today}
+      syncMode={syncMode}
+      cleared={live.filter((t) => t.completedAt !== null).length}
+      total={live.length}
+    />
+  );
+
   const detailPanel = (
     <DetailPanel
       task={selectedTask}
@@ -183,7 +194,9 @@ export function App({ syncMode }: Props) {
    */
   if (settings?.pathMode === true) {
     return (
-      <div className="app app--path">
+      <>
+      {statusBar}
+      <div className="app app--path app--framed">
         <PathArea
           tasks={tasks}
           projects={projects}
@@ -208,11 +221,14 @@ export function App({ syncMode }: Props) {
           <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />
         )}
       </div>
+      </>
     );
   }
 
   return (
-    <div className="app" data-selection={selectionKey(selection)}>
+    <>
+    {statusBar}
+    <div className="app app--framed" data-selection={selectionKey(selection)}>
       <Sidebar
         open={drawerOpen}
         selection={selection}
@@ -293,5 +309,6 @@ export function App({ syncMode }: Props) {
         <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />
       )}
     </div>
+    </>
   );
 }
