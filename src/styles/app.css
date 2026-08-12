@@ -13,7 +13,80 @@ body {
   font-family: var(--font-ui);
   font-size: var(--text-m);
   color: var(--text);
+  /* Falls back to the flat ground wherever a theme defines no atmosphere. */
   background: var(--bg);
+  background: var(--bg-atmosphere, var(--bg));
+  background-attachment: fixed;
+}
+
+/*
+ * Film grain over the whole app. Pinned rather than scrolling, so it reads as
+ * the surface you're looking through rather than a texture printed on the
+ * content. Absent entirely when the theme defines no grain.
+ */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background-image: var(--grain, none);
+  opacity: var(--grain-opacity, 0);
+  mix-blend-mode: overlay;
+}
+
+/*
+ * Focus as four corner brackets closing on the target, rather than a ring.
+ * Applied to the shell so it survives a theme swap: with no tokens the
+ * browser's own outline is restored by the rule below it.
+ */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.brackets {
+  position: relative;
+}
+
+.brackets::before,
+.brackets::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  border: 2px solid var(--accent);
+}
+
+/* Two boxes, each showing only opposite corners, makes four brackets. */
+.brackets::before {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  clip-path: polygon(0 0, 10px 0, 10px 2px, 2px 2px, 2px 10px, 0 10px);
+}
+
+.brackets::after {
+  border-left-color: transparent;
+  border-top-color: transparent;
+  clip-path: polygon(
+    100% 100%,
+    calc(100% - 10px) 100%,
+    calc(100% - 10px) calc(100% - 2px),
+    calc(100% - 2px) calc(100% - 2px),
+    calc(100% - 2px) calc(100% - 10px),
+    100% calc(100% - 10px)
+  );
+}
+
+.brackets:focus-visible {
+  outline: none;
+}
+
+.brackets:focus-visible::before,
+.brackets:focus-visible::after {
+  opacity: 1;
 }
 
 button {
@@ -56,6 +129,55 @@ h2 {
   margin: 0;
 }
 
+/* ── Status strip ─────────────────────────────────────────────────────── */
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.statusbar__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.statusbar__item b {
+  font-weight: 400;
+  color: var(--acid, inherit);
+  text-shadow: var(--acid-glow, none);
+}
+
+.statusbar__gap {
+  flex: 1;
+}
+
+.statusbar__lamp {
+  width: 5px;
+  height: 5px;
+  background: var(--acid, currentColor);
+  box-shadow: var(--acid-glow, none);
+}
+
+/* Local-only is a fact about where the data is, not a fault. */
+.statusbar__lamp--local {
+  background: var(--text-faint);
+  box-shadow: none;
+}
+
 /* ── Shell ────────────────────────────────────────────────────────────── */
 
 .app {
@@ -63,6 +185,12 @@ h2 {
   grid-template-columns: 264px minmax(0, 1fr) 360px;
   height: 100vh;
   height: 100dvh;
+}
+
+/* The strip sits above the shell, so the shell loses its height. */
+.app--framed {
+  height: calc(100vh - 2.1rem);
+  height: calc(100dvh - 2.1rem);
 }
 
 .app--loading {
@@ -84,11 +212,23 @@ h2 {
   overflow-y: auto;
 }
 
+/*
+ * The wordmark, at the theme's lower setting: the mockup's letterspaced caps
+ * and a single ember glow, without the chromatic split it uses on the path.
+ * Enough that the app is recognisably itself; not so much that a task list
+ * hums at you while you triage it.
+ */
 .sidebar__brand {
   font-size: var(--text-l);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
   padding: var(--space-2) var(--space-2) 0;
+  text-shadow: var(--ember-glow, none);
+}
+
+.sidebar__brand::first-letter {
+  color: var(--ember, inherit);
 }
 
 .nav-link {
@@ -119,10 +259,21 @@ h2 {
   white-space: nowrap;
 }
 
+/* Counts are instruments: zero-padded so they don't reflow as they change. */
 .badge {
   font-size: var(--text-xs);
   font-family: var(--font-mono);
   color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+}
+
+.meta-due,
+.meta-recurrence,
+.task-ref,
+.sidebar__build,
+.detail__title {
+  font-variant-numeric: tabular-nums;
 }
 
 .sidebar__section-head {
@@ -162,10 +313,15 @@ h2 {
   padding-left: var(--space-5);
 }
 
+/*
+ * The same rotated square the station markers use, at half the size. Shared
+ * shape, different scale: identity and state read as one visual system
+ * without a project ever being mistaken for a point.
+ */
 .project-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
   flex: none;
 }
 
@@ -190,7 +346,10 @@ h2 {
 }
 
 .sidebar__sync-state {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--text-faint);
 }
 
@@ -232,9 +391,16 @@ h2 {
   gap: var(--space-3);
 }
 
+/*
+ * Headings take the display face. It's the one place in the task manager
+ * that gets a voice rather than a label, and it's most of what stops a dark
+ * palette reading as a generic dark mode.
+ */
 .panel-header h1 {
+  font-family: var(--font-display, inherit);
   font-size: var(--text-xl);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .drawer-button {
@@ -289,8 +455,41 @@ h2 {
 
 /* ── Task rows ────────────────────────────────────────────────────────── */
 
+/*
+ * The spine. The path's own trail borrowed into the list: a hairline running
+ * down the gutter with a marker per row, lighting acid behind every task
+ * that's been cleared. It isn't claiming the list is a route — it's saying
+ * proof accumulates here too, in the same language the path uses.
+ */
+.task-list {
+  position: relative;
+  padding-left: var(--space-5);
+}
+
+.task-list::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
 .task-list > .task-row {
   border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.task-list > .task-row--done::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-5) * -1 + 9px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--acid, currentColor);
+  box-shadow: var(--acid-trail-glow, none);
 }
 
 .task-row__main {
@@ -305,15 +504,28 @@ h2 {
   background: var(--accent-soft);
 }
 
+/*
+ * A station marker rather than a checkbox — the same rotated square the path
+ * uses for a point, at list scale. On the outer list it sits over the spine;
+ * nested subtasks keep it inline, since they hang off their parent.
+ */
 .task-check {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   flex: none;
-  margin-top: 2px;
+  margin-top: 4px;
   /* currentColor fallback: a themeless build must still show the control. */
   border: 2px solid var(--border-strong, currentColor);
-  border-radius: 50%;
-  background: var(--surface);
+  background: var(--bg);
+  transform: rotate(45deg);
+}
+
+.task-list > .task-row > .task-row__main > .task-check {
+  position: absolute;
+  left: calc(var(--space-5) * -1 + 3px);
+  top: var(--space-3);
+  margin-top: 4px;
+  z-index: 2;
 }
 
 .task-check:hover {
@@ -321,8 +533,9 @@ h2 {
 }
 
 .task-check[aria-checked='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--acid, var(--accent));
+  border-color: var(--acid, var(--accent));
+  box-shadow: var(--acid-glow, none);
 }
 
 /* The glyph, not just the fill, marks completion — a themeless build must
@@ -336,6 +549,21 @@ h2 {
   height: 100%;
   line-height: 1;
   font-size: var(--text-xs);
+  transform: rotate(-45deg);
+}
+
+/* The task's handle. Stamped, so it reads as a reference and not a title. */
+.task-ref {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.task-row--done .task-ref {
+  color: var(--acid, inherit);
+  opacity: 0.6;
 }
 
 .task-row__body {
@@ -351,9 +579,18 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+/*
+ * Struck through in acid rather than greyed out. Acid means proof something
+ * happened, and a finished task is exactly that — so a cleared row reads as
+ * lit, not as deleted. `line-through` stays underneath as the fallback, so a
+ * themeless build still distinguishes done from not-done.
+ */
 .task-row--done .task-title {
   color: var(--text-faint);
   text-decoration: line-through;
+  text-decoration-color: var(--acid, currentColor);
+  text-decoration-thickness: 1px;
+  text-shadow: var(--acid-strike-halo, none);
 }
 
 .task-meta {
@@ -466,14 +703,23 @@ h2 {
   min-width: 0;
 }
 
+/*
+ * Everything the app says is stamped: mono, small, wide-tracked, uppercase.
+ * Everything you wrote stays in the interface face at reading size. The two
+ * voices are visibly different, which is the difference between operating a
+ * console and filling in a form.
+ */
 .field > span,
 .field > legend,
-.field__title {
+.field__title,
+.section-title,
+.sidebar__section-head h2 {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  color: var(--text-faint);
   padding: 0;
 }
 
@@ -670,9 +916,10 @@ h2 {
   overflow-y: auto;
 }
 
+/* Clears the status strip, which is always above it. */
 .path-exit {
   position: fixed;
-  top: var(--space-3);
+  top: calc(2.1rem + var(--space-2));
   right: var(--space-3);
   z-index: 25;
   width: 2rem;
@@ -725,8 +972,10 @@ h2 {
 }
 
 .path-day-view__heading {
+  font-family: var(--font-display, inherit);
   font-size: var(--text-xl);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .path-day-view__calendar {
@@ -849,11 +1098,15 @@ h2 {
 
 /* ── Path overview ────────────────────────────────────────────────────── */
 
+/*
+ * Deliberately not its own scroller. It sits inside `.path-area`, which
+ * already scrolls, and two nested scrollers meant scrolling to today moved
+ * the inner one while the outer one kept its header half off-screen.
+ */
 .path-overview {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow-y: auto;
   padding: var(--space-5) var(--space-6);
   gap: var(--space-4);
 }
@@ -877,6 +1130,42 @@ h2 {
   gap: var(--space-2);
 }
 
+/*
+ * The notch — the app's silhouette. Top-right and bottom-left cut off, one
+ * shape used on every raised panel. `--clip-notch` resolves to nothing in a
+ * themeless build, which leaves an ordinary rectangle.
+ */
+.path-day,
+.path-point,
+.build-item,
+.modal,
+.update-prompt {
+  clip-path: var(--clip-notch, none);
+  border-radius: 0;
+}
+
+/* Light from one corner, and a hairline where it lands. */
+.path-day,
+.path-point,
+.build-item {
+  position: relative;
+  background: var(--surface);
+  background: var(--surface-raked, var(--surface));
+}
+
+.path-day::after,
+.path-point::after,
+.build-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: var(--edge-highlight, none);
+}
+
 .path-day {
   display: flex;
   flex-direction: column;
@@ -885,8 +1174,6 @@ h2 {
   min-height: 6rem;
   padding: var(--space-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius-s);
-  background: var(--surface);
 }
 
 /* A day that has gone by is quieter, never marked. Nothing here is a verdict. */

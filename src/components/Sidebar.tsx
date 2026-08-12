@@ -82,8 +82,8 @@ export function Sidebar({
                 type="button"
                 className={
                   current === selectionKey(viewSelection)
-                    ? 'nav-link nav-link--current'
-                    : 'nav-link'
+                    ? 'nav-link brackets nav-link--current'
+                    : 'nav-link brackets'
                 }
                 onClick={() => onSelect(viewSelection)}
               >
