@@ -73,6 +73,13 @@ export function App({ syncMode }: Props) {
    * by two columns.
    */
   const [pathDate, setPathDate] = useState(todayStr());
+  /*
+   * Whether the week is open for changing. Deliberately not stored, unlike
+   * path mode itself: path mode is a preference and should survive a restart,
+   * whereas building is something you are doing right now. Reopening the app
+   * tomorrow should hand you the route, not the builder you walked away from.
+   */
+  const [building, setBuilding] = useState(false);
 
   const today = todayStr();
   const model = useMemo(
@@ -312,8 +319,10 @@ export function App({ syncMode }: Props) {
     return (
       <>
       {statusBar}
-      <div className="app app--path app--framed">
+      <div className={building ? 'app app--path app--framed app--building' : 'app app--path app--framed'}>
         <PathArea
+          building={building}
+          onSetBuilding={setBuilding}
           tasks={tasks}
           projects={projects}
           today={today}
@@ -331,6 +340,13 @@ export function App({ syncMode }: Props) {
           onFillWildcard={fillWildcard}
         />
 
+        {/*
+          * Only while building. Outside it there is nothing to drag from and
+          * nothing to file, and the route reads better with the screen to
+          * itself — a timeline doesn't improve by being squeezed next to a
+          * list you aren't using.
+          */}
+        {building && (
         <PathLibrary
           projects={projects}
           landing={landingOn(tasks, pattern, pathDate)}
@@ -346,10 +362,16 @@ export function App({ syncMode }: Props) {
           onAddTask={(title, projectId) => addTask(title, { projectId, dueDate: pathDate })}
           onNewProject={() => setProjectEditor({ mode: 'new', parentId: null })}
         />
+        )}
 
         {detailPanel}
 
-        <ExitPathMode onExit={() => setPathMode(false)} />
+        <ExitPathMode
+          onExit={() => {
+            setBuilding(false);
+            setPathMode(false);
+          }}
+        />
 
         {/* Path mode hides the sidebar, so this is the only way to make a
             project while you're in here. Same editor as the to-do side. */}
@@ -405,6 +427,9 @@ export function App({ syncMode }: Props) {
           onRemoveEntry={takeOffDay}
           onEditEntry={reshapeEntry}
           onFillWildcard={fillWildcard}
+          /* A view of the route, not a builder. Building has a place of its
+             own, and the button in this panel's header is how you get there. */
+          building={false}
           onOpenDrawer={() => setDrawerOpen(true)}
           header={
             <header className="panel-header">

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Project, Recurrence, Task } from '../types/task';
 import { buildGrid, groupByProject, landsOn } from './pathGrid';
+import { weekDates } from './dates';
 
 // 2026-08-04 is a Tuesday; the Monday of its week is 2026-08-03.
 const TUE = '2026-08-04';
@@ -198,5 +199,44 @@ describe('groupByProject', () => {
     const someday = task({ title: 'Someday' });
     const sections = groupByProject([someday], []);
     expect(sections[0]!.tasks.map((t) => t.title)).toEqual(['Someday']);
+  });
+});
+
+describe('weekDates', () => {
+  // The strip is the week you are in, so it has to agree with the calendar
+  // above it — both start their weeks on a Monday.
+  it('gives the seven days of a date’s week, Monday first', () => {
+    expect(weekDates(TUE)).toEqual([
+      '2026-08-03',
+      '2026-08-04',
+      '2026-08-05',
+      '2026-08-06',
+      '2026-08-07',
+      '2026-08-08',
+      '2026-08-09',
+    ]);
+  });
+
+  it('gives the same week for every day in it', () => {
+    const week = weekDates(MON);
+    for (const day of week) expect(weekDates(day)).toEqual(week);
+  });
+
+  // Sunday is 0 in JS but the end of a Monday-based week, and getting that
+  // backwards would put the strip a week out for one day in seven.
+  it('treats Sunday as the end of its week, not the start of the next', () => {
+    expect(weekDates('2026-08-09')[0]).toBe(MON);
+  });
+
+  it('carries across a month boundary', () => {
+    expect(weekDates('2026-09-01')).toEqual([
+      '2026-08-31',
+      '2026-09-01',
+      '2026-09-02',
+      '2026-09-03',
+      '2026-09-04',
+      '2026-09-05',
+      '2026-09-06',
+    ]);
   });
 });

@@ -165,3 +165,33 @@ anyone who never opens the path.
 Rest is never completable. Nothing stores "missed". No streak chain, and no value a gap can
 reset. Cyan means *you may decline this*, and nothing else. No clinical language, and no
 blame-framed state anywhere — including in the parts of the app that look hostile on purpose.
+
+---
+
+## Step 4 — RUN and the mode split
+
+**RUN leaves build mode; it does not publish anything.** Edits save as they are made, exactly
+as they already do. RUN means "I'm done changing things, show me the route." The alternative —
+holding edits as a draft that RUN makes real — buys the ability to abandon a session of
+edits, at the cost of the app holding two versions of the week and having to decide what
+happens when you leave without pressing the button. Nothing to lose and nothing to confirm is
+worth more than an undo nobody asked for.
+
+**Build mode carries a weekday strip.** MON TUE WED THU FRI SAT SUN across the top of the
+builder, moving within the week currently being looked at. Building a whole week is one
+sitting rather than seven trips out to the calendar and back. The calendar stays as the way to
+move between weeks and to jump to a date.
+
+**Step 4 is structural only.** The mode split and RUN, nothing else. The NOW marker, what's
+passed receding, the ember glow on the thing pulling you — those are one piece of design and
+land together in step 5 rather than arriving half-built a step early.
+
+**Build mode is not remembered.** Path mode is a stored setting because it is a preference;
+building is something you are doing right now. Reopening the app tomorrow should give you the
+route, not the builder you left open.
+
+**The line between the two modes is what the edit changes.** Build mode changes *the week* —
+order, times, rest, where the wildcards sit. The path view changes only *today*: ticking a
+point, and filling a wildcard. That is why filling a wildcard stays available outside build
+mode — the whole reason a wildcard exists is the thing that turned up this morning, and going
+into the builder to record it would be the wrong shape entirely.

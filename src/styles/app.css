@@ -947,8 +947,52 @@ h2 {
  * middle, and task settings keep the same far-right position they hold in
  * to-do mode, so settings never move depending on where you came from.
  */
+/*
+ * Building needs the library beside the day; running doesn't. Outside build
+ * mode there is nothing to drag from and nothing to file, so the route gets
+ * the screen — and a timeline doesn't improve by being stretched, so it stays
+ * narrow and centred rather than filling the width it has been handed.
+ */
 .app--path {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.app--path.app--building {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 360px;
+}
+
+.app--path:not(.app--building) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app--path:not(.app--building) .path-day-view,
+.app--path:not(.app--building) .path-overview {
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+/*
+ * The same treatment the phone gives it, for the same reason: the route is
+ * the screen, and a column of "select a task to see its details" sitting open
+ * beside it is a permanent note about something you haven't done. It slides
+ * over when you open a point and gets out of the way when you don't.
+ * Duplicated from the mobile block below rather than shared — two different
+ * reasons to reach the same layout, and collapsing them would tie the phone's
+ * rule to path mode's.
+ */
+.app--path:not(.app--building) .detail {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(420px, 100vw);
+  transform: translateX(100%);
+  transition: transform 160ms ease;
+  z-index: 20;
+}
+
+.app--path:not(.app--building) .detail--open {
+  transform: none;
+  box-shadow: var(--shadow-raised);
 }
 
 .path-area {
@@ -1007,6 +1051,13 @@ h2 {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
+}
+
+/* The date leads; the mode switch sits at the far end of the same line. */
+.path-day-view__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .path-day-view__date {
@@ -1229,6 +1280,107 @@ h2 {
 .path-point__first-move {
   font-size: var(--text-s);
   color: var(--text-muted);
+}
+
+/* ── Build mode ───────────────────────────────────────────────────────── */
+
+/*
+ * One control with two labels. BUILD opens the week for changing, RUN closes
+ * it again — the same door, which is what makes leaving as obvious as
+ * arriving. RUN carries the ember because it is the one that hands you back
+ * something to act on.
+ */
+.path-mode-switch {
+  margin-left: auto;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.path-mode-switch:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.path-mode-switch--run {
+  border-color: var(--ember, var(--border-strong));
+  color: var(--ember, var(--text));
+  box-shadow: var(--ember-glow, none);
+}
+
+.path-mode-switch--run:hover {
+  border-color: var(--ember, var(--accent));
+  color: var(--ember, var(--accent));
+}
+
+/*
+ * The week, while you're building it. Seven equal columns rather than a
+ * scroller: the whole point is seeing the shape of a week at once, and a
+ * strip you have to scroll to reach Sunday is a strip that has stopped
+ * showing you a week.
+ */
+.weekday-strip {
+  padding: var(--space-4) var(--space-6) 0;
+}
+
+.weekday-strip__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.weekday {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid transparent;
+  border-bottom-color: var(--border);
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+}
+
+.weekday:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.weekday__name {
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+}
+
+.weekday__number {
+  font-size: var(--text-m);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * How much the pattern holds for that day — an empty Sunday says so from
+ * here. Kept well under the date so two numbers in a column don't read as one
+ * ambiguous pair; the date is what you're picking, the tally is a hint.
+ */
+.weekday__count {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  opacity: 0.45;
+}
+
+.weekday--today .weekday__name {
+  color: var(--acid, currentColor);
+}
+
+.weekday--current {
+  border-color: var(--border-strong);
+  border-bottom-color: var(--accent);
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* ── Building the day ─────────────────────────────────────────────────── */
@@ -1903,8 +2055,42 @@ h2 {
 
 @media (max-width: 980px) {
   .app,
-  .app--path {
+  .app--path,
+  .app--path.app--building {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * The strip is the one place seven columns has to hold on a phone, since a
+   * week with a day scrolled off the edge stops being a week. It gets there
+   * by shedding everything but the letters.
+   */
+  .weekday-strip {
+    padding-inline: var(--space-4);
+  }
+
+  /*
+   * The exit is fixed in the top-right corner, and on one column the day's own
+   * controls run straight into it — the mode switch and Sunday both ended up
+   * underneath it. Two things to press need separate ground, so the corner is
+   * kept clear rather than shared. `2rem` matches the exit's own width, set
+   * where the exit is.
+   */
+  .path-day-view__head,
+  .weekday-strip {
+    padding-right: calc(2rem + var(--space-4));
+  }
+
+  .weekday {
+    padding-inline: 0;
+  }
+
+  .weekday__name {
+    letter-spacing: 0;
+  }
+
+  .weekday__count {
+    display: none;
   }
 
   /*

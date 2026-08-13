@@ -123,6 +123,12 @@ export function weekStart(date: string): string {
   return addDays(date, -offset);
 }
 
+/** The seven dates of the week a date falls in, Monday first. */
+export function weekDates(date: string): string[] {
+  const start = weekStart(date);
+  return [0, 1, 2, 3, 4, 5, 6].map((offset) => addDays(start, offset));
+}
+
 /**
  * The date of the `week`-th `weekday` in a month — week 1..4 counting from the
  * start, or -1 for the last one. Returns null when the month has no such date

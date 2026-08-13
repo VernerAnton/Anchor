@@ -27,6 +27,14 @@ interface Props {
   onRemoveEntry: (entryId: string) => void;
   onEditEntry: (entryId: string, changes: EntryChanges) => void;
   onFillWildcard: (entryId: string, taskIds: string[]) => void;
+  /**
+   * Whether the week itself can be changed here. Off, the day is the route:
+   * you can still tick a point and still fill a wildcard, because both are
+   * facts about today rather than changes to the week.
+   */
+  building: boolean;
+  /** The mode switch — BUILD or RUN, depending which side of it you're on. */
+  action?: React.ReactNode;
 }
 
 const WEEKDAY_NAMES = [
@@ -92,6 +100,8 @@ export function PathDay({
   onRemoveEntry,
   onEditEntry,
   onFillWildcard,
+  building,
+  action,
 }: Props) {
   // A stale entry draws nothing but keeps its place in the list, so the gap
   // numbers still line up with what you can see.
@@ -103,11 +113,15 @@ export function PathDay({
       ? 'Today'
       : `${WEEKDAY_NAMES[weekdayOf(date)]} ${dayOf(date)} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]}`;
 
-  const gap = (index: number) => (
-    <li className="path-gap" role="presentation">
-      <PathInsert index={index} landing={landing} onInsert={onInsertEntry} onMove={onMoveEntry} />
-    </li>
-  );
+  // Outside build mode there are no gaps at all: nothing can be put anywhere,
+  // so an empty slot between every two things would be a control that does
+  // nothing but take up the day.
+  const gap = (index: number) =>
+    building ? (
+      <li className="path-gap" role="presentation">
+        <PathInsert index={index} landing={landing} onInsert={onInsertEntry} onMove={onMoveEntry} />
+      </li>
+    ) : null;
 
   return (
     <section className="path-day-view" aria-label="Today's path">
@@ -117,6 +131,7 @@ export function PathDay({
           <CalendarIcon />
           <span className="visually-hidden">Open the four-week calendar</span>
         </button>
+        {action}
       </header>
 
       {blocks.length === 0 && (
@@ -143,6 +158,7 @@ export function PathDay({
               onEditEntry={onEditEntry}
               onFillWildcard={onFillWildcard}
               blocks={blocks}
+              building={building}
             />
             {gap(block.index + 1)}
           </Fragment>
@@ -166,6 +182,7 @@ interface BlockProps {
   onRemoveEntry: (entryId: string) => void;
   onEditEntry: (entryId: string, changes: EntryChanges) => void;
   onFillWildcard: (entryId: string, taskIds: string[]) => void;
+  building: boolean;
 }
 
 /**
@@ -176,7 +193,7 @@ interface BlockProps {
  * a desktop one.
  */
 function Block(props: BlockProps) {
-  const { block, blocks, onMoveEntry, onRemoveEntry } = props;
+  const { block, blocks, building, onMoveEntry, onRemoveEntry } = props;
   const [dragging, setDragging] = useState(false);
 
   // Neighbours by what's on screen, not by stored position: stepping over an
@@ -188,7 +205,7 @@ function Block(props: BlockProps) {
   return (
     <li
       className={dragging ? 'path-block path-block--dragging' : 'path-block'}
-      draggable
+      draggable={building}
       onDragStart={(event) => {
         event.dataTransfer.setData(ENTRY_DRAG, String(block.index));
         event.dataTransfer.effectAllowed = 'move';
@@ -200,6 +217,7 @@ function Block(props: BlockProps) {
       {block.entry.kind === 'rest' && <RestBlock {...props} entry={block.entry} />}
       {block.entry.kind === 'wildcard' && <WildcardBlock {...props} entry={block.entry} />}
 
+      {building && (
       <div className="entry-tools">
         <button
           type="button"
@@ -228,6 +246,7 @@ function Block(props: BlockProps) {
           ✕
         </button>
       </div>
+      )}
     </li>
   );
 }
@@ -239,6 +258,7 @@ function TaskBlock({
   onSelectTask,
   onClearEntry,
   onEditEntry,
+  building,
 }: BlockProps) {
   const segment = block.segments[0];
   if (segment === undefined || segment.kind !== 'point') return null;
@@ -253,7 +273,9 @@ function TaskBlock({
       clock={
         <Clock
           segment={segment}
-          onSet={(startTime) => onEditEntry(block.entry.id, { startTime })}
+          onSet={
+            building ? (startTime) => onEditEntry(block.entry.id, { startTime }) : null
+          }
         />
       }
     />
@@ -330,11 +352,24 @@ function Clock({
   onSet,
 }: {
   segment: DaySegment & { startsAt: number };
-  onSet: (startTime: string | null) => void;
+  /** `null` outside build mode: the clock is a reading, not a control. */
+  onSet: ((startTime: string | null) => void) | null;
 }) {
   const [editing, setEditing] = useState(false);
   const anchored = 'anchored' in segment ? segment.anchored : false;
   const timed = segment.timed;
+
+  if (onSet === null) {
+    return (
+      <span
+        className={
+          anchored ? 'path-point__clock' : 'path-point__clock path-point__clock--follows'
+        }
+      >
+        {timed ? clockOf(segment.startsAt) : '—'}
+      </span>
+    );
+  }
 
   if (editing) {
     return (
@@ -381,10 +416,35 @@ function Clock({
  * It has no check and never will: rest is not a thing you complete, and giving
  * it a box to tick would quietly turn resting into another item owed.
  */
-function RestBlock({ block, entry, onEditEntry }: BlockProps & { entry: RestEntry }) {
+function RestBlock({ block, entry, onEditEntry, building }: BlockProps & { entry: RestEntry }) {
   const [editing, setEditing] = useState(false);
   const segment = block.segments[0];
   const minutes = segment && 'minutes' in segment ? segment.minutes : entry.minutes;
+
+  const face = (
+    <>
+      <span className="path-rest__mark" aria-hidden="true">
+        ↳
+      </span>
+      <span className="path-rest__label">
+        Rest{entry.label ? ` // ${entry.label}` : ''} · {minutes} min
+      </span>
+      <span className="path-rest__flag">no action</span>
+    </>
+  );
+
+  /* Outside build mode it isn't a control at all — there is nothing to press
+     and nothing rest would ever ask of you. */
+  if (!building) {
+    return (
+      <div
+        className="path-rest"
+        style={{ '--rest-minutes': minutes } as React.CSSProperties}
+      >
+        {face}
+      </div>
+    );
+  }
 
   if (editing) {
     return (
@@ -408,13 +468,7 @@ function RestBlock({ block, entry, onEditEntry }: BlockProps & { entry: RestEntr
       style={{ '--rest-minutes': minutes } as React.CSSProperties}
       onClick={() => setEditing(true)}
     >
-      <span className="path-rest__mark" aria-hidden="true">
-        ↳
-      </span>
-      <span className="path-rest__label">
-        Rest{entry.label ? ` // ${entry.label}` : ''} · {minutes} min
-      </span>
-      <span className="path-rest__flag">no action</span>
+      {face}
     </button>
   );
 }
@@ -479,6 +533,7 @@ function WildcardBlock({
   onClearEntry,
   onEditEntry,
   onFillWildcard,
+  building,
 }: BlockProps & { entry: WildcardEntry }) {
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -532,22 +587,37 @@ function WildcardBlock({
       );
     }
 
+    const face = (
+      <>
+        <span className="path-rest__mark" aria-hidden="true">
+          ↳
+        </span>
+        <span className="path-rest__label">
+          Open{entry.startTime ? ` // ${entry.startTime}` : ''} · {minutes} min
+        </span>
+        <span className="path-rest__flag">yours</span>
+      </>
+    );
+
     return (
       <div className="path-wildcard">
-        <button
-          type="button"
-          className="path-rest path-rest--open"
-          style={{ '--rest-minutes': minutes } as React.CSSProperties}
-          onClick={() => setEditing(true)}
-        >
-          <span className="path-rest__mark" aria-hidden="true">
-            ↳
-          </span>
-          <span className="path-rest__label">
-            Open{entry.startTime ? ` // ${entry.startTime}` : ''} · {minutes} min
-          </span>
-          <span className="path-rest__flag">yours</span>
-        </button>
+        {building ? (
+          <button
+            type="button"
+            className="path-rest path-rest--open"
+            style={{ '--rest-minutes': minutes } as React.CSSProperties}
+            onClick={() => setEditing(true)}
+          >
+            {face}
+          </button>
+        ) : (
+          <div
+            className="path-rest path-rest--open"
+            style={{ '--rest-minutes': minutes } as React.CSSProperties}
+          >
+            {face}
+          </div>
+        )}
         {addButton}
         {picker}
       </div>
@@ -576,7 +646,9 @@ function WildcardBlock({
               position === 0 ? (
                 <Clock
                   segment={segment}
-                  onSet={(startTime) => onEditEntry(entry.id, { startTime })}
+                  onSet={
+                    building ? (startTime) => onEditEntry(entry.id, { startTime }) : null
+                  }
                 />
               ) : (
                 <span className="path-point__clock path-point__clock--follows">
