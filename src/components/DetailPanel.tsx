@@ -284,29 +284,6 @@ function TaskForm({
         </div>
       </fieldset>
 
-      <label className="field">
-        <span>Start time</span>
-        <div className="field-row">
-          <input
-            type="time"
-            value={task.startTime ?? ''}
-            onChange={(event) => onUpdate(task, { startTime: event.target.value || null })}
-          />
-          {task.startTime !== null && (
-            <button
-              type="button"
-              className="btn btn--quiet"
-              onClick={() => onUpdate(task, { startTime: null })}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        {/* Per-day overrides belong to a day, and get their editor with the
-            day editor. This field is the task's own default. */}
-        <small>Used on every day unless that day sets its own time.</small>
-      </label>
-
       <RecurrenceEditor
         recurrence={task.recurrence}
         from={task.dueDate ?? today}

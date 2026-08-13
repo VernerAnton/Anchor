@@ -54,7 +54,7 @@ export function StatusBar({ today, syncMode, cleared, total }: Props) {
       <span className="statusbar__item">
         {WEEKDAYS[weekdayOf(today)]} {pad(dayOf(today))} {month?.toUpperCase()}
       </span>
-      <span className="statusbar__item">{clock}</span>
+      <span className="statusbar__item statusbar__item--clock">{clock}</span>
       <span className="statusbar__gap" />
       <span className="statusbar__item">
         CLEARED <b>{pad(cleared)}</b> / {pad(total)}

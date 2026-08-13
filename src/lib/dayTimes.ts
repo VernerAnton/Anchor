@@ -1,9 +1,8 @@
-import type { Task } from '../types/task';
-import { weekdayOf } from './dates';
-
 /**
- * Clock times on tasks: reading them, and converting between 'HH:MM' and
- * minutes from midnight.
+ * Clock times: converting between 'HH:MM' and minutes from midnight.
+ *
+ * Times belong to a path entry — a task's placement on a particular day — not
+ * to the task itself, so nothing here reads a task.
  *
  * Malformed input resolves to `null` rather than throwing — the same rule the
  * storage layer already follows. A time typed by hand, round-tripped through
@@ -32,19 +31,4 @@ export function clockOf(minutes: number): string {
   const wrapped = ((Math.round(minutes) % MINUTES_IN_DAY) + MINUTES_IN_DAY) % MINUTES_IN_DAY;
   const hours = Math.floor(wrapped / 60);
   return `${String(hours).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
-}
-
-/**
- * The time this task runs at on this date: its override for that weekday if
- * it has one, otherwise its default. `null` means it carries no clock and
- * simply follows whatever comes before it.
- */
-export function timeOnDate(task: Task, date: string): string | null {
-  const override = task.weekdayTimes?.[String(weekdayOf(date))];
-  return override ?? task.startTime;
-}
-
-/** The same answer in minutes from midnight, malformed values included. */
-export function minutesOnDate(task: Task, date: string): number | null {
-  return minutesOfClock(timeOnDate(task, date));
 }

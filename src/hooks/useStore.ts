@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { repository } from '../store';
 import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
+import type { DayLog, PathPattern } from '../types/path';
 
 /**
  * The app's window onto the store: live subscriptions, rendered directly.
@@ -32,4 +33,18 @@ export function useSettings(): Settings | null {
   const [settings, setSettings] = useState<Settings | null>(null);
   useEffect(() => repository.subscribeSettings(setSettings), []);
   return settings;
+}
+
+/** The week's arrangement. `null` until delivered, or when none exists yet. */
+export function usePathPattern(): PathPattern | null {
+  const [pattern, setPattern] = useState<PathPattern | null>(null);
+  useEffect(() => repository.subscribePathPattern(setPattern), []);
+  return pattern;
+}
+
+/** Every day the app has recorded anything for. */
+export function useDayLogs(): DayLog[] | null {
+  const [logs, setLogs] = useState<DayLog[] | null>(null);
+  useEffect(() => repository.subscribeDayLogs(setLogs), []);
+  return logs;
 }

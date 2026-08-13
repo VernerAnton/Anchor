@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Project, Task } from '../types/task';
+import type { DayLog, PathPattern } from '../types/path';
 import { todayStr } from '../lib/dates';
 import { PathDay } from './PathDay';
 import { PathOverview } from './PathOverview';
@@ -7,11 +8,13 @@ import { PathOverview } from './PathOverview';
 interface Props {
   tasks: Task[];
   projects: Project[];
+  pattern: PathPattern | null;
+  logs: DayLog[];
   today: string;
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
   onToggleTask: (task: Task) => void;
-  onRemoveFromPath: (task: Task) => void;
+  onClearEntry: (date: string, entryId: string, cleared: boolean) => void;
   /** Rendered above the day in to-do mode: the switch into path mode. */
   header?: React.ReactNode;
   onOpenDrawer?: () => void;
@@ -27,11 +30,13 @@ interface Props {
 export function PathArea({
   tasks,
   projects,
+  pattern,
+  logs,
   today,
   selectedTaskId,
   onSelectTask,
   onToggleTask,
-  onRemoveFromPath,
+  onClearEntry,
   header,
   onOpenDrawer,
 }: Props) {
@@ -67,8 +72,10 @@ export function PathArea({
           selectedTaskId={selectedTaskId}
           onOpenCalendar={() => setCalendarOpen(true)}
           onSelectTask={onSelectTask}
+          pattern={pattern}
+          log={logs.find((l) => l.date === viewing) ?? null}
           onToggleTask={onToggleTask}
-          onRemoveFromPath={onRemoveFromPath}
+          onClearEntry={(entryId, cleared) => onClearEntry(viewing, entryId, cleared)}
         />
       )}
     </main>

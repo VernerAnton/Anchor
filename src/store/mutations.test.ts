@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Recurrence, Task } from '../types/task';
-import { completeTask } from './mutations';
+import { completeTask, emptyDayLog, setEntryCleared } from './mutations';
 
 const NOW = 1_800_000_000_000;
 const TODAY = '2026-08-04';
@@ -21,8 +21,6 @@ function taskWith(recurrence: Recurrence | null, dueDate: string | null): Task {
     firstMove: null,
     type: null,
     defaultDuration: null,
-    startTime: null,
-    weekdayTimes: {},
     schemaVersion: 1,
     version: 1,
     updatedAt: 0,
@@ -64,5 +62,42 @@ describe('completeTask with end conditions', () => {
     const done = completeTask(taskWith(daily(), TODAY), NOW, TODAY);
     expect(done.completedAt).toBeNull();
     expect(done.dueDate).toBe('2026-08-05');
+  });
+});
+
+describe('setEntryCleared', () => {
+  const DATE = '2026-08-10';
+
+  it('records a clearing against the entry, not the task', () => {
+    const log = setEntryCleared(null, DATE, 'entry-1', true, NOW);
+    expect(log.cleared).toEqual({ 'entry-1': NOW });
+    expect(log.date).toBe(DATE);
+  });
+
+  // The whole reason completion lives here: two placements, one task.
+  it('leaves other placements of the same task alone', () => {
+    const morning = setEntryCleared(null, DATE, 'am', true, NOW);
+    expect(morning.cleared).toEqual({ am: NOW });
+    const both = setEntryCleared(morning, DATE, 'pm', true, NOW + 1);
+    expect(both.cleared).toEqual({ am: NOW, pm: NOW + 1 });
+  });
+
+  // "This didn't happen" is the absence of a record, not a record of absence.
+  it('removes the key when un-cleared rather than storing a falsy value', () => {
+    const cleared = setEntryCleared(null, DATE, 'am', true, NOW);
+    const undone = setEntryCleared(cleared, DATE, 'am', false);
+    expect(undone.cleared).toEqual({});
+    expect('am' in undone.cleared).toBe(false);
+  });
+
+  it('bumps the version so a stale echo cannot overwrite it', () => {
+    const first = setEntryCleared(null, DATE, 'am', true, NOW);
+    const second = setEntryCleared(first, DATE, 'pm', true, NOW);
+    expect(second.version).toBeGreaterThan(first.version);
+  });
+
+  it('keeps whatever was in the wildcards untouched', () => {
+    const seeded = { ...emptyDayLog(DATE), wildcards: { w1: ['task-a'] } };
+    expect(setEntryCleared(seeded, DATE, 'am', true, NOW).wildcards).toEqual({ w1: ['task-a'] });
   });
 });

@@ -8,11 +8,12 @@ import {
   newTask,
   reopenTask,
   emptyTaskDraft,
-  removeFromPath,
+  setEntryCleared,
   setTaskRecurrence,
 } from './store/mutations';
 import { todayStr } from './lib/dates';
-import { isSample, sampleProjects, sampleTasks } from './lib/sampleData';
+import { buildDay, clearedCount, pointsOf } from './lib/day';
+import { isSample, samplePattern, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
   defaultDueDate,
@@ -20,7 +21,7 @@ import {
   selectionKey,
   type Selection,
 } from './lib/views';
-import { useProjects, useSettings, useTasks } from './hooks/useStore';
+import { useDayLogs, usePathPattern, useProjects, useSettings, useTasks } from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
 import { PathArea } from './components/PathArea';
@@ -50,6 +51,8 @@ export function App({ syncMode }: Props) {
   const tasks = useTasks();
   const projects = useProjects();
   const settings = useSettings();
+  const pattern = usePathPattern();
+  const logs = useDayLogs();
   const update = useAppUpdate();
 
   const [selection, setSelection] = useState<Selection>({ kind: 'today' });
@@ -127,8 +130,14 @@ export function App({ syncMode }: Props) {
     saveTask(editTask(task, changes));
   };
 
-  /** Clears what schedules a task, so it drops out of every day. */
-  const takeOffPath = (task: Task) => saveTask(removeFromPath(task));
+  /**
+   * Ticking a point on the path records that *placement*, on that date — not
+   * the task. Two placements of one task clear independently.
+   */
+  const clearEntry = (date: string, entryId: string, cleared: boolean) => {
+    const existing = (logs ?? []).find((l) => l.date === date) ?? null;
+    void repository.saveDayLog(setEntryCleared(existing, date, entryId, cleared));
+  };
 
   const setRecurrence = (task: Task, recurrence: Recurrence | null) => {
     saveTask(setTaskRecurrence(task, recurrence, today));
@@ -174,6 +183,7 @@ export function App({ syncMode }: Props) {
   const loadSamples = async () => {
     await Promise.all(sampleProjects().map((p) => repository.saveProject(p)));
     await Promise.all(sampleTasks(today).map((t) => repository.saveTask(t)));
+    await repository.savePathPattern(samplePattern());
   };
 
   const clearSamples = async () => {
@@ -181,6 +191,22 @@ export function App({ syncMode }: Props) {
     await Promise.all(
       projects.filter((p) => isSample(p.id)).map((p) => repository.deleteProject(p.id)),
     );
+    // The pattern is a single document, so clearing samples empties it rather
+    // than deleting it — anything you arranged yourself would be in here too.
+    const live = pattern
+      ? Object.fromEntries(
+          Object.entries(pattern.days).map(([day, entries]) => [
+            day,
+            entries.filter((e) => !isSample(e.id)),
+          ]),
+        )
+      : {};
+    await repository.savePathPattern({
+      ...(pattern ?? { schemaVersion: 1, version: 0, updatedAt: 0 }),
+      days: live,
+      version: (pattern?.version ?? 0) + 1,
+      updatedAt: Date.now(),
+    });
     if (selectedTaskId !== null && isSample(selectedTaskId)) setSelectedTaskId(null);
   };
 
@@ -198,13 +224,25 @@ export function App({ syncMode }: Props) {
     }
   };
 
-  const live = tasks.filter((t) => !t.archived);
+  /*
+   * The readout counts today's path, not the library. "Cleared 2 / 11" is a
+   * statement about the day in front of you; the same fraction over every live
+   * task in the app counts a backlog you were never going to finish today, and
+   * so only ever reads as failure.
+   */
+  const todaySegments = buildDay(
+    tasks,
+    pattern,
+    (logs ?? []).find((l) => l.date === today) ?? null,
+    today,
+  );
+  const todayPoints = pointsOf(todaySegments);
   const statusBar = (
     <StatusBar
       today={today}
       syncMode={syncMode}
-      cleared={live.filter((t) => t.completedAt !== null).length}
-      total={live.length}
+      cleared={clearedCount(todaySegments)}
+      total={todayPoints.length}
     />
   );
 
@@ -241,8 +279,10 @@ export function App({ syncMode }: Props) {
           today={today}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
+          pattern={pattern}
+          logs={logs ?? []}
           onToggleTask={toggleTask}
-          onRemoveFromPath={takeOffPath}
+          onClearEntry={clearEntry}
         />
 
         <PathLibrary
@@ -309,8 +349,10 @@ export function App({ syncMode }: Props) {
           today={today}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
+          pattern={pattern}
+          logs={logs ?? []}
           onToggleTask={toggleTask}
-          onRemoveFromPath={takeOffPath}
+          onClearEntry={clearEntry}
           onOpenDrawer={() => setDrawerOpen(true)}
           header={
             <header className="panel-header">

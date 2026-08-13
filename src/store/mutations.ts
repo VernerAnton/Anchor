@@ -1,4 +1,5 @@
 import type { Priority, Project, ProjectColor, Recurrence, Task } from '../types/task';
+import type { DayLog } from '../types/path';
 import { PROJECT_COLOR_IDS } from '../types/task';
 import { newId } from '../lib/id';
 import { nextOccurrence, recurrenceBase } from '../lib/recurrence';
@@ -36,8 +37,6 @@ export type TaskDraft = Pick<
   | 'firstMove'
   | 'type'
   | 'defaultDuration'
-  | 'startTime'
-  | 'weekdayTimes'
 >;
 
 export function emptyTaskDraft(): TaskDraft {
@@ -52,8 +51,6 @@ export function emptyTaskDraft(): TaskDraft {
     firstMove: null,
     type: null,
     defaultDuration: null,
-    startTime: null,
-    weekdayTimes: {},
   };
 }
 
@@ -157,6 +154,44 @@ export function removeFromPath(task: Task): Task {
 /** Is this task scheduled onto days at all? */
 export function isOnPath(task: Task): boolean {
   return task.recurrence !== null || task.dueDate !== null;
+}
+
+// ── The day's log ──────────────────────────────────────────────────────────
+
+export function emptyDayLog(date: string): DayLog {
+  return {
+    date,
+    cleared: {},
+    wildcards: {},
+    schemaVersion: SCHEMA_VERSION,
+    version: 0,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Records that one *placement* was cleared, or un-clears it.
+ *
+ * Keyed by entry, never by task. The same task placed twice on a day is two
+ * entries, and clearing the morning one has to leave the afternoon one alone —
+ * which is the whole reason completion lives here rather than on the task.
+ *
+ * Un-clearing removes the key rather than storing a falsy value: the log says
+ * what happened, and "this didn't happen" is the absence of a record, not a
+ * record of absence.
+ */
+export function setEntryCleared(
+  log: DayLog | null,
+  date: string,
+  entryId: string,
+  cleared: boolean,
+  now: number = Date.now(),
+): DayLog {
+  const base = log ?? emptyDayLog(date);
+  const next = { ...base.cleared };
+  if (cleared) next[entryId] = now;
+  else delete next[entryId];
+  return touch({ ...base, cleared: next });
 }
 
 // ── Projects ───────────────────────────────────────────────────────────────

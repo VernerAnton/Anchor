@@ -1,4 +1,5 @@
 import type { Duration, Project, ProjectColor, Recurrence, Task } from '../types/task';
+import type { PathEntry, PathPattern } from '../types/path';
 import { SCHEMA_VERSION } from '../store/keys';
 import { addDays, todayStr } from './dates';
 
@@ -13,10 +14,11 @@ import { addDays, todayStr } from './dates';
  * real task forever to mark that it isn't one.
  *
  * The content is chosen to exercise the parts worth seeing: anchored times and
- * times that follow on, a weekday override, fixed and runs-to-completion
- * durations, daily and weekday and every-other-week and monthly rules,
- * one-offs with real dates, unscheduled backlog, subtasks, and a task with
- * nothing set at all so the day's fill-in behaviour is visible.
+ * times that follow on, the same task at different times on different days,
+ * placed rest, a wildcard, fixed and runs-to-completion durations, daily and
+ * weekday and every-other-week and monthly rules, one-offs with real dates,
+ * unscheduled backlog, subtasks, and a task with nothing set at all so the
+ * day's fill-in behaviour is visible.
  */
 
 export const SAMPLE_PREFIX = 'sample-';
@@ -78,7 +80,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Walk before the day loads in',
       projectId: p('health'),
       recurrence: rule({ freq: 'weekly', weekdays: EVERY_DAY, count: 'weeks' }, today),
-      startTime: '06:45',
       defaultDuration: fixed(20),
       firstMove: 'Shoes on, door open',
       type: 'physical',
@@ -88,10 +89,8 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       id: 'gym',
       title: 'Gym — preset plan, no deciding',
       projectId: p('health'),
-      recurrence: rule({ freq: 'weekly', weekdays: [1, 3, 5], count: 'weeks' }, today),
-      startTime: '07:15',
-      // The headline case: later on Saturday, same task.
-      weekdayTimes: { '6': '10:00' },
+      // Saturday included so the same task can be seen at two different times.
+      recurrence: rule({ freq: 'weekly', weekdays: [1, 3, 5, 6], count: 'weeks' }, today),
       defaultDuration: fixed(55),
       firstMove: 'Put the bag by the door',
       type: 'physical',
@@ -102,7 +101,7 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Shower and eat',
       projectId: p('home'),
       recurrence: rule({ freq: 'weekly', weekdays: EVERY_DAY, count: 'weeks' }, today),
-      // No time of its own — follows whatever came before it.
+      // Follows whatever comes before it on the path.
       defaultDuration: fixed(35),
       type: 'physical',
       order: 3,
@@ -114,7 +113,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Deep study block',
       projectId: p('study'),
       recurrence: rule({ freq: 'weekly', weekdays: WEEKDAYS, count: 'weeks' }, today),
-      startTime: '10:00',
       defaultDuration: natural(50),
       firstMove: 'Open the file and write one sentence',
       type: 'abstract',
@@ -136,7 +134,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Inbox sweep',
       projectId: p('admin'),
       recurrence: rule({ freq: 'weekly', weekdays: [1, 4], count: 'weeks' }, today),
-      startTime: '13:30',
       defaultDuration: fixed(25),
       firstMove: 'Open the inbox, reply to one',
       type: 'abstract',
@@ -150,7 +147,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Cook properly',
       projectId: p('home'),
       recurrence: rule({ freq: 'weekly', weekdays: EVERY_DAY, count: 'weeks' }, today),
-      startTime: '18:00',
       defaultDuration: natural(40),
       firstMove: 'Pick up the knife',
       type: 'physical',
@@ -171,7 +167,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Laundry — one load, not the situation',
       projectId: p('home'),
       recurrence: rule({ freq: 'weekly', weekdays: [6], count: 'weeks' }, today),
-      startTime: '11:30',
       defaultDuration: fixed(30),
       firstMove: 'Carry the basket down',
       type: 'physical',
@@ -183,7 +178,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       projectId: p('health'),
       // Every other Sunday — the interval case.
       recurrence: rule({ freq: 'weekly', weekdays: [0], count: 'weeks', interval: 2 }, today),
-      startTime: '09:00',
       defaultDuration: natural(75),
       firstMove: 'Fill the bottle',
       type: 'physical',
@@ -195,7 +189,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       projectId: p('admin'),
       // Monthly, on the 1st and the 15th.
       recurrence: rule({ freq: 'monthlyByDate', days: [1, 15] }, today),
-      startTime: '16:00',
       defaultDuration: fixed(45),
       firstMove: 'Open the statement',
       type: 'abstract',
@@ -209,7 +202,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
       title: 'Dentist',
       projectId: p('health'),
       dueDate: addDays(today, 9),
-      startTime: '14:20',
       defaultDuration: fixed(40),
       priority: 2,
       order: 12,
@@ -261,8 +253,6 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
     firstMove: null,
     type: null,
     defaultDuration: null,
-    startTime: null,
-    weekdayTimes: {},
     schemaVersion: SCHEMA_VERSION,
     version: 1,
     updatedAt: now,
@@ -270,4 +260,67 @@ export function sampleTasks(today = todayStr(), now = Date.now()): Task[] {
     id: `${SAMPLE_PREFIX}${spec.id}`,
     order: spec.order ?? 0,
   })) as Task[];
+}
+
+/**
+ * The week, arranged. Times live here rather than on the tasks, which is what
+ * lets the gym sit at 07:15 on weekdays and 10:00 on Saturday — two entries,
+ * two times, one task.
+ *
+ * Weekdays get a wildcard after lunch: a hole committed to in advance for
+ * whatever the week throws up, so an errand on a random Tuesday never means
+ * editing the pattern.
+ */
+export function samplePattern(now = Date.now()): PathPattern {
+  const t = (name: string, startTime: string | null = null): PathEntry => ({
+    kind: 'task',
+    id: `${SAMPLE_PREFIX}e-${name}`,
+    taskId: `${SAMPLE_PREFIX}${name.split('@')[0]}`,
+    startTime,
+  });
+  const rest = (name: string, label: string | null, minutes: number): PathEntry => ({
+    kind: 'rest',
+    id: `${SAMPLE_PREFIX}r-${name}`,
+    label,
+    minutes,
+  });
+  const wild = (name: string, startTime: string | null, minutes: number): PathEntry => ({
+    kind: 'wildcard',
+    id: `${SAMPLE_PREFIX}w-${name}`,
+    startTime,
+    minutes,
+  });
+
+  const weekday = (day: number): PathEntry[] => [
+    t(`walk@${day}`, '06:45'),
+    t(`gym@${day}`, '07:15'),
+    rest(`morning@${day}`, 'Shower, eat', 40),
+    t(`shower@${day}`),
+    t(`study@${day}`, '10:00'),
+    t(`notes@${day}`),
+    rest(`lunch@${day}`, 'Lunch', 60),
+    t(`inbox@${day}`, '13:30'),
+    // The same task, twice in one day — two entries, two ids, cleared
+    // independently. A morning block and an afternoon one.
+    t(`study@${day}-pm`, '14:15'),
+    wild(`admin@${day}`, '16:00', 45),
+    t(`cook@${day}`, '18:00'),
+    t(`plants@${day}`),
+  ];
+
+  return {
+    days: {
+      '0': [t('walk@0', '08:00'), t('longrun@0', '09:00'), rest('sun', null, 45), t('cook@0', '18:00'), t('plants@0')],
+      '1': weekday(1),
+      '2': weekday(2),
+      '3': weekday(3),
+      '4': weekday(4),
+      '5': weekday(5),
+      // Saturday runs late and easy — same gym task, three hours later.
+      '6': [t('walk@6', '09:00'), t('gym@6', '10:00'), rest('sat', 'Shower, eat', 40), t('laundry@6', '11:30'), wild('sat', null, 60), t('cook@6', '18:00')],
+    },
+    schemaVersion: SCHEMA_VERSION,
+    version: 1,
+    updatedAt: now,
+  };
 }

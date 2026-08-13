@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import type { Project, Task } from '../types/task';
+import type { DayLog, PathPattern } from '../types/path';
 import { MONTH_NAMES, dayOf, weekdayOf } from '../lib/dates';
 import { buildDay } from '../lib/day';
 import { clockOf } from '../lib/dayTimes';
@@ -7,13 +7,16 @@ import { clockOf } from '../lib/dayTimes';
 interface Props {
   tasks: Task[];
   projects: Project[];
+  pattern: PathPattern | null;
+  log: DayLog | null;
   date: string;
   today: string;
   selectedTaskId: string | null;
   onOpenCalendar: () => void;
   onSelectTask: (id: string) => void;
   onToggleTask: (task: Task) => void;
-  onRemoveFromPath: (task: Task) => void;
+  /** Clears one placement, by entry id — never the task itself. */
+  onClearEntry: (entryId: string, cleared: boolean) => void;
 }
 
 const WEEKDAY_NAMES = [
@@ -54,27 +57,27 @@ function CalendarIcon() {
  * date is exactly what that view changes, whereas a corner of the screen is
  * next to controls that have nothing to do with it.
  *
- * The day is derived, never stored: `buildDay` recomputes it on every render
- * from the tasks and their rules. Points show the clock they run at — dimmed
- * when the time was inherited from whatever came before rather than set on the
- * task itself — and rest is drawn between them, in proportion.
+ * The day is derived, never stored: `buildDay` recomputes it from the pattern,
+ * the tasks' own rules, and the day's log. Points show the clock they run at,
+ * dimmed where the time was inherited rather than chosen. Rest and an unfilled
+ * wildcard both draw as time with nothing owed.
  *
- * Still read-only. Rearranging, retiming and completing a point on the path
- * belong to the day editor and to the path proper.
+ * Ticking a point clears *that placement* — the same task placed twice is two
+ * entries, and clearing one leaves the other open.
  */
 export function PathDay({
   tasks,
   projects,
+  pattern,
+  log,
   date,
   today,
   selectedTaskId,
   onOpenCalendar,
   onSelectTask,
-  onToggleTask,
-  onRemoveFromPath,
+  onClearEntry,
 }: Props) {
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const segments = buildDay(tasks, date);
+  const segments = buildDay(tasks, pattern, log, date);
   const colorOf = (projectId: string | null) =>
     projects.find((p) => p.id === projectId)?.colorId ?? null;
 
@@ -100,30 +103,38 @@ export function PathDay({
       ) : (
         <ol className="path-points">
           {segments.map((segment) => {
-            if (segment.kind === 'rest') {
+            /*
+             * Rest and an unfilled wildcard are drawn the same way and for the
+             * same reason: both are time with nothing owed. The only
+             * difference is that one was named and one is still open.
+             */
+            if (segment.kind === 'rest' || segment.kind === 'opening') {
               return (
                 <li
-                  key={`rest-${segment.startsAt}`}
-                  className="path-rest"
-                  /* The one sanctioned inline style: a genuinely computed
-                     value. A forty-minute gap is drawn longer than a fifteen,
-                     so the shape of a day is read rather than added up. */
+                  key={segment.entryId}
+                  className={segment.kind === 'rest' ? 'path-rest' : 'path-rest path-rest--open'}
+                  /* The sanctioned inline style: a genuinely computed value. */
                   style={{ '--rest-minutes': segment.minutes } as React.CSSProperties}
                 >
-                  <span className="path-rest__label">Rest · {segment.minutes} min</span>
+                  <span className="path-rest__label">
+                    {segment.kind === 'rest'
+                      ? `Rest${segment.label ? ` · ${segment.label}` : ''} · ${segment.minutes} min`
+                      : `Open · ${segment.minutes} min`}
+                  </span>
                 </li>
               );
             }
 
             const { task } = segment;
+            const done = segment.completedAt !== null;
             const color = colorOf(task.projectId);
-            const done = task.completedAt !== null;
             const classes = ['path-point'];
             if (done) classes.push('path-point--done');
+            if (segment.fromWildcard) classes.push('path-point--wildcard');
             if (task.id === selectedTaskId) classes.push('path-point--selected');
 
             return (
-              <li key={task.id} className={classes.join(' ')}>
+              <li key={segment.entryId} className={classes.join(' ')}>
                 <span
                   className={
                     segment.anchored
@@ -131,8 +142,8 @@ export function PathDay({
                       : 'path-point__clock path-point__clock--follows'
                   }
                 >
-                  {/* Nothing above this has been pinned to a clock yet, so
-                      the day genuinely doesn't know when it happens. */}
+                  {/* Nothing above this is pinned to a clock yet, so the day
+                      genuinely doesn't know when it happens. */}
                   {segment.timed ? clockOf(segment.startsAt) : '—'}
                 </span>
                 <button
@@ -141,7 +152,7 @@ export function PathDay({
                   role="checkbox"
                   aria-checked={done}
                   aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
-                  onClick={() => onToggleTask(task)}
+                  onClick={() => onClearEntry(segment.entryId, !done)}
                 />
                 <button
                   type="button"
@@ -159,38 +170,6 @@ export function PathDay({
                 </button>
                 {color !== null && (
                   <span className="project-dot" data-color={color} aria-hidden="true" />
-                )}
-
-                {confirming === task.id ? (
-                  <span className="path-point__confirm">
-                    <button
-                      type="button"
-                      className="btn btn--quiet"
-                      onClick={() => {
-                        onRemoveFromPath(task);
-                        setConfirming(null);
-                      }}
-                    >
-                      Take it off
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--quiet"
-                      onClick={() => setConfirming(null)}
-                    >
-                      Keep
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className="path-point__remove"
-                    aria-label={`Take ${task.title} off the path`}
-                    title="Take off the path"
-                    onClick={() => setConfirming(task.id)}
-                  >
-                    ✕
-                  </button>
                 )}
               </li>
             );
