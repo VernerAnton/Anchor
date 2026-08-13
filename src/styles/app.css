@@ -1133,13 +1133,19 @@ h2 {
   border-left: 1px solid var(--border);
 }
 
+.path-library__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .path-library__title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
@@ -1174,6 +1180,50 @@ h2 {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
+}
+
+/*
+ * One per section, because the section already says which project you're in —
+ * typing here files the task there rather than leaving you to set it
+ * afterwards. Quiet until focused, so four of them don't read as a form.
+ */
+.library-add input {
+  width: 100%;
+  padding: var(--space-2);
+  font-size: var(--text-s);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.library-add input::placeholder {
+  color: var(--text-faint);
+}
+
+.library-add input:hover {
+  border-color: var(--border-strong);
+}
+
+.library-add input:focus {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.library-new-project {
+  margin-top: auto;
+  padding: var(--space-2);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.library-new-project:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ── Path overview ────────────────────────────────────────────────────── */
