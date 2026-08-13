@@ -21,6 +21,8 @@ function taskWith(recurrence: Recurrence | null, dueDate: string | null): Task {
     firstMove: null,
     type: null,
     defaultDuration: null,
+    startTime: null,
+    weekdayTimes: {},
     schemaVersion: 1,
     version: 1,
     updatedAt: 0,

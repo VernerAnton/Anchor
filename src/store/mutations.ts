@@ -36,6 +36,8 @@ export type TaskDraft = Pick<
   | 'firstMove'
   | 'type'
   | 'defaultDuration'
+  | 'startTime'
+  | 'weekdayTimes'
 >;
 
 export function emptyTaskDraft(): TaskDraft {
@@ -50,6 +52,8 @@ export function emptyTaskDraft(): TaskDraft {
     firstMove: null,
     type: null,
     defaultDuration: null,
+    startTime: null,
+    weekdayTimes: {},
   };
 }
 

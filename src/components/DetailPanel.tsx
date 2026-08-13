@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import type { Project, Recurrence, Task } from '../types/task';
+import type { Duration, Project, Recurrence, Task, TaskType } from '../types/task';
 import type { TaskDraft } from '../store/mutations';
 import { PRIORITIES } from '../lib/priorities';
+import { DEFAULT_MINUTES } from '../lib/day';
 import { RecurrenceEditor } from './RecurrenceEditor';
+import { NumberField } from './NumberField';
 
 interface Props {
   task: Task | null;
@@ -50,6 +52,7 @@ function TaskForm({
 }: Props & { task: Task }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes ?? '');
+  const [firstMove, setFirstMove] = useState(task.firstMove ?? '');
   const [subtaskDraft, setSubtaskDraft] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -71,6 +74,45 @@ function TaskForm({
   const commitNotes = () => {
     const value = notes.trim() === '' ? null : notes;
     if (value !== task.notes) onUpdate(task, { notes: value });
+  };
+
+  const commitFirstMove = () => {
+    const value = firstMove.trim() === '' ? null : firstMove.trim();
+    if (value !== task.firstMove) onUpdate(task, { firstMove: value });
+  };
+
+  /** Pressing the active one clears it, matching the priority picker above. */
+  const setType = (type: TaskType) => {
+    onUpdate(task, { type: task.type === type ? null : type });
+  };
+
+  const duration = task.defaultDuration;
+
+  const setDurationKind = (kind: Duration['kind']) => {
+    if (duration?.kind === kind) {
+      onUpdate(task, { defaultDuration: null });
+      return;
+    }
+    // The minutes carry across a kind switch, so toggling between the two
+    // while deciding doesn't discard what was already typed.
+    const minutes = duration
+      ? duration.kind === 'fixed'
+        ? duration.minutes
+        : duration.estimateMinutes
+      : DEFAULT_MINUTES;
+    onUpdate(task, {
+      defaultDuration: kind === 'fixed' ? { kind, minutes } : { kind, estimateMinutes: minutes },
+    });
+  };
+
+  const setDurationMinutes = (minutes: number) => {
+    if (!duration) return;
+    onUpdate(task, {
+      defaultDuration:
+        duration.kind === 'fixed'
+          ? { kind: 'fixed', minutes }
+          : { kind: 'natural', estimateMinutes: minutes },
+    });
   };
 
   const submitSubtask = (event: React.FormEvent) => {
@@ -178,6 +220,92 @@ function TaskForm({
           ))}
         </div>
       </fieldset>
+
+      <fieldset className="field">
+        <legend>Type</legend>
+        <div className="field-row">
+          <button
+            type="button"
+            className="pick"
+            aria-pressed={task.type === 'physical'}
+            onClick={() => setType('physical')}
+          >
+            Physical
+          </button>
+          <button
+            type="button"
+            className="pick"
+            aria-pressed={task.type === 'abstract'}
+            onClick={() => setType('abstract')}
+          >
+            Abstract
+          </button>
+        </div>
+      </fieldset>
+
+      <label className="field">
+        <span>First move</span>
+        <input
+          value={firstMove}
+          onChange={(event) => setFirstMove(event.target.value)}
+          onBlur={commitFirstMove}
+          placeholder="The smallest thing that starts it"
+        />
+      </label>
+
+      <fieldset className="field">
+        <legend>Duration</legend>
+        <div className="field-row">
+          <button
+            type="button"
+            className="pick"
+            aria-pressed={duration?.kind === 'fixed'}
+            onClick={() => setDurationKind('fixed')}
+          >
+            Fixed
+          </button>
+          <button
+            type="button"
+            className="pick"
+            aria-pressed={duration?.kind === 'natural'}
+            onClick={() => setDurationKind('natural')}
+          >
+            Runs to completion
+          </button>
+          {duration && (
+            <NumberField
+              value={duration.kind === 'fixed' ? duration.minutes : duration.estimateMinutes}
+              min={1}
+              max={720}
+              label={duration.kind === 'fixed' ? 'Minutes' : 'Estimated minutes'}
+              onCommit={setDurationMinutes}
+            />
+          )}
+        </div>
+      </fieldset>
+
+      <label className="field">
+        <span>Start time</span>
+        <div className="field-row">
+          <input
+            type="time"
+            value={task.startTime ?? ''}
+            onChange={(event) => onUpdate(task, { startTime: event.target.value || null })}
+          />
+          {task.startTime !== null && (
+            <button
+              type="button"
+              className="btn btn--quiet"
+              onClick={() => onUpdate(task, { startTime: null })}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {/* Per-day overrides belong to a day, and get their editor with the
+            day editor. This field is the task's own default. */}
+        <small>Used on every day unless that day sets its own time.</small>
+      </label>
 
       <RecurrenceEditor
         recurrence={task.recurrence}

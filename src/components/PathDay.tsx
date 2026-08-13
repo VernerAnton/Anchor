@@ -1,5 +1,7 @@
 import type { Project, Task } from '../types/task';
 import { MONTH_NAMES, dayOf, weekdayOf } from '../lib/dates';
+import { buildDay } from '../lib/day';
+import { clockOf } from '../lib/dayTimes';
 
 interface Props {
   tasks: Task[];
@@ -50,9 +52,13 @@ function CalendarIcon() {
  * date is exactly what that view changes, whereas a corner of the screen is
  * next to controls that have nothing to do with it.
  *
- * Nothing here can be rearranged yet. Ordering, times and rest arrive with the
- * day editor; until then this shows what the day holds, in the order the tasks
- * already carry.
+ * The day is derived, never stored: `buildDay` recomputes it on every render
+ * from the tasks and their rules. Points show the clock they run at — dimmed
+ * when the time was inherited from whatever came before rather than set on the
+ * task itself — and rest is drawn between them, in proportion.
+ *
+ * Still read-only. Rearranging, retiming and completing a point on the path
+ * belong to the day editor and to the path proper.
  */
 export function PathDay({
   tasks,
@@ -64,6 +70,7 @@ export function PathDay({
   onSelectTask,
   onToggleTask,
 }: Props) {
+  const segments = buildDay(tasks, date);
   const colorOf = (projectId: string | null) =>
     projects.find((p) => p.id === projectId)?.colorId ?? null;
 
@@ -82,13 +89,29 @@ export function PathDay({
         </button>
       </header>
 
-      {tasks.length === 0 ? (
+      {segments.length === 0 ? (
         <p className="path-day-view__clear">
           Nothing on the path today. That's a legitimate answer, not an empty one.
         </p>
       ) : (
         <ol className="path-points">
-          {tasks.map((task) => {
+          {segments.map((segment) => {
+            if (segment.kind === 'rest') {
+              return (
+                <li
+                  key={`rest-${segment.startsAt}`}
+                  className="path-rest"
+                  /* The one sanctioned inline style: a genuinely computed
+                     value. A forty-minute gap is drawn longer than a fifteen,
+                     so the shape of a day is read rather than added up. */
+                  style={{ '--rest-minutes': segment.minutes } as React.CSSProperties}
+                >
+                  <span className="path-rest__label">Rest · {segment.minutes} min</span>
+                </li>
+              );
+            }
+
+            const { task } = segment;
             const color = colorOf(task.projectId);
             const done = task.completedAt !== null;
             const classes = ['path-point'];
@@ -97,6 +120,11 @@ export function PathDay({
 
             return (
               <li key={task.id} className={classes.join(' ')}>
+                <span
+                  className={segment.anchored ? 'path-point__clock' : 'path-point__clock path-point__clock--follows'}
+                >
+                  {clockOf(segment.startsAt)}
+                </span>
                 <button
                   type="button"
                   className="task-check"
@@ -107,13 +135,17 @@ export function PathDay({
                 />
                 <button
                   type="button"
-                  className="path-point__body"
+                  className="path-point__body brackets"
                   onClick={() => onSelectTask(task.id)}
                 >
                   <span className="path-point__title">{task.title}</span>
                   {task.firstMove !== null && (
                     <span className="path-point__first-move">{task.firstMove}</span>
                   )}
+                  <span className="path-point__length">
+                    {segment.endsAt - segment.startsAt} min
+                    {task.defaultDuration?.kind === 'natural' && ' · runs to completion'}
+                  </span>
                 </button>
                 {color !== null && (
                   <span className="project-dot" data-color={color} aria-hidden="true" />

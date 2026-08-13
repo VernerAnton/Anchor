@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Project, Task } from '../types/task';
-import { landsOn } from '../lib/pathGrid';
 import { todayStr } from '../lib/dates';
 import { PathDay } from './PathDay';
 import { PathOverview } from './PathOverview';
@@ -39,7 +38,6 @@ export function PathArea({
 
   // A day left open overnight shouldn't still be showing yesterday.
   const viewing = date < todayStr() && date === today ? todayStr() : date;
-  const dayTasks = tasks.filter((task) => landsOn(task, viewing));
 
   return (
     <main className="path-area">
@@ -60,7 +58,7 @@ export function PathArea({
         />
       ) : (
         <PathDay
-          tasks={dayTasks}
+          tasks={tasks}
           projects={projects}
           date={viewing}
           today={today}

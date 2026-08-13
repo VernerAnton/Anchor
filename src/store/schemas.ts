@@ -140,6 +140,8 @@ export const taskSchema = z
     firstMove: z.string().nullable().catch(null),
     type: z.enum(['physical', 'abstract']).nullable().catch(null),
     defaultDuration: durationSchema.nullable().catch(null),
+    startTime: z.string().nullable().catch(null),
+    weekdayTimes: z.record(z.string(), z.string()).catch({}),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),
