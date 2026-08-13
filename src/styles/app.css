@@ -959,10 +959,19 @@ h2 {
 }
 
 /* Clears the status strip, which is always above it. */
+/*
+ * The one place a raw length is allowed outside the theme, and only as a
+ * `var()` fallback. A fixed element whose offsets fail to resolve falls back
+ * to `auto`, which drops it at its static position — on top of the date
+ * button, which is the day's only way into the calendar. The fallbacks never
+ * apply while a theme exists; they exist so that deleting the theme leaves
+ * the app ugly rather than partly unusable, which is the whole contract of
+ * that test.
+ */
 .path-exit {
   position: fixed;
-  top: calc(2.1rem + var(--space-2));
-  right: var(--space-3);
+  top: calc(2.1rem + var(--space-2, 0.5rem));
+  right: var(--space-3, 0.75rem);
   z-index: 25;
   width: 2rem;
   height: 2rem;
@@ -1547,17 +1556,8 @@ h2 {
   min-width: 0;
 }
 
-/*
- * What can go on the day being looked at, and the only thing you drag from.
- * Separated by a rule rather than a heading weight: it is a different kind of
- * list from the ones below it, not a more important one.
- */
-.path-library__section--landing {
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border);
-}
-
-.path-library__section--landing .library-task {
+/* Everything in this column can go onto the day, so all of it is a handle. */
+.path-library .library-task {
   cursor: grab;
 }
 

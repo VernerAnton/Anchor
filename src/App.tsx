@@ -332,19 +332,18 @@ export function App({ syncMode }: Props) {
         />
 
         <PathLibrary
-          tasks={tasks}
           projects={projects}
           landing={landingOn(tasks, pattern, pathDate)}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           /*
-           * Filed, but not scheduled. The library is every task you have,
-           * not today's route — typing into the Health section says where
-           * this belongs, not when you'll do it. Putting it on a day is the
-           * day editor's job, and silently dating it today would drop things
-           * onto the path that you never chose to put there.
+           * Dated to the day being built. This list is what lands on that day,
+           * so a task typed into it that didn't land there would vanish the
+           * moment you finished typing. It still isn't *placed* — dating it
+           * makes it available to the day, and putting it in a position is
+           * still something you do on the path.
            */
-          onAddTask={(title, projectId) => addTask(title, { projectId, dueDate: null })}
+          onAddTask={(title, projectId) => addTask(title, { projectId, dueDate: pathDate })}
           onNewProject={() => setProjectEditor({ mode: 'new', parentId: null })}
         />
 

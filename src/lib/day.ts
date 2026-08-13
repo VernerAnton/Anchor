@@ -1,6 +1,6 @@
-import type { Duration, Task } from '../types/task';
+import type { Duration, Project, Task } from '../types/task';
 import type { DayLog, PathEntry, PathPattern, RestEntry, WildcardEntry } from '../types/path';
-import { landsOn } from './pathGrid';
+import { groupByProject, landsOn } from './pathGrid';
 import { minutesOfClock } from './dayTimes';
 import { weekdayOf } from './dates';
 
@@ -111,6 +111,41 @@ export function landingOn(
   return tasks
     .filter((task) => landsOn(task, date))
     .map((task) => ({ task, placed: counts.get(task.id) ?? 0 }));
+}
+
+export interface LandingSection {
+  key: string;
+  title: string;
+  /** `null` for the catch-all section holding everything unfiled. */
+  project: Project | null;
+  tasks: LandingTask[];
+}
+
+/**
+ * What lands on a date, in the library's own project sections.
+ *
+ * Deliberately the same sections as the full library rather than one flat
+ * list of the day's tasks. Which project something belongs to is half of what
+ * tells you what it is — "Deep study block" under Study and under Admin would
+ * be two different jobs — and a flat list throws that away exactly when you
+ * are deciding what the day should be.
+ *
+ * Every section stays, empty or not. They are the shape of the place rather
+ * than a result set, and a project that disappears on a quiet Tuesday is a
+ * project you can't file anything into that day.
+ */
+export function landingByProject(
+  landing: LandingTask[],
+  projects: Project[],
+): LandingSection[] {
+  const placed = new Map(landing.map((option) => [option.task.id, option.placed]));
+  return groupByProject(
+    landing.map((option) => option.task),
+    projects,
+  ).map((section) => ({
+    ...section,
+    tasks: section.tasks.map((task) => ({ task, placed: placed.get(task.id) ?? 0 })),
+  }));
 }
 
 function restMinutes(entry: RestEntry | WildcardEntry): number {

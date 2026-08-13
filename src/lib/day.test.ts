@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Duration, Recurrence, Task } from '../types/task';
+import type { Duration, Project, Recurrence, Task } from '../types/task';
 import type { DayLog, PathEntry, PathPattern } from '../types/path';
 import {
   DEFAULT_MINUTES,
@@ -8,6 +8,7 @@ import {
   dayBlocks,
   dayEndsAt,
   effectiveDuration,
+  landingByProject,
   landingOn,
   pointsOf,
 } from './day';
@@ -417,5 +418,62 @@ describe('dayBlocks', () => {
   it('is empty for a day the pattern never arranged', () => {
     expect(dayBlocks([], pattern({ '1': [] }), null, MON)).toEqual([]);
     expect(dayBlocks([], null, null, MON)).toEqual([]);
+  });
+});
+
+describe('landingByProject', () => {
+  const project = (id: string, name: string, order: number): Project => ({
+    id,
+    name,
+    colorId: 'steel',
+    parentId: null,
+    order,
+    archived: false,
+    schemaVersion: 1,
+    version: 1,
+    updatedAt: 0,
+  });
+
+  const health = project('p-health', 'Health', 0);
+  const study = project('p-study', 'Study', 1);
+
+  it('files the day\'s tasks into the library\'s own sections', () => {
+    const walk = task({ projectId: health.id, recurrence: weekly([1]) });
+    const notes = task({ projectId: study.id, recurrence: weekly([1]) });
+    const loose = task({ projectId: null, recurrence: weekly([1]) });
+
+    const sections = landingByProject(
+      landingOn([walk, notes, loose], null, MON),
+      [health, study],
+    );
+    expect(sections.map((s) => [s.title, s.tasks.map((t) => t.task.title)])).toEqual([
+      ['All tasks', [loose.title]],
+      ['Health', [walk.title]],
+      ['Study', [notes.title]],
+    ]);
+  });
+
+  // The sections are the shape of the place, not a result set — a project that
+  // vanishes on a quiet day is a project you can't file into that day.
+  it('keeps every section even when nothing lands in it', () => {
+    const sections = landingByProject([], [health, study]);
+    expect(sections.map((s) => s.title)).toEqual(['All tasks', 'Health', 'Study']);
+    expect(sections.every((s) => s.tasks.length === 0)).toBe(true);
+  });
+
+  it('carries how many times each one is already placed', () => {
+    const walk = task({ projectId: health.id, recurrence: weekly([1]) });
+    const sections = landingByProject(
+      landingOn([walk], pattern({ '1': [entry('e1', walk.id), entry('e2', walk.id)] }), MON),
+      [health],
+    );
+    expect(sections[1]!.tasks[0]).toMatchObject({ placed: 2 });
+  });
+
+  it('leaves out a task whose rule does not cover the day', () => {
+    const gym = task({ projectId: health.id, recurrence: weekly([6]) });
+    const sections = landingByProject(landingOn([gym], null, MON), [health]);
+    expect(sections[1]!.tasks).toEqual([]);
+    expect(landingByProject(landingOn([gym], null, SAT), [health])[1]!.tasks).toHaveLength(1);
   });
 });
