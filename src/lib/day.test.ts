@@ -225,3 +225,41 @@ describe('dayEndsAt', () => {
     expect(dayEndsAt(buildDay([], MON))).toBeNull();
   });
 });
+
+describe('a day before anything is pinned to a clock', () => {
+  it('reports untimed leaders as having no time, not as midnight', () => {
+    const loose = task({ title: 'Loose', order: 1, defaultDuration: fixed(20) });
+    const anchored = task({ title: 'Anchored', order: 2, startTime: '09:00' });
+    const points = pointsOf(buildDay([loose, anchored], MON));
+    expect(points.map((p) => p.timed)).toEqual([false, true]);
+  });
+
+  // The night is not rest: nothing was scheduled across it to wait through.
+  it('emits no rest before the first anchored point', () => {
+    const loose = task({ title: 'Loose', order: 1, defaultDuration: fixed(20) });
+    const anchored = task({ title: 'Anchored', order: 2, startTime: '09:00' });
+    expect(buildDay([loose, anchored], MON).filter((s) => s.kind === 'rest')).toEqual([]);
+  });
+
+  it('still reports rest once the day is on the clock', () => {
+    const loose = task({ title: 'Loose', order: 1, defaultDuration: fixed(20) });
+    const first = task({ title: 'First', order: 2, startTime: '09:00', defaultDuration: fixed(30) });
+    const later = task({ title: 'Later', order: 3, startTime: '10:00' });
+    const rests = buildDay([loose, first, later], MON).filter((s) => s.kind === 'rest');
+    expect(rests.map((r) => (r.kind === 'rest' ? r.minutes : 0))).toEqual([30]);
+  });
+
+  it('treats a day with no clocks at all as untimed throughout', () => {
+    const a = task({ title: 'A', order: 1 });
+    const b = task({ title: 'B', order: 2 });
+    const day = buildDay([a, b], MON);
+    expect(pointsOf(day).every((p) => !p.timed)).toBe(true);
+    expect(day.filter((s) => s.kind === 'rest')).toEqual([]);
+  });
+
+  it('marks everything timed once the first point carries a clock', () => {
+    const first = task({ title: 'First', order: 1, startTime: '07:00', defaultDuration: fixed(30) });
+    const follows = task({ title: 'Follows', order: 2 });
+    expect(pointsOf(buildDay([first, follows], MON)).map((p) => p.timed)).toEqual([true, true]);
+  });
+});
