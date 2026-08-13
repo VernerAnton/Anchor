@@ -14,6 +14,7 @@ import {
   reopenTask,
   emptyTaskDraft,
   setEntryCleared,
+  setEntryStarted,
   setTaskRecurrence,
   setWildcardTasks,
   type EntryChanges,
@@ -41,6 +42,7 @@ import { ProjectEditor, type ProjectEditorState } from './components/ProjectEdit
 import { SyncSettings } from './components/SyncSettings';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useAppUpdate } from './hooks/useAppUpdate';
+import { useNow } from './hooks/useNow';
 
 interface Props {
   syncMode: SyncMode;
@@ -80,6 +82,7 @@ export function App({ syncMode }: Props) {
    * tomorrow should hand you the route, not the builder you walked away from.
    */
   const [building, setBuilding] = useState(false);
+  const pathNow = useNow(pathDate);
 
   const today = todayStr();
   const model = useMemo(
@@ -178,6 +181,12 @@ export function App({ syncMode }: Props) {
 
   const reshapeEntry = (date: string, entryId: string, changes: EntryChanges) => {
     void repository.savePathPattern(editEntry(pattern, weekdayOf(date), entryId, changes));
+  };
+
+  /** The moment you began. Says nothing about finishing — that's the tick. */
+  const startEntry = (date: string, entryId: string, started: boolean) => {
+    const existing = (logs ?? []).find((l) => l.date === date) ?? null;
+    void repository.saveDayLog(setEntryStarted(existing, date, entryId, started));
   };
 
   /** What went into a wildcard is a fact about the date, not about the week. */
@@ -333,6 +342,8 @@ export function App({ syncMode }: Props) {
           pattern={pattern}
           logs={logs ?? []}
           onClearEntry={clearEntry}
+          onStartEntry={startEntry}
+          now={pathNow}
           onInsertEntry={placeOnDay}
           onMoveEntry={moveOnDay}
           onRemoveEntry={takeOffDay}
@@ -422,6 +433,8 @@ export function App({ syncMode }: Props) {
           pattern={pattern}
           logs={logs ?? []}
           onClearEntry={clearEntry}
+          onStartEntry={startEntry}
+          now={pathNow}
           onInsertEntry={placeOnDay}
           onMoveEntry={moveOnDay}
           onRemoveEntry={takeOffDay}

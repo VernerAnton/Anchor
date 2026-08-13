@@ -290,6 +290,7 @@ export function emptyDayLog(date: string): DayLog {
   return {
     date,
     cleared: {},
+    started: {},
     wildcards: {},
     schemaVersion: SCHEMA_VERSION,
     version: 0,
@@ -323,6 +324,29 @@ export function setEntryCleared(
 }
 
 /**
+ * Records the moment you began — the one thing the route's action button
+ * does.
+ *
+ * Starting and finishing are different facts, so this never touches
+ * `cleared`. Pressing it says "I'm on this now", which is true at the moment
+ * you press it; marking the point done there and then would be a lie, and one
+ * you'd notice immediately.
+ */
+export function setEntryStarted(
+  log: DayLog | null,
+  date: string,
+  entryId: string,
+  started: boolean,
+  now: number = Date.now(),
+): DayLog {
+  const base = log ?? emptyDayLog(date);
+  const next = { ...(base.started ?? {}) };
+  if (started) next[entryId] = now;
+  else delete next[entryId];
+  return touch({ ...base, started: next });
+}
+
+/**
  * What went into one wildcard on one date, in the order it runs.
  *
  * A wildcard is a hole the week already agreed to, so what fills it is a fact
@@ -346,9 +370,13 @@ export function setWildcardTasks(
   else wildcards[entryId] = taskIds;
 
   const cleared = { ...base.cleared };
-  for (const id of dropped) delete cleared[`${entryId}:${id}`];
+  const started = { ...(base.started ?? {}) };
+  for (const id of dropped) {
+    delete cleared[`${entryId}:${id}`];
+    delete started[`${entryId}:${id}`];
+  }
 
-  return touch({ ...base, wildcards, cleared });
+  return touch({ ...base, wildcards, cleared, started });
 }
 
 // ── Projects ───────────────────────────────────────────────────────────────

@@ -301,6 +301,121 @@ export function pointsOf(segments: DaySegment[]): DayPoint[] {
   return segments.filter((s): s is DayPoint => s.kind === 'point');
 }
 
+/**
+ * Where a point stands against the clock. Derived on every render and stored
+ * nowhere — which is the whole point of it. `passed` is a reading of the time,
+ * not a record of a failure, and it goes back to `live` if you start the thing
+ * late. Nothing about it survives the day.
+ */
+export type PointState = 'cleared' | 'live' | 'passed' | 'queued';
+
+/**
+ * `now` is minutes since midnight, or null on any day that isn't today —
+ * yesterday has no "now" in it, and neither does next Tuesday. Without one,
+ * everything not already cleared is simply queued: a day you are not standing
+ * in cannot be behind.
+ */
+export function pointState(point: DayPoint, now: number | null): PointState {
+  if (point.completedAt !== null) return 'cleared';
+  // Nothing above it is pinned to a clock, so it has a place in the order but
+  // no hour — the clock can't have gone past something that isn't at a time.
+  if (now === null || !point.timed) return 'queued';
+  if (now >= point.endsAt) return 'passed';
+  if (now >= point.startsAt) return 'live';
+  return 'queued';
+}
+
+/**
+ * How far the clock has run through a point, 0 to 1. Only ever the clock's
+ * progress through the window you set aside — never a claim about how much of
+ * the work is done, which the app has no way of knowing and no business
+ * guessing at.
+ */
+export function clockProgress(point: DayPoint, now: number | null): number {
+  if (now === null || !point.timed) return 0;
+  const length = point.endsAt - point.startsAt;
+  if (length <= 0) return now >= point.startsAt ? 1 : 0;
+  return Math.min(1, Math.max(0, (now - point.startsAt) / length));
+}
+
+/** Where the day stands as a whole — what the route's headline reads from. */
+export interface RouteStanding {
+  cleared: number;
+  /** Points the clock has gone past that aren't cleared. A count, not a verdict. */
+  passed: number;
+  queued: number;
+  total: number;
+  /** What's running right now, if the clock is inside something. */
+  live: DayPoint | null;
+  /** The next thing queued, whether or not anything is live. */
+  next: DayPoint | null;
+}
+
+export function routeStanding(segments: DaySegment[], now: number | null): RouteStanding {
+  const points = pointsOf(segments);
+  const standing: RouteStanding = {
+    cleared: 0,
+    passed: 0,
+    queued: 0,
+    total: points.length,
+    live: null,
+    next: null,
+  };
+
+  for (const point of points) {
+    const state = pointState(point, now);
+    if (state === 'cleared') standing.cleared += 1;
+    else if (state === 'passed') standing.passed += 1;
+    else if (state === 'live') standing.live ??= point;
+    else {
+      standing.queued += 1;
+      standing.next ??= point;
+    }
+  }
+
+  return standing;
+}
+
+/**
+ * The line at the top of the route, in two parts — the second is the one that
+ * carries the colour.
+ *
+ * Every one of these is a statement about the route, never about you. "Two
+ * points behind you" is where the marker is; it is not a score, it does not
+ * accumulate, and tomorrow it starts again at nothing. The path holds its
+ * shape whatever the number says — which is the sentence the whole app is
+ * built around, and the reason none of this is stored.
+ */
+export interface Headline {
+  lead: string;
+  emphasis: string;
+}
+
+export function headlineFor(standing: RouteStanding): Headline {
+  const { total, cleared, passed, live } = standing;
+
+  if (total === 0) return { lead: 'Nothing on', emphasis: 'the route.' };
+  if (cleared === total) return { lead: 'Route', emphasis: 'clear.' };
+
+  if (passed > 0) {
+    const count = passed === 1 ? 'One point' : `${numberWord(passed)} points`;
+    return { lead: count, emphasis: 'behind you.' };
+  }
+
+  if (live !== null) return { lead: 'You are on', emphasis: 'the marker.' };
+  if (cleared > 0) return { lead: 'Route', emphasis: 'running.' };
+  return { lead: 'Route', emphasis: 'ready.' };
+}
+
+/**
+ * Small numbers read as words in a headline; past that the digits are clearer
+ * than "seventeen" and the sentence has stopped being a sentence anyway.
+ */
+function numberWord(n: number): string {
+  const words = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  return words[n] ?? String(n);
+}
+
 /** When the day's last thing finishes, or `null` for an empty day. */
 export function dayEndsAt(segments: DaySegment[]): number | null {
   const points = pointsOf(segments);

@@ -208,6 +208,9 @@ export const dayLogSchema = z
   .object({
     date: z.string(),
     cleared: z.record(z.string(), z.number()).catch({}),
+    /* Absent in logs written before starting was recorded. Reads as "nothing
+       was started", which is exactly right and asks nothing of anyone. */
+    started: z.record(z.string(), z.number()).catch({}).default({}),
     wildcards: z.record(z.string(), z.array(z.string())).catch({}),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),

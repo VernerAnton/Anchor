@@ -22,6 +22,9 @@ interface Props {
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
   onClearEntry: (date: string, entryId: string, cleared: boolean) => void;
+  onStartEntry: (date: string, entryId: string, started: boolean) => void;
+  /** Minutes since midnight, or null when the day being shown isn't today. */
+  now: number | null;
   /*
    * Every edit takes the date it happened on. The pattern is keyed by weekday,
    * but nothing in the UI ever talks in weekdays — you arrange a Tuesday by
@@ -62,6 +65,8 @@ export function PathArea({
   selectedTaskId,
   onSelectTask,
   onClearEntry,
+  onStartEntry,
+  now,
   onInsertEntry,
   onMoveEntry,
   onRemoveEntry,
@@ -129,7 +134,14 @@ export function PathArea({
           onSelectTask={onSelectTask}
           pattern={pattern}
           log={logs.find((l) => l.date === viewing) ?? null}
+          /*
+           * No clock while building. Live and passed are the route's
+           * language, about where you are in a day; arranging a Tuesday is a
+           * different job and doesn't want a marker running through it.
+           */
+          now={building ? null : now}
           onClearEntry={(entryId, cleared) => onClearEntry(viewing, entryId, cleared)}
+          onStartEntry={(entryId, started) => onStartEntry(viewing, entryId, started)}
           onInsertEntry={(index, entry) => onInsertEntry(viewing, index, entry)}
           onMoveEntry={(from, to) => onMoveEntry(viewing, from, to)}
           onRemoveEntry={(entryId) => onRemoveEntry(viewing, entryId)}

@@ -20,6 +20,23 @@ body {
 }
 
 /*
+ * The city grid, pinned behind the content. Absent entirely when the theme
+ * defines no grid, which is what keeps it a theme decision rather than a
+ * structural one.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--bg-grid, none);
+  background-size: var(--bg-grid-size, 0);
+  mask-image: var(--bg-grid-mask, none);
+  opacity: var(--bg-grid-opacity, 0);
+}
+
+/*
  * Film grain over the whole app. Pinned rather than scrolling, so it reads as
  * the surface you're looking through rather than a texture printed on the
  * content. Absent entirely when the theme defines no grain.
@@ -1046,6 +1063,17 @@ h2 {
 
 /* ── The day, as a route ──────────────────────────────────────────────── */
 
+/*
+ * Drawn to `design/anchor-path-neonnoir.html`: a spine down the left with a
+ * station at every point, the clock on a rail outside it, notched panels
+ * alongside.
+ *
+ * One thing is deliberately inverted from the reference. There, everything
+ * cleared glows and everything ahead is dark. Here it is the other way round —
+ * what is still in front of you carries the light, and finished work recedes
+ * rather than competing for attention it no longer needs.
+ */
+
 .path-day-view {
   display: flex;
   flex-direction: column;
@@ -1084,7 +1112,6 @@ h2 {
   width: 1.1em;
   height: 1.1em;
   color: var(--text-muted);
-  align-self: center;
 }
 
 .path-day-view__date:hover .path-day-view__calendar {
@@ -1094,94 +1121,511 @@ h2 {
 .path-day-view__clear {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--text-s);
-  max-width: 32rem;
 }
 
-.path-points {
+/* ── What the route says for itself ───────────────────────────────────── */
+
+/*
+ * Every word of this is about the route, never about you. "Two points behind
+ * you" is where the marker is standing; it isn't a score, nothing adds it up,
+ * and tomorrow it starts again at nothing. The line under it says the same
+ * thing in numbers, and the line under the route says why none of it resets.
+ */
+.route-head {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.path-point {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-s);
+.route-head__line {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-headline);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  text-shadow: var(--headline-haze, none);
 }
 
-/* The clock rail: what time this runs at, stamped. */
-.path-point__clock {
-  flex: none;
-  width: 3.4em;
-  padding-top: 1px;
+.route-head__line em {
+  font-style: normal;
+  color: var(--ember, inherit);
+  text-shadow: var(--ember-bloom, none);
+}
+
+.route-head__sub {
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: var(--text-s);
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/*
- * A time inherited from whatever came before, rather than set on the task.
- * Quieter, because it isn't a commitment you made — it is where the sequence
- * happens to put this, and it moves when the things above it move.
- */
-.path-point__clock--follows {
+  font-size: var(--text-stamp);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  opacity: 0.7;
+}
+
+.route-head__marker {
+  color: var(--cyan, inherit);
+  text-shadow: var(--cyan-glow, none);
+}
+
+.route-foot {
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  line-height: 1.9;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.route-foot b {
+  font-weight: 400;
+  color: var(--acid, inherit);
+  text-shadow: var(--acid-glow, none);
+}
+
+/* ── The spine ────────────────────────────────────────────────────────── */
+
+/*
+ * No gap between stations: the spine is one continuous line and a gap in it
+ * would read as a break in the day. What spacing there is belongs to the
+ * panels, inside the node.
+ */
+.path-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.path-node {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding-left: 5.4rem;
 }
 
 /*
- * Quiet until you go looking for it. Taking something off the path is a real
- * edit — it clears the rule that put it there — so it shouldn't sit at the
- * same weight as the thing you're meant to be doing. Always present for
- * keyboard and touch, which have no hover to reveal it.
+ * The panel takes the width; the builder's tools sit beside it, not under.
+ * Named rather than `:first-child` — the clock and the pip come first in the
+ * markup and are both taken out of flow, so first-child is never the panel.
  */
-.path-point__remove {
-  flex: none;
+.path-node > .path-card,
+.path-node > .path-wildcard,
+.path-node > .insert-form {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * A point inside a wildcard. It gets its own small rail so it still reads as a
+ * station, but no spine — the wildcard's own edge is already saying that
+ * everything in here belongs together.
+ */
+.path-node--inset {
+  padding-left: 4.6rem;
+}
+
+.path-node--inset::before {
+  content: none;
+}
+
+.path-node--inset .path-node__pip {
+  left: 2.4rem;
+}
+
+.path-node--inset .path-node__time {
+  width: 2.2rem;
+}
+
+/*
+ * Taking something back out of a wildcard. Quiet and at the end of the card —
+ * what you put in this morning is a decision about today, so undoing it should
+ * be easy to reach and impossible to hit by accident.
+ */
+.path-card__drop {
   align-self: flex-start;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  opacity: 0.45;
 }
 
-.path-point:hover .path-point__remove,
-.path-point__remove:focus-visible {
+.path-card__drop:hover {
+  color: var(--cyan, var(--accent));
+}
+
+/* The line itself. Lit along what's ahead, dark behind what's done. */
+.path-node::before {
+  content: '';
+  position: absolute;
+  left: 3.85rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--trail-live, currentColor);
+  box-shadow: var(--trail-live-glow, none);
+  opacity: 0.85;
+}
+
+.path-node:first-of-type::before {
+  top: 1.4rem;
+}
+
+.path-node:last-of-type::before {
+  bottom: auto;
+  height: 1.4rem;
+}
+
+.path-node--cleared::before,
+.path-node--passed::before {
+  background: var(--trail-spent, currentColor);
+  box-shadow: none;
   opacity: 1;
 }
 
-.path-point__remove:hover {
-  background: var(--surface-hover);
-  color: var(--text);
+/* Rest is on the route but isn't a leg of it, so its line is dashed. */
+.path-node--rest::before,
+.path-node--open::before {
+  background: var(--trail-dashed, var(--trail-live, currentColor));
+  box-shadow: none;
 }
 
-.path-point__confirm {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+/* The thing running now is the only ember on the screen. */
+.path-node--live::before {
+  background: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+  opacity: 1;
 }
 
-.path-point__length {
+/* ── The station ──────────────────────────────────────────────────────── */
+
+/*
+ * The pip is the checkbox. It fills when the point is cleared, which is what
+ * it does on the route anyway — making it the control adds nothing to the
+ * drawing and saves standing a second tick-shaped thing next to a tick.
+ */
+.path-node__pip {
+  position: absolute;
+  left: 3.2rem;
+  top: 1rem;
+  z-index: 3;
+  width: 1.3rem;
+  height: 1.3rem;
+  transform: rotate(45deg);
+  background: var(--bg);
+  border: 2px solid var(--trail-live, currentColor);
+  box-shadow: var(--trail-live-glow, none);
+}
+
+.path-node__pip:hover {
+  border-color: var(--acid, currentColor);
+}
+
+.path-node--cleared .path-node__pip {
+  background: var(--acid, currentColor);
+  border-color: var(--acid, currentColor);
+  box-shadow: none;
+  opacity: 0.55;
+}
+
+/* Slate. The clock went past, and that is all it means. */
+.path-node--passed .path-node__pip {
+  border-color: var(--trail-spent, currentColor);
+  box-shadow: none;
+}
+
+.path-node--live .path-node__pip {
+  border-color: var(--ember, currentColor);
+  box-shadow: var(--ember-bloom, var(--ember-glow, none));
+  animation: thrum 1.8s ease-in-out infinite;
+}
+
+.path-node--live .path-node__pip::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+}
+
+@keyframes thrum {
+  50% {
+    box-shadow: var(--ember-bloom-hot, var(--ember-glow, none));
+  }
+}
+
+/* Rest is on the route, but it isn't a station. */
+.path-node__pip--rest {
+  width: 0.7rem;
+  height: 0.7rem;
+  left: 3.5rem;
+  top: 1.3rem;
+  border-width: 1px;
+  border-color: var(--trail-live, currentColor);
+  box-shadow: none;
+}
+
+/* ── The clock rail ───────────────────────────────────────────────────── */
+
+.path-node__time {
+  position: absolute;
+  left: 0;
+  top: 0.9rem;
+  width: 2.9rem;
+  text-align: right;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: var(--text-stamp);
+  line-height: 1.35;
+  letter-spacing: 0.04em;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
 
+.path-node__time b {
+  display: block;
+  font-weight: 400;
+}
+
 /*
- * Rest, drawn to scale. `--rest-minutes` is set inline because it is a
- * genuinely computed value — the sanctioned exception to keeping appearance
- * out of markup.
+ * A time inherited from whatever came before, rather than one you set. Quieter,
+ * because it isn't a commitment you made — it is where the sequence happens to
+ * put this, and it moves when the things above it move.
+ */
+.path-node__time--follows {
+  opacity: 0.6;
+}
+
+.path-node--cleared .path-node__time {
+  color: var(--acid, inherit);
+  opacity: 0.5;
+}
+
+.path-node--live .path-node__time {
+  color: var(--ember, inherit);
+  text-shadow: var(--ember-glow, none);
+  opacity: 1;
+}
+
+.path-node__time--editing {
+  width: 4.6rem;
+  left: -1.2rem;
+}
+
+.path-node__time--editing input {
+  width: 100%;
+  padding: 2px;
+  font-size: var(--text-xs);
+}
+
+/* ── The panel ────────────────────────────────────────────────────────── */
+
+.path-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raked, var(--surface));
+  border: 1px solid var(--border);
+  clip-path: var(--clip-notch, none);
+  text-align: left;
+}
+
+/* Done is quiet. It has nothing left to ask of you. */
+.path-node--cleared .path-card {
+  opacity: 0.5;
+  border-color: var(--acid-line, var(--border));
+}
+
+.path-node--passed .path-card {
+  border-color: var(--trail-spent, var(--border));
+}
+
+.path-node--live .path-card {
+  border-color: var(--ember, var(--border-strong));
+  background: var(--surface-ember, var(--surface));
+  box-shadow: var(--ember-cast, none);
+}
+
+.path-card__kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.path-node--live .path-card__kicker {
+  color: var(--ember-hot, var(--ember, inherit));
+}
+
+.path-card__state {
+  flex: none;
+}
+
+/* The one badge on the route, on the one thing that is running. */
+.path-card__state--live {
+  padding: 1px var(--space-2);
+  font-size: var(--text-stamp);
+  border: 1px solid var(--ember, currentColor);
+  color: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+  animation: blink 1.4s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.path-card__title {
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+.path-node--cleared .path-card__title {
+  font-size: var(--text-l);
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.path-node--live .path-card__title {
+  color: var(--text);
+  text-shadow: var(--ember-bloom, none);
+}
+
+.path-card__title--selected {
+  color: var(--accent);
+}
+
+.path-card__length {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/*
+ * How far the clock has run through the window you set aside — never a claim
+ * about how much of the work is done, which the app has no way of knowing.
+ */
+.path-card__rail {
+  position: relative;
+  flex: none;
+  width: 3.5rem;
+  height: 3px;
+  overflow: hidden;
+  background: var(--trail-spent, currentColor);
+}
+
+.path-card__rail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--run, 0%);
+  background: var(--trail-live, currentColor);
+}
+
+.path-node--cleared .path-card__rail::after {
+  width: 100%;
+  background: var(--acid, currentColor);
+}
+
+.path-node--live .path-card__rail::after {
+  background: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+}
+
+.path-card__length .project-dot {
+  margin-left: auto;
+}
+
+/*
+ * The one button on the route, and only where it can be pressed truthfully:
+ * on the thing that is running, before you have started it. It says the first
+ * move out loud, because that is the part that is actually hard.
+ */
+.path-card__start {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  width: 100%;
+  border: none;
+  background: var(--ember, var(--accent));
+  color: var(--ember-ink, var(--text-invert));
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--text-m);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  clip-path: var(--clip-notch-s, none);
+  box-shadow: var(--ember-cast, none);
+}
+
+.path-card__start:hover {
+  background: var(--ember-hot, var(--ember, var(--accent-hover)));
+}
+
+/* Slate. The clock went past, and that is the whole of what it means. */
+.path-card__note {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.path-card__running {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ember, var(--text-muted));
+}
+
+/* Cyan tab: you are standing here, and nothing about that is owed. */
+.path-node__here {
+  position: absolute;
+  left: 5.4rem;
+  top: -0.55rem;
+  z-index: 6;
+  padding: 2px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cyan, currentColor);
+  background: var(--surface-sunken);
+  border: 1px solid var(--cyan-line, currentColor);
+  box-shadow: var(--cyan-glow, none);
+}
+
+/* ── Rest, on the route ───────────────────────────────────────────────── */
+
+/*
+ * Rest is the gap, drawn to scale. `--rest-minutes` is set inline because it
+ * is a genuinely computed value — the sanctioned exception to keeping
+ * appearance out of markup.
  *
  * The scale is tuned to the gaps you actually feel: roughly twenty minutes to
  * an hour and a half, where the difference between a short breather and a long
@@ -1190,19 +1634,19 @@ h2 {
  * would push the evening off the screen to say so. The label always states the
  * true figure.
  */
-.path-rest {
-  display: flex;
+.path-card--rest {
+  flex-direction: row;
   align-items: center;
   gap: var(--space-3);
-  width: 100%;
-  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
-  border: 1px dashed var(--border);
-  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  clip-path: none;
   min-height: clamp(1.75rem, calc(var(--rest-minutes, 15) * 0.055rem), 5rem);
 }
 
-.path-rest:hover {
-  border-color: var(--border-strong);
+button.path-card--rest:hover {
+  border-color: var(--acid, var(--border-strong));
 }
 
 /* The turnstile mark: this is where the route stops asking anything of you. */
@@ -1216,8 +1660,8 @@ h2 {
   flex: 1;
   min-width: 0;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.16em;
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
@@ -1232,54 +1676,26 @@ h2 {
   padding: 1px var(--space-2);
   border: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.16em;
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
 /* Cyan: time you set aside, and may spend on nothing at all. */
-.path-rest--open {
+.path-card--open {
   border-color: var(--cyan-line, var(--border-strong));
   box-shadow: var(--cyan-glow, none);
 }
 
-.path-rest--open .path-rest__mark,
-.path-rest--open .path-rest__label {
+.path-card--open .path-rest__mark,
+.path-card--open .path-rest__label {
   color: var(--cyan-dim, currentColor);
 }
 
-.path-rest--open .path-rest__flag {
+.path-card--open .path-rest__flag {
   border-color: var(--cyan-line, var(--border));
   color: var(--cyan-dim, currentColor);
-}
-
-.path-point--selected {
-  border-color: var(--accent);
-}
-
-.path-point--done .path-point__title {
-  color: var(--text-faint);
-  text-decoration: line-through;
-}
-
-.path-point__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-}
-
-.path-point__title {
-  font-weight: 600;
-}
-
-/* The smallest move that starts it — the thing you actually do first. */
-.path-point__first-move {
-  font-size: var(--text-s);
-  color: var(--text-muted);
 }
 
 /* ── Build mode ───────────────────────────────────────────────────────── */

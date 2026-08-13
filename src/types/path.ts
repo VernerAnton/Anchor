@@ -88,6 +88,19 @@ export interface DayLog {
   date: string;
   /** Entry id → when it was cleared. */
   cleared: Record<string, number>;
+  /**
+   * Entry id → when it was started.
+   *
+   * Separate from cleared because they are different facts and only one of
+   * them is about finishing. Starting is the hard part of the whole app, so
+   * the moment you did it is worth keeping — and it is what the route's one
+   * button records, so that pressing "pick up the knife" says something true
+   * rather than quietly marking the thing done.
+   *
+   * Never required. A point cleared without ever being started is completely
+   * ordinary, and nothing anywhere treats the absence as unfinished business.
+   */
+  started: Record<string, number>;
   /** Wildcard entry id → the task ids put in it that day, in order. */
   wildcards: Record<string, string[]>;
   schemaVersion: number;

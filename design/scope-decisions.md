@@ -195,3 +195,42 @@ order, times, rest, where the wildcards sit. The path view changes only *today*:
 point, and filling a wildcard. That is why filling a wildcard stays available outside build
 mode — the whole reason a wildcard exists is the thing that turned up this morning, and going
 into the builder to record it would be the wrong shape entirely.
+
+---
+
+## Step 5 — the route, drawn to the mockup
+
+`design/anchor-path-neonnoir.html` is the reference for path mode. Three places where
+following it literally would have meant breaking something already decided, and what happens
+instead:
+
+**The spine's polarity stays flipped.** In the mockup everything cleared glows acid and
+everything ahead is dark. That was reversed deliberately earlier — what's still in front of
+you carries the light, finished work recedes — and the reason holds: a route that glows
+brightest behind you is a route pointing at the wrong end of the day. The lit colour is cyan
+rather than acid, because acid already means *proof this happened* and a colour cannot mean
+done in one place and not-done in another.
+
+**The action button records starting, not finishing.** The mockup's live card carries a large
+ember button reading the first move — "Pick up the knife ►". Wiring it to completion would
+make it lie, since you press it *before* doing the thing. So `DayLog` gains `started`
+alongside `cleared`: pressing it stamps the moment you began, and the card then reads
+"Running since 08:05". Starting is the hard part of this whole app; the moment it happened is
+worth keeping. The tick is still what clears the point.
+
+**The pip is the checkbox.** The mockup's diamond fills when a point is cleared. Rather than
+stand a second tick-shaped control next to a tick, the diamond *is* the control. Nothing is
+added to the drawing and nothing is taken away from it.
+
+Everything else follows the reference: the station numbering, the kicker with its state word,
+the notched panels, the clock rail, the LIVE badge, the cyan "you are here" tab, the rest
+strip, the headline in two parts, and the two lines under the route.
+
+**The route's own states are read off the clock and stored nowhere.** Cleared, live, passed,
+queued. `passed` is where the marker is standing, not a verdict — start something late and it
+goes back to live, and tomorrow the whole reading begins again at nothing. The headline says
+the same: it describes the route, never the person, and nothing anywhere adds it up.
+
+**Build mode has no clock.** Live and passed are the route's language, about where you are in
+a day. Arranging a Tuesday is a different job and doesn't want a marker running through it, so
+the builder reads every point as queued.

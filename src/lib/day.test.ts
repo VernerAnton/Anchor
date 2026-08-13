@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Duration, Project, Recurrence, Task } from '../types/task';
 import type { DayLog, PathEntry, PathPattern } from '../types/path';
+import type { DayPoint } from './day';
 import {
   DEFAULT_MINUTES,
   buildDay,
@@ -8,9 +9,13 @@ import {
   dayBlocks,
   dayEndsAt,
   effectiveDuration,
+  clockProgress,
+  headlineFor,
   landingByProject,
   landingOn,
+  pointState,
   pointsOf,
+  routeStanding,
 } from './day';
 
 // 2026-08-10 is a Monday (weekday 1); 2026-08-15 is a Saturday (weekday 6).
@@ -83,6 +88,7 @@ function log(overrides: Partial<DayLog> = {}): DayLog {
   return {
     date: MON,
     cleared: {},
+    started: {},
     wildcards: {},
     schemaVersion: 1,
     version: 1,
@@ -475,5 +481,134 @@ describe('landingByProject', () => {
     const sections = landingByProject(landingOn([gym], null, MON), [health]);
     expect(sections[1]!.tasks).toEqual([]);
     expect(landingByProject(landingOn([gym], null, SAT), [health])[1]!.tasks).toHaveLength(1);
+  });
+});
+
+describe('pointState', () => {
+  const at = (startsAt: number, endsAt: number, overrides: Partial<DayPoint> = {}): DayPoint => ({
+    kind: 'point',
+    entryId: 'e1',
+    task: task(),
+    startsAt,
+    endsAt,
+    anchored: true,
+    timed: true,
+    completedAt: null,
+    fromWildcard: false,
+    ...overrides,
+  });
+
+  it('is cleared whenever it was cleared, whatever the clock says', () => {
+    expect(pointState(at(540, 600, { completedAt: 1 }), 60)).toBe('cleared');
+    expect(pointState(at(540, 600, { completedAt: 1 }), 1400)).toBe('cleared');
+  });
+
+  it('is live while the clock is inside it', () => {
+    expect(pointState(at(540, 600), 540)).toBe('live');
+    expect(pointState(at(540, 600), 599)).toBe('live');
+  });
+
+  it('is queued before it and passed after it', () => {
+    expect(pointState(at(540, 600), 539)).toBe('queued');
+    expect(pointState(at(540, 600), 600)).toBe('passed');
+  });
+
+  // A day you are not standing in cannot be behind.
+  it('is only ever queued on a day that is not today', () => {
+    expect(pointState(at(540, 600), null)).toBe('queued');
+  });
+
+  // The clock can't have gone past something that isn't at a time.
+  it('is queued when nothing above it is pinned to a clock', () => {
+    expect(pointState(at(0, 60, { timed: false }), 1400)).toBe('queued');
+  });
+});
+
+describe('clockProgress', () => {
+  const point = (startsAt: number, endsAt: number, timed = true): DayPoint => ({
+    kind: 'point',
+    entryId: 'e1',
+    task: task(),
+    startsAt,
+    endsAt,
+    anchored: true,
+    timed,
+    completedAt: null,
+    fromWildcard: false,
+  });
+
+  it('runs nothing to all of it across the window', () => {
+    expect(clockProgress(point(540, 600), 540)).toBe(0);
+    expect(clockProgress(point(540, 600), 570)).toBeCloseTo(0.5);
+    expect(clockProgress(point(540, 600), 600)).toBe(1);
+  });
+
+  it('clamps rather than running past either end', () => {
+    expect(clockProgress(point(540, 600), 100)).toBe(0);
+    expect(clockProgress(point(540, 600), 1400)).toBe(1);
+  });
+
+  it('is nothing without a clock to read', () => {
+    expect(clockProgress(point(540, 600), null)).toBe(0);
+    expect(clockProgress(point(540, 600, false), 570)).toBe(0);
+  });
+});
+
+describe('routeStanding and its headline', () => {
+  const walk = task({ defaultDuration: fixed(30) });
+  const gym = task({ defaultDuration: fixed(30) });
+  const cook = task({ defaultDuration: fixed(30) });
+  const three = pattern({
+    '1': [
+      entry('e1', walk.id, '06:00'),
+      entry('e2', gym.id, '09:00'),
+      entry('e3', cook.id, '18:00'),
+    ],
+  });
+  const standing = (l: DayLog | null, now: number | null) =>
+    routeStanding(buildDay([walk, gym, cook], three, l, MON), now);
+
+  it('counts what is behind, running and still ahead', () => {
+    // 09:10 — the first is behind, the second is running, the third is ahead.
+    const s = standing(null, 550);
+    expect(s).toMatchObject({ passed: 1, queued: 1, cleared: 0, total: 3 });
+    expect(s.live?.task.id).toBe(gym.id);
+    expect(s.next?.task.id).toBe(cook.id);
+  });
+
+  it('never counts a cleared point as behind', () => {
+    const s = standing(log({ cleared: { e1: 1, e2: 2 } }), 550);
+    expect(s).toMatchObject({ cleared: 2, passed: 0, queued: 1 });
+    expect(s.live).toBeNull();
+  });
+
+  it('has nothing behind it on a day that is not today', () => {
+    expect(standing(null, null)).toMatchObject({ passed: 0, queued: 3, live: null });
+  });
+
+  it('reads the route back, never the person', () => {
+    expect(headlineFor(standing(null, 550))).toEqual({ lead: 'One point', emphasis: 'behind you.' });
+    expect(headlineFor(standing(null, 1000))).toEqual({
+      lead: 'Two points',
+      emphasis: 'behind you.',
+    });
+    expect(headlineFor(standing(null, 360))).toEqual({ lead: 'You are on', emphasis: 'the marker.' });
+    expect(headlineFor(standing(null, 0))).toEqual({ lead: 'Route', emphasis: 'ready.' });
+    expect(headlineFor(standing(log({ cleared: { e1: 1, e2: 2, e3: 3 } }), 1400))).toEqual({
+      lead: 'Route',
+      emphasis: 'clear.',
+    });
+    expect(headlineFor(routeStanding([], 600))).toEqual({
+      lead: 'Nothing on',
+      emphasis: 'the route.',
+    });
+  });
+
+  // A running total that a gap can reset is a streak by another name.
+  it('says nothing that could read as a score', () => {
+    const words = Object.values(headlineFor(standing(null, 1000))).join(' ').toLowerCase();
+    for (const banned of ['missed', 'failed', 'streak', 'behind schedule', 'late']) {
+      expect(words).not.toContain(banned);
+    }
   });
 });
