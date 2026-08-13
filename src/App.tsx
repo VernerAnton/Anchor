@@ -82,14 +82,24 @@ export function App({ syncMode }: Props) {
     );
   };
 
-  const addTask = (title: string) => {
+  /**
+   * Anything left out is inferred from the current view, which is how the
+   * plain quick-add has always worked. Callers pass a field explicitly when
+   * the place you typed already answers it — the per-project rows in path
+   * mode say which project, and say nothing about when.
+   */
+  const addTask = (
+    title: string,
+    overrides: { projectId?: string | null; dueDate?: string | null } = {},
+  ) => {
     const order = tasks.length === 0 ? 0 : Math.max(...tasks.map((t) => t.order)) + 1;
     const task = newTask(
       {
         ...emptyTaskDraft(),
         title,
-        dueDate: defaultDueDate(selection, today),
-        projectId: defaultProjectId(selection),
+        dueDate: overrides.dueDate !== undefined ? overrides.dueDate : defaultDueDate(selection, today),
+        projectId:
+          overrides.projectId !== undefined ? overrides.projectId : defaultProjectId(selection),
       },
       order,
     );
@@ -211,11 +221,32 @@ export function App({ syncMode }: Props) {
           projects={projects}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
+          /*
+           * Filed, but not scheduled. The library is every task you have,
+           * not today's route — typing into the Health section says where
+           * this belongs, not when you'll do it. Putting it on a day is the
+           * day editor's job, and silently dating it today would drop things
+           * onto the path that you never chose to put there.
+           */
+          onAddTask={(title, projectId) => addTask(title, { projectId, dueDate: null })}
+          onNewProject={() => setProjectEditor({ mode: 'new', parentId: null })}
         />
 
         {detailPanel}
 
         <ExitPathMode onExit={() => setPathMode(false)} />
+
+        {/* Path mode hides the sidebar, so this is the only way to make a
+            project while you're in here. Same editor as the to-do side. */}
+        {projectEditor && (
+          <ProjectEditor
+            state={projectEditor}
+            projects={projects}
+            onSave={saveProject}
+            onDelete={deleteProject}
+            onClose={() => setProjectEditor(null)}
+          />
+        )}
 
         {update.needRefresh && (
           <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />
