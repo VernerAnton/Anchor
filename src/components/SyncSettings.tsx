@@ -5,6 +5,9 @@ import { hasFirebaseConfig } from '../store/firebaseConfig';
 
 interface Props {
   mode: SyncMode;
+  sampleCount: number;
+  onLoadSamples: () => Promise<void>;
+  onClearSamples: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -13,9 +16,16 @@ interface Props {
  * no account, no sign-in, nothing else to configure. The model is ported
  * from the app where it's been working in daily use.
  */
-export function SyncSettings({ mode, onClose }: Props) {
+export function SyncSettings({
+  mode,
+  sampleCount,
+  onLoadSamples,
+  onClearSamples,
+  onClose,
+}: Props) {
   const [key, setKey] = useState(getSyncKey());
   const [busy, setBusy] = useState(false);
+  const [samplesBusy, setSamplesBusy] = useState(false);
   const configured = hasFirebaseConfig();
   const trimmed = key.trim();
 
@@ -98,6 +108,58 @@ export function SyncSettings({ mode, onClose }: Props) {
             </div>
           </>
         )}
+
+        {/*
+          Something to try the app on before it holds anything real. Every
+          sample carries a marked id, so clearing them removes exactly those
+          and can't reach anything you made yourself.
+        */}
+        <section className="field modal__danger">
+          <h3 className="field__title">Sample data</h3>
+          {sampleCount > 0 ? (
+            <>
+              <p className="sync-note">
+                {sampleCount} sample {sampleCount === 1 ? 'item' : 'items'} loaded. Clearing them
+                leaves anything you made yourself untouched.
+              </p>
+              <div className="field-row">
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  disabled={samplesBusy}
+                  onClick={async () => {
+                    setSamplesBusy(true);
+                    await onClearSamples();
+                    setSamplesBusy(false);
+                  }}
+                >
+                  {samplesBusy ? 'Clearing…' : 'Clear the samples'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="sync-note">
+                A week of plausible tasks and four projects — repeat rules, times, rest and a
+                backlog — so there's something to move around before you put your own things in.
+              </p>
+              <div className="field-row">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={samplesBusy}
+                  onClick={async () => {
+                    setSamplesBusy(true);
+                    await onLoadSamples();
+                    setSamplesBusy(false);
+                  }}
+                >
+                  {samplesBusy ? 'Loading…' : 'Load sample data'}
+                </button>
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

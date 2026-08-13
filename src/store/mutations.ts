@@ -135,6 +135,30 @@ export function setTaskRecurrence(
   return touch({ ...task, recurrence: { ...recurrence, anchor } });
 }
 
+/**
+ * Takes a task off the path, leaving it in the library.
+ *
+ * A task is on the path for exactly one reason — something schedules it — so
+ * taking it off means clearing that: the repeat rule and the due date, both.
+ * Nothing is deleted and nothing about the task itself changes; it simply
+ * stops landing on days, and shows up in its project like anything else
+ * waiting to be scheduled.
+ *
+ * Deliberately all-or-nothing rather than "not this Wednesday". Narrowing a
+ * rule already has a proper editor on the task, where you can see what the
+ * rule becomes; doing it silently from a day would guess at which of several
+ * reasonable edits you meant, and for a monthly rule there is no edit that
+ * expresses a single skipped occurrence at all.
+ */
+export function removeFromPath(task: Task): Task {
+  return touch({ ...task, recurrence: null, dueDate: null });
+}
+
+/** Is this task scheduled onto days at all? */
+export function isOnPath(task: Task): boolean {
+  return task.recurrence !== null || task.dueDate !== null;
+}
+
 // ── Projects ───────────────────────────────────────────────────────────────
 
 export function newProject(

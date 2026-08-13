@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Project, Task } from '../types/task';
 import { MONTH_NAMES, dayOf, weekdayOf } from '../lib/dates';
 import { buildDay } from '../lib/day';
@@ -12,6 +13,7 @@ interface Props {
   onOpenCalendar: () => void;
   onSelectTask: (id: string) => void;
   onToggleTask: (task: Task) => void;
+  onRemoveFromPath: (task: Task) => void;
 }
 
 const WEEKDAY_NAMES = [
@@ -69,7 +71,9 @@ export function PathDay({
   onOpenCalendar,
   onSelectTask,
   onToggleTask,
+  onRemoveFromPath,
 }: Props) {
+  const [confirming, setConfirming] = useState<string | null>(null);
   const segments = buildDay(tasks, date);
   const colorOf = (projectId: string | null) =>
     projects.find((p) => p.id === projectId)?.colorId ?? null;
@@ -121,9 +125,15 @@ export function PathDay({
             return (
               <li key={task.id} className={classes.join(' ')}>
                 <span
-                  className={segment.anchored ? 'path-point__clock' : 'path-point__clock path-point__clock--follows'}
+                  className={
+                    segment.anchored
+                      ? 'path-point__clock'
+                      : 'path-point__clock path-point__clock--follows'
+                  }
                 >
-                  {clockOf(segment.startsAt)}
+                  {/* Nothing above this has been pinned to a clock yet, so
+                      the day genuinely doesn't know when it happens. */}
+                  {segment.timed ? clockOf(segment.startsAt) : '—'}
                 </span>
                 <button
                   type="button"
@@ -149,6 +159,38 @@ export function PathDay({
                 </button>
                 {color !== null && (
                   <span className="project-dot" data-color={color} aria-hidden="true" />
+                )}
+
+                {confirming === task.id ? (
+                  <span className="path-point__confirm">
+                    <button
+                      type="button"
+                      className="btn btn--quiet"
+                      onClick={() => {
+                        onRemoveFromPath(task);
+                        setConfirming(null);
+                      }}
+                    >
+                      Take it off
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--quiet"
+                      onClick={() => setConfirming(null)}
+                    >
+                      Keep
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="path-point__remove"
+                    aria-label={`Take ${task.title} off the path`}
+                    title="Take off the path"
+                    onClick={() => setConfirming(task.id)}
+                  >
+                    ✕
+                  </button>
                 )}
               </li>
             );

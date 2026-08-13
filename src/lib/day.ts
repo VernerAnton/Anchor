@@ -36,6 +36,15 @@ export interface DayPoint {
   endsAt: number;
   /** True when the task carried a clock for this date rather than following on. */
   anchored: boolean;
+  /**
+   * Whether `startsAt` is a real wall-clock time.
+   *
+   * False for anything sequenced before the day's first anchored point: it
+   * follows the things above it, but nothing above it has been pinned to a
+   * clock, so the day genuinely doesn't know when it happens. Saying "00:00"
+   * would be inventing a commitment nobody made.
+   */
+  timed: boolean;
 }
 
 /**
@@ -83,19 +92,30 @@ export function tasksOnDate(tasks: Task[], date: string): Task[] {
 export function buildDay(tasks: Task[], date: string): DaySegment[] {
   const segments: DaySegment[] = [];
   let clock: number | null = null;
+  // Until something is pinned to a clock, the day has a sequence but no times.
+  let onTheClock = false;
 
   for (const task of tasksOnDate(tasks, date)) {
     const anchor = minutesOnDate(task, date);
-    // The first item with no clock simply opens the day: there is no invented
-    // midnight to measure from, and so no leading stretch of rest.
     const startsAt = anchor ?? clock ?? 0;
 
-    if (clock !== null && startsAt > clock) {
+    // Rest is the wait between two things you've actually scheduled. The
+    // stretch before the day's first anchored point isn't a wait — nothing has
+    // been committed to yet — so it gets no rest, however long it looks.
+    if (onTheClock && clock !== null && startsAt > clock) {
       segments.push({ kind: 'rest', startsAt: clock, minutes: startsAt - clock });
     }
 
     const endsAt = startsAt + effectiveDuration(task);
-    segments.push({ kind: 'point', task, startsAt, endsAt, anchored: anchor !== null });
+    onTheClock = onTheClock || anchor !== null;
+    segments.push({
+      kind: 'point',
+      task,
+      startsAt,
+      endsAt,
+      anchored: anchor !== null,
+      timed: onTheClock,
+    });
     // Never walk backwards: an overlapping point is drawn where it says it is,
     // but the next thing still follows the furthest point reached.
     clock = Math.max(clock ?? endsAt, endsAt);

@@ -11,6 +11,7 @@ interface Props {
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
   onToggleTask: (task: Task) => void;
+  onRemoveFromPath: (task: Task) => void;
   /** Rendered above the day in to-do mode: the switch into path mode. */
   header?: React.ReactNode;
   onOpenDrawer?: () => void;
@@ -30,6 +31,7 @@ export function PathArea({
   selectedTaskId,
   onSelectTask,
   onToggleTask,
+  onRemoveFromPath,
   header,
   onOpenDrawer,
 }: Props) {
@@ -66,6 +68,7 @@ export function PathArea({
           onOpenCalendar={() => setCalendarOpen(true)}
           onSelectTask={onSelectTask}
           onToggleTask={onToggleTask}
+          onRemoveFromPath={onRemoveFromPath}
         />
       )}
     </main>

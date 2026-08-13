@@ -8,9 +8,11 @@ import {
   newTask,
   reopenTask,
   emptyTaskDraft,
+  removeFromPath,
   setTaskRecurrence,
 } from './store/mutations';
 import { todayStr } from './lib/dates';
+import { isSample, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
   defaultDueDate,
@@ -125,6 +127,9 @@ export function App({ syncMode }: Props) {
     saveTask(editTask(task, changes));
   };
 
+  /** Clears what schedules a task, so it drops out of every day. */
+  const takeOffPath = (task: Task) => saveTask(removeFromPath(task));
+
   const setRecurrence = (task: Task, recurrence: Recurrence | null) => {
     saveTask(setTaskRecurrence(task, recurrence, today));
   };
@@ -154,6 +159,29 @@ export function App({ syncMode }: Props) {
       updatedAt: Date.now(),
     });
     setSelectedTaskId(null);
+  };
+
+  const samples = [
+    ...tasks.filter((t) => isSample(t.id)),
+    ...projects.filter((p) => isSample(p.id)),
+  ];
+
+  /**
+   * Written straight through the repository rather than the usual mutations,
+   * because these documents arrive complete — there is no draft being edited
+   * and nothing to version-bump against.
+   */
+  const loadSamples = async () => {
+    await Promise.all(sampleProjects().map((p) => repository.saveProject(p)));
+    await Promise.all(sampleTasks(today).map((t) => repository.saveTask(t)));
+  };
+
+  const clearSamples = async () => {
+    await Promise.all(tasks.filter((t) => isSample(t.id)).map((t) => repository.deleteTask(t.id)));
+    await Promise.all(
+      projects.filter((p) => isSample(p.id)).map((p) => repository.deleteProject(p.id)),
+    );
+    if (selectedTaskId !== null && isSample(selectedTaskId)) setSelectedTaskId(null);
   };
 
   const deleteProject = (project: Project) => {
@@ -214,6 +242,7 @@ export function App({ syncMode }: Props) {
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           onToggleTask={toggleTask}
+          onRemoveFromPath={takeOffPath}
         />
 
         <PathLibrary
@@ -281,6 +310,7 @@ export function App({ syncMode }: Props) {
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           onToggleTask={toggleTask}
+          onRemoveFromPath={takeOffPath}
           onOpenDrawer={() => setDrawerOpen(true)}
           header={
             <header className="panel-header">
@@ -334,7 +364,15 @@ export function App({ syncMode }: Props) {
         />
       )}
 
-      {syncOpen && <SyncSettings mode={syncMode} onClose={() => setSyncOpen(false)} />}
+      {syncOpen && (
+        <SyncSettings
+          mode={syncMode}
+          sampleCount={samples.length}
+          onLoadSamples={loadSamples}
+          onClearSamples={clearSamples}
+          onClose={() => setSyncOpen(false)}
+        />
+      )}
 
       {update.needRefresh && (
         <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />

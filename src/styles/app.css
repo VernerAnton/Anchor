@@ -1056,6 +1056,39 @@ h2 {
   opacity: 0.7;
 }
 
+/*
+ * Quiet until you go looking for it. Taking something off the path is a real
+ * edit — it clears the rule that put it there — so it shouldn't sit at the
+ * same weight as the thing you're meant to be doing. Always present for
+ * keyboard and touch, which have no hover to reveal it.
+ */
+.path-point__remove {
+  flex: none;
+  align-self: flex-start;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-s);
+  color: var(--text-faint);
+  opacity: 0.45;
+}
+
+.path-point:hover .path-point__remove,
+.path-point__remove:focus-visible {
+  opacity: 1;
+}
+
+.path-point__remove:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.path-point__confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .path-point__length {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
