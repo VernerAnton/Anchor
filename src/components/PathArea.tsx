@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Project, Task } from '../types/task';
-import type { DayLog, PathPattern } from '../types/path';
+import type { DayLog, PathEntry, PathPattern } from '../types/path';
+import type { EntryChanges } from '../store/mutations';
 import { todayStr } from '../lib/dates';
 import { PathDay } from './PathDay';
 import { PathOverview } from './PathOverview';
@@ -11,10 +12,25 @@ interface Props {
   pattern: PathPattern | null;
   logs: DayLog[];
   today: string;
+  /**
+   * The day being looked at. Owned above rather than here because the library
+   * beside the path offers what lands on it — two columns reading one date.
+   */
+  date: string;
+  onSelectDate: (date: string) => void;
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
-  onToggleTask: (task: Task) => void;
   onClearEntry: (date: string, entryId: string, cleared: boolean) => void;
+  /*
+   * Every edit takes the date it happened on. The pattern is keyed by weekday,
+   * but nothing in the UI ever talks in weekdays — you arrange a Tuesday by
+   * looking at a Tuesday, and turning that into "weekday 2" is the store's job.
+   */
+  onInsertEntry: (date: string, index: number, entry: PathEntry) => void;
+  onMoveEntry: (date: string, from: number, to: number) => void;
+  onRemoveEntry: (date: string, entryId: string) => void;
+  onEditEntry: (date: string, entryId: string, changes: EntryChanges) => void;
+  onFillWildcard: (date: string, entryId: string, taskIds: string[]) => void;
   /** Rendered above the day in to-do mode: the switch into path mode. */
   header?: React.ReactNode;
   onOpenDrawer?: () => void;
@@ -33,15 +49,20 @@ export function PathArea({
   pattern,
   logs,
   today,
+  date,
+  onSelectDate,
   selectedTaskId,
   onSelectTask,
-  onToggleTask,
   onClearEntry,
+  onInsertEntry,
+  onMoveEntry,
+  onRemoveEntry,
+  onEditEntry,
+  onFillWildcard,
   header,
   onOpenDrawer,
 }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [date, setDate] = useState(today);
 
   // A day left open overnight shouldn't still be showing yesterday.
   const viewing = date < todayStr() && date === today ? todayStr() : date;
@@ -58,7 +79,7 @@ export function PathArea({
           onOpenDrawer={onOpenDrawer}
           onSelectTask={onSelectTask}
           onSelectDay={(picked) => {
-            setDate(picked);
+            onSelectDate(picked);
             setCalendarOpen(false);
           }}
           onClose={() => setCalendarOpen(false)}
@@ -74,8 +95,12 @@ export function PathArea({
           onSelectTask={onSelectTask}
           pattern={pattern}
           log={logs.find((l) => l.date === viewing) ?? null}
-          onToggleTask={onToggleTask}
           onClearEntry={(entryId, cleared) => onClearEntry(viewing, entryId, cleared)}
+          onInsertEntry={(index, entry) => onInsertEntry(viewing, index, entry)}
+          onMoveEntry={(from, to) => onMoveEntry(viewing, from, to)}
+          onRemoveEntry={(entryId) => onRemoveEntry(viewing, entryId)}
+          onEditEntry={(entryId, changes) => onEditEntry(viewing, entryId, changes)}
+          onFillWildcard={(entryId, taskIds) => onFillWildcard(viewing, entryId, taskIds)}
         />
       )}
     </main>

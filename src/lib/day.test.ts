@@ -5,6 +5,7 @@ import {
   DEFAULT_MINUTES,
   buildDay,
   clearedCount,
+  dayBlocks,
   dayEndsAt,
   effectiveDuration,
   landingOn,
@@ -364,5 +365,57 @@ describe('dayEndsAt and clearedCount', () => {
     const b = task({ title: 'B' });
     const p = pattern({ '1': [entry('e1', a.id), entry('e2', b.id)] });
     expect(clearedCount(buildDay([a, b], p, log({ cleared: { e1: 1 } }), MON))).toBe(1);
+  });
+});
+
+describe('dayBlocks', () => {
+  it('pairs every entry with what it drew, keeping its position', () => {
+    const walk = task({ recurrence: weekly([1]) });
+    const blocks = dayBlocks(
+      [walk],
+      pattern({ '1': [entry('e1', walk.id), rest('e2', 20, 'Coffee')] }),
+      null,
+      MON,
+    );
+    expect(blocks.map((b) => [b.index, b.entry.id, b.segments.length])).toEqual([
+      [0, 'e1', 1],
+      [1, 'e2', 1],
+    ]);
+  });
+
+  // The entry stays in the pattern, drawing nothing, ready for the rule to
+  // come back. Its position has to survive so an insert after it still lands
+  // where it looks like it will.
+  it('gives an entry whose rule misses the day no segments and keeps its index', () => {
+    const gym = task({ recurrence: weekly([6]) });
+    const cook = task({ recurrence: weekly([1]) });
+    const blocks = dayBlocks(
+      [gym, cook],
+      pattern({ '1': [entry('e1', gym.id), entry('e2', cook.id)] }),
+      null,
+      MON,
+    );
+    expect(blocks.map((b) => [b.index, b.segments.length])).toEqual([
+      [0, 0],
+      [1, 1],
+    ]);
+  });
+
+  it('collects every point of a filled wildcard under its one entry', () => {
+    const a = task();
+    const b = task();
+    const blocks = dayBlocks(
+      [a, b],
+      pattern({ '1': [wild('w1', 60)] }),
+      log({ wildcards: { w1: [a.id, b.id] } }),
+      MON,
+    );
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]!.segments.map((s) => s.kind)).toEqual(['point', 'point']);
+  });
+
+  it('is empty for a day the pattern never arranged', () => {
+    expect(dayBlocks([], pattern({ '1': [] }), null, MON)).toEqual([]);
+    expect(dayBlocks([], null, null, MON)).toEqual([]);
   });
 });

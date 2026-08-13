@@ -1,18 +1,25 @@
 import { useMemo, useState } from 'react';
 import type { Project, Recurrence, Task } from './types/task';
+import type { PathEntry } from './types/path';
 import type { SyncMode } from './store';
 import { repository } from './store';
 import {
   completeTask,
+  editEntry,
   editTask,
+  insertEntry,
+  moveEntry,
   newTask,
+  removeEntry,
   reopenTask,
   emptyTaskDraft,
   setEntryCleared,
   setTaskRecurrence,
+  setWildcardTasks,
+  type EntryChanges,
 } from './store/mutations';
-import { todayStr } from './lib/dates';
-import { buildDay, clearedCount, pointsOf } from './lib/day';
+import { todayStr, weekdayOf } from './lib/dates';
+import { buildDay, clearedCount, landingOn, pointsOf } from './lib/day';
 import { isSample, samplePattern, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
@@ -60,6 +67,12 @@ export function App({ syncMode }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [projectEditor, setProjectEditor] = useState<ProjectEditorState | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  /*
+   * Which day the path is showing. Up here rather than inside the path because
+   * the library beside it offers what lands on that same day — one date read
+   * by two columns.
+   */
+  const [pathDate, setPathDate] = useState(todayStr());
 
   const today = todayStr();
   const model = useMemo(
@@ -137,6 +150,33 @@ export function App({ syncMode }: Props) {
   const clearEntry = (date: string, entryId: string, cleared: boolean) => {
     const existing = (logs ?? []).find((l) => l.date === date) ?? null;
     void repository.saveDayLog(setEntryCleared(existing, date, entryId, cleared));
+  };
+
+  /*
+   * Arranging a day arranges that weekday, every week — the pattern is the
+   * shape of a normal week, not a diary. What belongs to one specific date is
+   * only ever what happened on it, which is the day log below.
+   */
+  const placeOnDay = (date: string, index: number, entry: PathEntry) => {
+    void repository.savePathPattern(insertEntry(pattern, weekdayOf(date), index, entry));
+  };
+
+  const moveOnDay = (date: string, from: number, to: number) => {
+    void repository.savePathPattern(moveEntry(pattern, weekdayOf(date), from, to));
+  };
+
+  const takeOffDay = (date: string, entryId: string) => {
+    void repository.savePathPattern(removeEntry(pattern, weekdayOf(date), entryId));
+  };
+
+  const reshapeEntry = (date: string, entryId: string, changes: EntryChanges) => {
+    void repository.savePathPattern(editEntry(pattern, weekdayOf(date), entryId, changes));
+  };
+
+  /** What went into a wildcard is a fact about the date, not about the week. */
+  const fillWildcard = (date: string, entryId: string, taskIds: string[]) => {
+    const existing = (logs ?? []).find((l) => l.date === date) ?? null;
+    void repository.saveDayLog(setWildcardTasks(existing, date, entryId, taskIds));
   };
 
   const setRecurrence = (task: Task, recurrence: Recurrence | null) => {
@@ -277,17 +317,24 @@ export function App({ syncMode }: Props) {
           tasks={tasks}
           projects={projects}
           today={today}
+          date={pathDate}
+          onSelectDate={setPathDate}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           pattern={pattern}
           logs={logs ?? []}
-          onToggleTask={toggleTask}
           onClearEntry={clearEntry}
+          onInsertEntry={placeOnDay}
+          onMoveEntry={moveOnDay}
+          onRemoveEntry={takeOffDay}
+          onEditEntry={reshapeEntry}
+          onFillWildcard={fillWildcard}
         />
 
         <PathLibrary
           tasks={tasks}
           projects={projects}
+          landing={landingOn(tasks, pattern, pathDate)}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           /*
@@ -347,12 +394,18 @@ export function App({ syncMode }: Props) {
           tasks={tasks}
           projects={projects}
           today={today}
+          date={pathDate}
+          onSelectDate={setPathDate}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           pattern={pattern}
           logs={logs ?? []}
-          onToggleTask={toggleTask}
           onClearEntry={clearEntry}
+          onInsertEntry={placeOnDay}
+          onMoveEntry={moveOnDay}
+          onRemoveEntry={takeOffDay}
+          onEditEntry={reshapeEntry}
+          onFillWildcard={fillWildcard}
           onOpenDrawer={() => setDrawerOpen(true)}
           header={
             <header className="panel-header">

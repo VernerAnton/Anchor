@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { Recurrence, Task } from '../types/task';
-import { completeTask, emptyDayLog, setEntryCleared } from './mutations';
+import {
+  completeTask,
+  editEntry,
+  emptyDayLog,
+  entriesOn,
+  insertEntry,
+  moveEntry,
+  removeEntry,
+  restEntry,
+  setEntryCleared,
+  setWildcardTasks,
+  taskEntry,
+  wildcardEntry,
+} from './mutations';
+import type { PathPattern } from '../types/path';
 
 const NOW = 1_800_000_000_000;
 const TODAY = '2026-08-04';
@@ -99,5 +113,116 @@ describe('setEntryCleared', () => {
   it('keeps whatever was in the wildcards untouched', () => {
     const seeded = { ...emptyDayLog(DATE), wildcards: { w1: ['task-a'] } };
     expect(setEntryCleared(seeded, DATE, 'am', true, NOW).wildcards).toEqual({ w1: ['task-a'] });
+  });
+});
+
+describe('the week pattern', () => {
+  const MON = 1;
+  const a = restEntry('a', 10);
+  const b = restEntry('b', 20);
+  const c = restEntry('c', 30);
+  const labels = (pattern: PathPattern) =>
+    entriesOn(pattern, MON).map((entry) => (entry.kind === 'rest' ? entry.label : entry.kind));
+
+  const week = () =>
+    [a, b, c].reduce<PathPattern | null>(
+      (pattern, entry) => insertEntry(pattern, MON, Number.MAX_SAFE_INTEGER, entry),
+      null,
+    )!;
+
+  it('builds a day from nothing, appending in order', () => {
+    expect(labels(week())).toEqual(['a', 'b', 'c']);
+  });
+
+  it('inserts at a position, and clamps one past the end', () => {
+    expect(labels(insertEntry(week(), MON, 1, restEntry('x', 5)))).toEqual(['a', 'x', 'b', 'c']);
+    expect(labels(insertEntry(week(), MON, 99, restEntry('x', 5)))).toEqual(['a', 'b', 'c', 'x']);
+    expect(labels(insertEntry(week(), MON, -3, restEntry('x', 5)))).toEqual(['x', 'a', 'b', 'c']);
+  });
+
+  it('removes by entry id', () => {
+    expect(labels(removeEntry(week(), MON, b.id))).toEqual(['a', 'c']);
+  });
+
+  it('moves down into the gap below, accounting for the lift', () => {
+    expect(labels(moveEntry(week(), MON, 0, 2))).toEqual(['b', 'a', 'c']);
+    expect(labels(moveEntry(week(), MON, 0, 3))).toEqual(['b', 'c', 'a']);
+  });
+
+  it('moves up', () => {
+    expect(labels(moveEntry(week(), MON, 2, 0))).toEqual(['c', 'a', 'b']);
+  });
+
+  it('a move that goes nowhere leaves the order alone', () => {
+    expect(labels(moveEntry(week(), MON, 1, 1))).toEqual(['a', 'b', 'c']);
+    expect(labels(moveEntry(week(), MON, 1, 2))).toEqual(['a', 'b', 'c']);
+  });
+
+  it('an out-of-range move changes nothing', () => {
+    expect(labels(moveEntry(week(), MON, 9, 0))).toEqual(['a', 'b', 'c']);
+  });
+
+  // Rearranging a Tuesday must not reach any other day.
+  it('leaves the other days untouched', () => {
+    const two = insertEntry(week(), 4, 0, restEntry('thu', 15));
+    expect(labels(two)).toEqual(['a', 'b', 'c']);
+    expect(entriesOn(two, 4)).toHaveLength(1);
+  });
+
+  it('edits only the fields a kind actually has', () => {
+    const task = taskEntry('t1', null);
+    const wild = wildcardEntry(null, 45);
+    let pattern = insertEntry(null, MON, 0, task);
+    pattern = insertEntry(pattern, MON, 1, wild);
+
+    const timed = editEntry(pattern, MON, task.id, { startTime: '07:15', minutes: 999 });
+    const edited = entriesOn(timed, MON)[0]!;
+    expect(edited).toEqual({ ...task, startTime: '07:15' });
+    expect('minutes' in edited).toBe(false);
+
+    const resized = editEntry(pattern, MON, wild.id, { minutes: 90, label: 'ignored' });
+    expect(entriesOn(resized, MON)[1]).toEqual({ ...wild, minutes: 90 });
+  });
+
+  it('unpinning a time puts it back to following what is above it', () => {
+    const task = taskEntry('t1', '07:15');
+    const pattern = editEntry(insertEntry(null, MON, 0, task), MON, task.id, { startTime: null });
+    expect(entriesOn(pattern, MON)[0]).toMatchObject({ startTime: null });
+  });
+
+  it('bumps the version on every edit so a stale echo cannot overwrite it', () => {
+    const one = week();
+    expect(insertEntry(one, MON, 0, a).version).toBeGreaterThan(one.version);
+    expect(moveEntry(one, MON, 0, 2).version).toBeGreaterThan(one.version);
+    expect(removeEntry(one, MON, a.id).version).toBeGreaterThan(one.version);
+  });
+});
+
+describe('setWildcardTasks', () => {
+  const DATE = '2026-08-10';
+
+  it('records what went in, in order', () => {
+    const log = setWildcardTasks(null, DATE, 'w1', ['t2', 't1']);
+    expect(log.wildcards).toEqual({ w1: ['t2', 't1'] });
+  });
+
+  it('emptying one removes the key rather than storing an empty list', () => {
+    const filled = setWildcardTasks(null, DATE, 'w1', ['t1']);
+    expect(setWildcardTasks(filled, DATE, 'w1', []).wildcards).toEqual({});
+  });
+
+  // Re-adding a task must not bring back a tick that was never made today.
+  it('drops the completion of a task taken back out', () => {
+    let log = setWildcardTasks(null, DATE, 'w1', ['t1', 't2']);
+    log = setEntryCleared(log, DATE, 'w1:t1', true, NOW);
+    log = setEntryCleared(log, DATE, 'w1:t2', true, NOW);
+    const trimmed = setWildcardTasks(log, DATE, 'w1', ['t2']);
+    expect(trimmed.cleared).toEqual({ 'w1:t2': NOW });
+  });
+
+  it('leaves another wildcard on the same day alone', () => {
+    const one = setWildcardTasks(null, DATE, 'w1', ['t1']);
+    const two = setWildcardTasks(one, DATE, 'w2', ['t9']);
+    expect(two.wildcards).toEqual({ w1: ['t1'], w2: ['t9'] });
   });
 });

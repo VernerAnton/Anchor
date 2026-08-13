@@ -1133,16 +1133,65 @@ h2 {
 .path-rest {
   display: flex;
   align-items: center;
-  padding-left: var(--space-5);
-  min-height: clamp(1rem, calc(var(--rest-minutes, 15) * 0.055rem), 5rem);
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
+  border: 1px dashed var(--border);
+  text-align: left;
+  min-height: clamp(1.75rem, calc(var(--rest-minutes, 15) * 0.055rem), 5rem);
+}
+
+.path-rest:hover {
+  border-color: var(--border-strong);
+}
+
+/* The turnstile mark: this is where the route stops asking anything of you. */
+.path-rest__mark {
+  font-family: var(--font-mono);
+  color: var(--acid, currentColor);
+  opacity: 0.55;
 }
 
 .path-rest__label {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-faint);
+}
+
+/*
+ * Says out loud that nothing is owed here. Rest that looks like an unticked
+ * task reads as one, and the whole point of placing it was to stop the gap
+ * feeling like a gap.
+ */
+.path-rest__flag {
+  flex: none;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Cyan: time you set aside, and may spend on nothing at all. */
+.path-rest--open {
+  border-color: var(--cyan-line, var(--border-strong));
+  box-shadow: var(--cyan-glow, none);
+}
+
+.path-rest--open .path-rest__mark,
+.path-rest--open .path-rest__label {
+  color: var(--cyan-dim, currentColor);
+}
+
+.path-rest--open .path-rest__flag {
+  border-color: var(--cyan-line, var(--border));
+  color: var(--cyan-dim, currentColor);
 }
 
 .path-point--selected {
@@ -1171,6 +1220,272 @@ h2 {
 .path-point__first-move {
   font-size: var(--text-s);
   color: var(--text-muted);
+}
+
+/* ── Building the day ─────────────────────────────────────────────────── */
+
+/*
+ * One thing on the day, whatever kind it is. The tools sit on the right of the
+ * row rather than under it, so the height of a rest card stays the length it
+ * is drawing rather than the height of a control strip.
+ */
+.path-block {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.path-block > *:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.path-block--dragging {
+  opacity: 0.4;
+}
+
+/*
+ * Move and remove. Quiet until you go looking: rearranging is deliberate work,
+ * and these shouldn't sit at the same weight as the thing you're meant to be
+ * doing. Always in the layout rather than appearing on hover, because a
+ * control that shifts the row when it appears is a control you misclick — and
+ * touch has no hover to reveal it with.
+ */
+.entry-tools {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: none;
+  gap: var(--space-1);
+  opacity: 0.45;
+}
+
+.path-block:hover .entry-tools,
+.entry-tools:focus-within {
+  opacity: 1;
+}
+
+.entry-tools__button {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  font-size: var(--text-s);
+  line-height: 1;
+  color: var(--text-faint);
+}
+
+.entry-tools__button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.entry-tools__button:disabled {
+  opacity: 0.3;
+}
+
+/*
+ * The gap between two things — the `+` and the drop target, one position doing
+ * both jobs. Collapsed to a hairline until wanted, so a day reads as a route
+ * rather than a form with a button between every field.
+ */
+.path-gap {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-4);
+  margin: calc(var(--space-2) * -1) 0;
+}
+
+.path-gap__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.path-gap__add {
+  width: 100%;
+  height: var(--space-4);
+  border: 1px dashed transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  opacity: 0;
+}
+
+.path-gap:hover .path-gap__add,
+.path-gap__add:focus-visible,
+.path-gap__control--open .path-gap__add {
+  opacity: 1;
+  border-color: var(--border);
+}
+
+.path-gap__add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
+ * Nothing to hover with. Hiding a control behind hover on touch hides it
+ * outright, and the `+` is the only way onto the day that doesn't need a drag
+ * — which is itself the thing touch can't do.
+ */
+@media (hover: none) {
+  .path-gap__add {
+    opacity: 1;
+    border-color: var(--border);
+  }
+
+  .entry-tools {
+    opacity: 1;
+  }
+}
+
+/* Mid-drag: the gap the thing will land in. */
+.path-gap__control--over .path-gap__add {
+  opacity: 1;
+  height: var(--space-5);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/*
+ * Opens in place and pushes the day down. A menu floating over a scrolling
+ * list has to be positioned, repositioned and flipped near the bottom edge,
+ * and none of that survives a phone.
+ */
+.insert-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.insert-menu__choices {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.insert-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Editing something already on the day, in the place it sits. */
+.insert-form--inline {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border-strong);
+}
+
+.insert-form--inline input[type='text'],
+.insert-form--inline input:not([type]) {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.insert-form__note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-s);
+}
+
+.task-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.task-picker__search {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.task-picker__search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.task-picker__option {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  text-align: left;
+  font-size: var(--text-s);
+}
+
+.task-picker__option:hover {
+  background: var(--surface-hover);
+}
+
+.task-picker__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-picker__placed,
+.library-task__placed {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* A wildcard, once something is in it: a small sequence of its own. */
+.path-wildcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/*
+ * Filled, it needs an edge. What's inside a wildcard is only there today, and
+ * what's outside it is the week's shape — without a boundary the two read as
+ * one list and the distinction that makes a wildcard worth having disappears.
+ */
+.path-wildcard--filled {
+  padding-left: var(--space-3);
+  border-left: 2px dashed var(--cyan-line, var(--border-strong));
+}
+
+.path-wildcard__tag {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cyan-dim, var(--text-faint));
+}
+
+.path-wildcard__add {
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cyan-dim, var(--text-muted));
+}
+
+.path-wildcard__add:hover {
+  color: var(--cyan, var(--accent));
 }
 
 /* ── Path library ─────────────────────────────────────────────────────── */
@@ -1217,12 +1532,33 @@ h2 {
 }
 
 .library-task {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-2);
   border-radius: var(--radius-s);
   text-align: left;
   font-size: var(--text-s);
+}
+
+.library-task__title {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * What can go on the day being looked at, and the only thing you drag from.
+ * Separated by a rule rather than a heading weight: it is a different kind of
+ * list from the ones below it, not a more important one.
+ */
+.path-library__section--landing {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.path-library__section--landing .library-task {
+  cursor: grab;
 }
 
 .library-task:hover {

@@ -227,6 +227,40 @@ export function buildDay(
   return segments;
 }
 
+/**
+ * One entry, together with whatever it drew. This is what the builder edits:
+ * segments are for looking at, entries are what you move and remove.
+ *
+ * The two don't line up one-to-one, which is the whole reason this exists. A
+ * filled wildcard is one entry and several points. A task entry whose rule
+ * stopped covering the date is one entry and nothing at all — it stays in the
+ * pattern, invisible, ready for the rule to come back.
+ */
+export interface DayBlock {
+  /** Position in the weekday's list — what an insert or a move refers to. */
+  index: number;
+  entry: PathEntry;
+  segments: DaySegment[];
+}
+
+export function dayBlocks(
+  tasks: Task[],
+  pattern: PathPattern | null,
+  log: DayLog | null,
+  date: string,
+): DayBlock[] {
+  const segments = buildDay(tasks, pattern, log, date);
+  return entriesForDate(pattern, date).map((entry, index) => ({
+    index,
+    entry,
+    // A wildcard's points are keyed `<entry>:<task>`, so the prefix collects
+    // them; ids never contain a colon, so nothing else can match by accident.
+    segments: segments.filter(
+      (segment) => segment.entryId === entry.id || segment.entryId.startsWith(`${entry.id}:`),
+    ),
+  }));
+}
+
 /** Just the points, for anything counting or checking what's on a day. */
 export function pointsOf(segments: DaySegment[]): DayPoint[] {
   return segments.filter((s): s is DayPoint => s.kind === 'point');

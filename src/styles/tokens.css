@@ -79,6 +79,16 @@
   --trail-live-glow: 0 0 6px #00e5ff33;
   --trail-spent: #0e2836;
 
+  /*
+   * Cyan proper: optional, yours, decline it freely. The wildcard wears it —
+   * it is time you set aside, and nothing about it is owed. Ember pulls, acid
+   * proves, cyan offers.
+   */
+  --cyan: #00e5ff;
+  --cyan-dim: #00e5ff77;
+  --cyan-line: #00e5ff44;
+  --cyan-glow: 0 0 22px -6px #00e5ff55;
+
   /* Lines */
   --border: #14384a;
   --border-strong: #1d4d63;
