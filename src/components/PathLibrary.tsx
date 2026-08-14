@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
-import type { Project, Task } from '../types/task';
-import { groupByProject } from '../lib/pathGrid';
+import type { Project } from '../types/task';
+import type { LandingTask } from '../lib/day';
+import { landingByProject } from '../lib/day';
+import { TASK_DRAG } from './PathInsert';
 
 interface Props {
-  tasks: Task[];
   projects: Project[];
+  /** What lands on the day being built — a task's own rule decides, not this. */
+  landing: LandingTask[];
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
   /** `null` files the task under nothing, which is what "All tasks" means here. */
@@ -13,30 +16,32 @@ interface Props {
 }
 
 /**
- * Every task in the app, grouped into sections by project — the right column
- * of path mode, and what replaces the sidebar's project list.
+ * The right column of path mode: what can go on the day, in its project
+ * sections.
  *
- * In to-do mode you click a project on the left to filter down to it. Here the
- * sections do that job by being there: you scroll to a project instead of
- * selecting it. Same information, one less click, and it leaves the left of
- * the screen entirely to the day.
+ * Two things at once, and both are needed while building. *What's available*
+ * — only what already lands on this day, so dragging something onto it never
+ * has to guess whether you also meant to change how often it repeats. And
+ * *what it belongs to* — the same sections the library always had, because a
+ * task's project is half of what tells you what the task is.
  *
- * Each section adds its own tasks. Because the section already says which
- * project you're in, typing into it files the task there — no picking a
- * project afterwards from a panel you'd have to open first.
+ * Sections stay put on a quiet day rather than disappearing, so the place
+ * keeps its shape and you can still file something into any project. Typing
+ * into a section files it there and dates it to the day you're building,
+ * since that is plainly what typing into this particular list means.
  */
 export function PathLibrary({
-  tasks,
   projects,
+  landing,
   selectedTaskId,
   onSelectTask,
   onAddTask,
   onNewProject,
 }: Props) {
-  const sections = useMemo(() => groupByProject(tasks, projects), [tasks, projects]);
+  const sections = useMemo(() => landingByProject(landing, projects), [landing, projects]);
 
   return (
-    <aside className="path-library" aria-label="All tasks">
+    <aside className="path-library" aria-label="What lands on this day">
       {sections.map((section) => (
         <section key={section.key} className="path-library__section">
           <h2 className="path-library__title">
@@ -53,7 +58,7 @@ export function PathLibrary({
 
           {section.tasks.length > 0 && (
             <ul className="path-library__tasks">
-              {section.tasks.map((task) => (
+              {section.tasks.map(({ task, placed }) => (
                 <li key={task.id}>
                   <button
                     type="button"
@@ -62,9 +67,21 @@ export function PathLibrary({
                         ? 'library-task brackets library-task--selected'
                         : 'library-task brackets'
                     }
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData(TASK_DRAG, task.id);
+                      event.dataTransfer.effectAllowed = 'copy';
+                    }}
                     onClick={() => onSelectTask(task.id)}
                   >
-                    {task.title}
+                    <span className="library-task__title">{task.title}</span>
+                    {/* Stays in the list once placed. Putting the same thing on
+                        a day twice is ordinary, not a special move. */}
+                    {placed > 0 && (
+                      <span className="library-task__placed">
+                        on the path{placed > 1 ? ` ×${placed}` : ''}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}

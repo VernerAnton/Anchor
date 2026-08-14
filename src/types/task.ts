@@ -145,21 +145,11 @@ export interface Task {
   /** The smallest move that starts it. Copied onto each scheduled Point. */
   firstMove: string | null;
   type: TaskType | null;
-  /** What a Point gets when this task is scheduled, before any per-day tweak. */
-  defaultDuration: Duration | null;
-  /** 'HH:MM', 24h local. The time used on any day with no override. */
-  startTime: string | null;
   /**
-   * Weekday (0 = Sunday … 6 = Saturday, as string keys) → 'HH:MM'. Overrides
-   * `startTime` on that weekday, so the gym can sit at 07:00 on weekdays and
-   * 10:00 on Saturday without becoming two tasks.
-   *
-   * Keyed by weekday rather than by date because the app's unit is a repeating
-   * week: a date-keyed table would need a fresh entry for every future
-   * occurrence and would stop applying the moment the week rolled over. Rules
-   * that aren't weekly land on varying weekdays and simply use `startTime`.
+   * How long it runs when placed on a day. Not *when* — a time belongs to the
+   * placement, which can differ per day, and lives on the path entry.
    */
-  weekdayTimes: Record<string, string>;
+  defaultDuration: Duration | null;
 
   schemaVersion: number;
   version: number;

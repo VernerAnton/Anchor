@@ -38,6 +38,27 @@ export function settingsDoc(userId: string): string[] {
   return ['users', userId, 'v2-settings', 'app'];
 }
 
+/**
+ * The week's arrangement: one document, edited as a unit, small enough that a
+ * whole-document write can never leave half a pattern behind.
+ */
+export function pathDoc(userId: string): string[] {
+  return ['users', userId, 'v2-path', 'pattern'];
+}
+
+/**
+ * What happened on each date, and what went into that date's wildcards. One
+ * document per day, written only when something happens — a day you never
+ * touched has none, and stays a genuine gap.
+ */
+export function dayLogsCollection(userId: string): string[] {
+  return ['users', userId, 'v2-daylogs'];
+}
+
+export function dayLogDoc(userId: string, date: string): string[] {
+  return [...dayLogsCollection(userId), date];
+}
+
 /** localStorage has no collections, so a document path becomes a flat key. */
 export function localKey(segments: string[]): string {
   return `${LOCAL_PREFIX}:${segments.join(':')}`;

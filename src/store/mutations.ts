@@ -1,4 +1,12 @@
 import type { Priority, Project, ProjectColor, Recurrence, Task } from '../types/task';
+import type {
+  DayLog,
+  PathEntry,
+  PathPattern,
+  RestEntry,
+  TaskEntry,
+  WildcardEntry,
+} from '../types/path';
 import { PROJECT_COLOR_IDS } from '../types/task';
 import { newId } from '../lib/id';
 import { nextOccurrence, recurrenceBase } from '../lib/recurrence';
@@ -36,8 +44,6 @@ export type TaskDraft = Pick<
   | 'firstMove'
   | 'type'
   | 'defaultDuration'
-  | 'startTime'
-  | 'weekdayTimes'
 >;
 
 export function emptyTaskDraft(): TaskDraft {
@@ -52,8 +58,6 @@ export function emptyTaskDraft(): TaskDraft {
     firstMove: null,
     type: null,
     defaultDuration: null,
-    startTime: null,
-    weekdayTimes: {},
   };
 }
 
@@ -135,28 +139,244 @@ export function setTaskRecurrence(
   return touch({ ...task, recurrence: { ...recurrence, anchor } });
 }
 
-/**
- * Takes a task off the path, leaving it in the library.
- *
- * A task is on the path for exactly one reason — something schedules it — so
- * taking it off means clearing that: the repeat rule and the due date, both.
- * Nothing is deleted and nothing about the task itself changes; it simply
- * stops landing on days, and shows up in its project like anything else
- * waiting to be scheduled.
- *
- * Deliberately all-or-nothing rather than "not this Wednesday". Narrowing a
- * rule already has a proper editor on the task, where you can see what the
- * rule becomes; doing it silently from a day would guess at which of several
- * reasonable edits you meant, and for a monthly rule there is no edit that
- * expresses a single skipped occurrence at all.
+/*
+ * Taking a task off the path used to mean clearing its rule and due date,
+ * because a rule was the only thing that put it on a day. It isn't any more:
+ * a task is on a day because an entry places it there, so removing that entry
+ * is the whole gesture — see `removeEntry` below. Clearing the rule would now
+ * do something different and worse, dropping the task out of the day's offer
+ * list as well, so it is no longer offered as one action.
  */
-export function removeFromPath(task: Task): Task {
-  return touch({ ...task, recurrence: null, dueDate: null });
+
+// ── The week's pattern ─────────────────────────────────────────────────────
+
+/**
+ * Every edit to the week returns a whole new pattern, and every one of them
+ * goes through `withDay`, so there is exactly one place that knows how a day's
+ * list is stored. Order is the array's own order: moving something is a splice
+ * and nothing else has to be kept in step.
+ *
+ * None of these touch a task. Rearranging a Tuesday cannot change what a task
+ * is or how often it happens — that separation is the point of having a
+ * pattern at all.
+ */
+
+export function emptyPattern(): PathPattern {
+  return { days: {}, schemaVersion: SCHEMA_VERSION, version: 0, updatedAt: Date.now() };
 }
 
-/** Is this task scheduled onto days at all? */
-export function isOnPath(task: Task): boolean {
-  return task.recurrence !== null || task.dueDate !== null;
+export function taskEntry(taskId: string, startTime: string | null = null): TaskEntry {
+  return { kind: 'task', id: newId(), taskId, startTime };
+}
+
+export function restEntry(label: string | null, minutes: number): RestEntry {
+  return { kind: 'rest', id: newId(), label, minutes };
+}
+
+export function wildcardEntry(startTime: string | null, minutes: number): WildcardEntry {
+  return { kind: 'wildcard', id: newId(), startTime, minutes };
+}
+
+/** What one weekday holds, in order. Empty for a day never arranged. */
+export function entriesOn(pattern: PathPattern | null, weekday: number): PathEntry[] {
+  return pattern?.days?.[String(weekday)] ?? [];
+}
+
+function withDay(
+  pattern: PathPattern | null,
+  weekday: number,
+  entries: PathEntry[],
+): PathPattern {
+  const base = pattern ?? emptyPattern();
+  return touch({ ...base, days: { ...base.days, [String(weekday)]: entries } });
+}
+
+/** Out-of-range indices clamp rather than throw: a drop past the end means the end. */
+export function insertEntry(
+  pattern: PathPattern | null,
+  weekday: number,
+  index: number,
+  entry: PathEntry,
+): PathPattern {
+  const entries = [...entriesOn(pattern, weekday)];
+  entries.splice(Math.max(0, Math.min(index, entries.length)), 0, entry);
+  return withDay(pattern, weekday, entries);
+}
+
+export function removeEntry(
+  pattern: PathPattern | null,
+  weekday: number,
+  entryId: string,
+): PathPattern {
+  return withDay(
+    pattern,
+    weekday,
+    entriesOn(pattern, weekday).filter((entry) => entry.id !== entryId),
+  );
+}
+
+/**
+ * `to` is where it lands in the list *after* it has been lifted out, which is
+ * how the drop gaps are numbered — the gap above something is its own index,
+ * the gap below is the next one.
+ */
+export function moveEntry(
+  pattern: PathPattern | null,
+  weekday: number,
+  from: number,
+  to: number,
+): PathPattern {
+  const entries = [...entriesOn(pattern, weekday)];
+  const moved = entries[from];
+  if (moved === undefined) return pattern ?? emptyPattern();
+  entries.splice(from, 1);
+  // A drop into the gap below itself has to account for the lift.
+  const landing = to > from ? to - 1 : to;
+  entries.splice(Math.max(0, Math.min(landing, entries.length)), 0, moved);
+  return withDay(pattern, weekday, entries);
+}
+
+/**
+ * The fields an entry can be edited to have. Kept as one shape rather than
+ * three functions because the three kinds overlap: a wildcard has both a clock
+ * and a length, rest has a length and a name, a task has only a clock. Each
+ * kind takes what it has and ignores the rest, so a caller can't set a length
+ * on something that doesn't have one.
+ */
+export interface EntryChanges {
+  /** 'HH:MM' to pin it, null to go back to following whatever is above it. */
+  startTime?: string | null;
+  minutes?: number;
+  label?: string | null;
+}
+
+function applyChanges(entry: PathEntry, changes: EntryChanges): PathEntry {
+  switch (entry.kind) {
+    case 'task':
+      return 'startTime' in changes ? { ...entry, startTime: changes.startTime ?? null } : entry;
+    case 'rest':
+      return {
+        ...entry,
+        label: 'label' in changes ? (changes.label ?? null) : entry.label,
+        minutes: changes.minutes ?? entry.minutes,
+      };
+    case 'wildcard':
+      return {
+        ...entry,
+        startTime: 'startTime' in changes ? (changes.startTime ?? null) : entry.startTime,
+        minutes: changes.minutes ?? entry.minutes,
+      };
+  }
+}
+
+export function editEntry(
+  pattern: PathPattern | null,
+  weekday: number,
+  entryId: string,
+  changes: EntryChanges,
+): PathPattern {
+  return withDay(
+    pattern,
+    weekday,
+    entriesOn(pattern, weekday).map((entry) =>
+      entry.id === entryId ? applyChanges(entry, changes) : entry,
+    ),
+  );
+}
+
+// ── The day's log ──────────────────────────────────────────────────────────
+
+export function emptyDayLog(date: string): DayLog {
+  return {
+    date,
+    cleared: {},
+    started: {},
+    wildcards: {},
+    schemaVersion: SCHEMA_VERSION,
+    version: 0,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Records that one *placement* was cleared, or un-clears it.
+ *
+ * Keyed by entry, never by task. The same task placed twice on a day is two
+ * entries, and clearing the morning one has to leave the afternoon one alone —
+ * which is the whole reason completion lives here rather than on the task.
+ *
+ * Un-clearing removes the key rather than storing a falsy value: the log says
+ * what happened, and "this didn't happen" is the absence of a record, not a
+ * record of absence.
+ */
+export function setEntryCleared(
+  log: DayLog | null,
+  date: string,
+  entryId: string,
+  cleared: boolean,
+  now: number = Date.now(),
+): DayLog {
+  const base = log ?? emptyDayLog(date);
+  const next = { ...base.cleared };
+  if (cleared) next[entryId] = now;
+  else delete next[entryId];
+  return touch({ ...base, cleared: next });
+}
+
+/**
+ * Records the moment you began — the one thing the route's action button
+ * does.
+ *
+ * Starting and finishing are different facts, so this never touches
+ * `cleared`. Pressing it says "I'm on this now", which is true at the moment
+ * you press it; marking the point done there and then would be a lie, and one
+ * you'd notice immediately.
+ */
+export function setEntryStarted(
+  log: DayLog | null,
+  date: string,
+  entryId: string,
+  started: boolean,
+  now: number = Date.now(),
+): DayLog {
+  const base = log ?? emptyDayLog(date);
+  const next = { ...(base.started ?? {}) };
+  if (started) next[entryId] = now;
+  else delete next[entryId];
+  return touch({ ...base, started: next });
+}
+
+/**
+ * What went into one wildcard on one date, in the order it runs.
+ *
+ * A wildcard is a hole the week already agreed to, so what fills it is a fact
+ * about the day rather than about the pattern — the same wildcard is
+ * something different every Tuesday, and that is the point of it.
+ *
+ * Taking a task back out drops its completion too. The record was against a
+ * placement that no longer exists, and leaving it behind would mean re-adding
+ * the task later brought back a tick you never made today.
+ */
+export function setWildcardTasks(
+  log: DayLog | null,
+  date: string,
+  entryId: string,
+  taskIds: string[],
+): DayLog {
+  const base = log ?? emptyDayLog(date);
+  const wildcards = { ...base.wildcards };
+  const dropped = (wildcards[entryId] ?? []).filter((id) => !taskIds.includes(id));
+  if (taskIds.length === 0) delete wildcards[entryId];
+  else wildcards[entryId] = taskIds;
+
+  const cleared = { ...base.cleared };
+  const started = { ...(base.started ?? {}) };
+  for (const id of dropped) {
+    delete cleared[`${entryId}:${id}`];
+    delete started[`${entryId}:${id}`];
+  }
+
+  return touch({ ...base, wildcards, cleared, started });
 }
 
 // ── Projects ───────────────────────────────────────────────────────────────

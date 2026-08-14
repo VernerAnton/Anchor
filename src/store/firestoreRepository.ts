@@ -9,15 +9,19 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import type { Project, Task } from '../types/task';
+import type { DayLog } from '../types/path';
 import type { AnchorRepository, Unsubscribe } from './repository';
 import {
+  dayLogDoc,
+  dayLogsCollection,
+  pathDoc,
   projectDoc,
   projectsCollection,
   settingsDoc,
   taskDoc,
   tasksCollection,
 } from './keys';
-import { parseProject, parseSettings, parseTask } from './schemas';
+import { parseDayLog, parsePathPattern, parseProject, parseSettings, parseTask } from './schemas';
 import { createDb } from './firebase';
 
 /**
@@ -158,6 +162,31 @@ export function createFirestoreRepository(syncKey: string): AnchorRepository {
     async deleteProject(id) {
       delivered.delete(projectDoc(syncKey, id).join('/'));
       await deleteDoc(ref(projectDoc(syncKey, id)));
+    },
+
+    async getPathPattern() {
+      const snap = await getDoc(ref(pathDoc(syncKey)));
+      return snap.exists() ? parsePathPattern(snap.data(), 'getPathPattern') : null;
+    },
+
+    subscribePathPattern(cb) {
+      return subscribeDoc(pathDoc(syncKey), parsePathPattern, cb);
+    },
+
+    async savePathPattern(pattern) {
+      await save(pathDoc(syncKey), pattern);
+    },
+
+    async getDayLogs() {
+      return readCollection<DayLog>(dayLogsCollection(syncKey), parseDayLog);
+    },
+
+    subscribeDayLogs(cb) {
+      return subscribeCollection(dayLogsCollection(syncKey), parseDayLog, cb);
+    },
+
+    async saveDayLog(log) {
+      await save(dayLogDoc(syncKey, log.date), log);
     },
 
     async getSettings() {

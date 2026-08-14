@@ -1,5 +1,6 @@
 import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
+import type { DayLog, PathPattern } from '../types/path';
 
 export type Unsubscribe = () => void;
 
@@ -36,6 +37,20 @@ export interface AnchorRepository {
   subscribeProjects(cb: (projects: Project[]) => void): Unsubscribe;
   saveProject(project: Project): Promise<void>;
   deleteProject(id: string): Promise<void>;
+
+  /** The week's arrangement. A single document, like settings. */
+  getPathPattern(): Promise<PathPattern | null>;
+  subscribePathPattern(cb: (pattern: PathPattern | null) => void): Unsubscribe;
+  savePathPattern(pattern: PathPattern): Promise<void>;
+
+  /**
+   * One tiny document per day the app was used. Subscribed whole — this is
+   * what the ledger and the running total are built from, and holding them all
+   * costs less than a page of task text.
+   */
+  getDayLogs(): Promise<DayLog[]>;
+  subscribeDayLogs(cb: (logs: DayLog[]) => void): Unsubscribe;
+  saveDayLog(log: DayLog): Promise<void>;
 
   getSettings(): Promise<Settings | null>;
   subscribeSettings(cb: (settings: Settings | null) => void): Unsubscribe;

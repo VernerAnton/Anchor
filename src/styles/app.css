@@ -20,6 +20,23 @@ body {
 }
 
 /*
+ * The city grid, pinned behind the content. Absent entirely when the theme
+ * defines no grid, which is what keeps it a theme decision rather than a
+ * structural one.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--bg-grid, none);
+  background-size: var(--bg-grid-size, 0);
+  mask-image: var(--bg-grid-mask, none);
+  opacity: var(--bg-grid-opacity, 0);
+}
+
+/*
  * Film grain over the whole app. Pinned rather than scrolling, so it reads as
  * the surface you're looking through rather than a texture printed on the
  * content. Absent entirely when the theme defines no grain.
@@ -153,6 +170,26 @@ h2 {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/*
+ * A narrow screen can't hold all five readouts, and the strip scrolls rather
+ * than wraps — so the build number, which is the whole reason the strip exists
+ * on a phone, would be the first thing off the right edge. The clock goes
+ * instead: a phone already has one, two rows above this.
+ */
+@media (max-width: 560px) {
+  .statusbar {
+    gap: var(--space-3);
+    padding-inline: var(--space-3);
+    /* Tracking is what makes this read as a readout, but it's also what
+       pushes the last item off a phone. Tightened, not dropped. */
+    letter-spacing: 0.08em;
+  }
+
+  .statusbar__item--clock {
+    display: none;
+  }
 }
 
 .statusbar__item b {
@@ -927,8 +964,52 @@ h2 {
  * middle, and task settings keep the same far-right position they hold in
  * to-do mode, so settings never move depending on where you came from.
  */
+/*
+ * Building needs the library beside the day; running doesn't. Outside build
+ * mode there is nothing to drag from and nothing to file, so the route gets
+ * the screen — and a timeline doesn't improve by being stretched, so it stays
+ * narrow and centred rather than filling the width it has been handed.
+ */
 .app--path {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.app--path.app--building {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 360px;
+}
+
+.app--path:not(.app--building) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app--path:not(.app--building) .path-day-view,
+.app--path:not(.app--building) .path-overview {
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+/*
+ * The same treatment the phone gives it, for the same reason: the route is
+ * the screen, and a column of "select a task to see its details" sitting open
+ * beside it is a permanent note about something you haven't done. It slides
+ * over when you open a point and gets out of the way when you don't.
+ * Duplicated from the mobile block below rather than shared — two different
+ * reasons to reach the same layout, and collapsing them would tie the phone's
+ * rule to path mode's.
+ */
+.app--path:not(.app--building) .detail {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(420px, 100vw);
+  transform: translateX(100%);
+  transition: transform 160ms ease;
+  z-index: 20;
+}
+
+.app--path:not(.app--building) .detail--open {
+  transform: none;
+  box-shadow: var(--shadow-raised);
 }
 
 .path-area {
@@ -939,10 +1020,19 @@ h2 {
 }
 
 /* Clears the status strip, which is always above it. */
+/*
+ * The one place a raw length is allowed outside the theme, and only as a
+ * `var()` fallback. A fixed element whose offsets fail to resolve falls back
+ * to `auto`, which drops it at its static position — on top of the date
+ * button, which is the day's only way into the calendar. The fallbacks never
+ * apply while a theme exists; they exist so that deleting the theme leaves
+ * the app ugly rather than partly unusable, which is the whole contract of
+ * that test.
+ */
 .path-exit {
   position: fixed;
-  top: calc(2.1rem + var(--space-2));
-  right: var(--space-3);
+  top: calc(2.1rem + var(--space-2, 0.5rem));
+  right: var(--space-3, 0.75rem);
   z-index: 25;
   width: 2rem;
   height: 2rem;
@@ -973,11 +1063,29 @@ h2 {
 
 /* ── The day, as a route ──────────────────────────────────────────────── */
 
+/*
+ * Drawn to `design/anchor-path-neonnoir.html`: a spine down the left with a
+ * station at every point, the clock on a rail outside it, notched panels
+ * alongside.
+ *
+ * One thing is deliberately inverted from the reference. There, everything
+ * cleared glows and everything ahead is dark. Here it is the other way round —
+ * what is still in front of you carries the light, and finished work recedes
+ * rather than competing for attention it no longer needs.
+ */
+
 .path-day-view {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
+}
+
+/* The date leads; the mode switch sits at the far end of the same line. */
+.path-day-view__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .path-day-view__date {
@@ -1004,7 +1112,6 @@ h2 {
   width: 1.1em;
   height: 1.1em;
   color: var(--text-muted);
-  align-self: center;
 }
 
 .path-day-view__date:hover .path-day-view__calendar {
@@ -1014,94 +1121,511 @@ h2 {
 .path-day-view__clear {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--text-s);
-  max-width: 32rem;
 }
 
-.path-points {
+/* ── What the route says for itself ───────────────────────────────────── */
+
+/*
+ * Every word of this is about the route, never about you. "Two points behind
+ * you" is where the marker is standing; it isn't a score, nothing adds it up,
+ * and tomorrow it starts again at nothing. The line under it says the same
+ * thing in numbers, and the line under the route says why none of it resets.
+ */
+.route-head {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.path-point {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-s);
+.route-head__line {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-headline);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  text-shadow: var(--headline-haze, none);
 }
 
-/* The clock rail: what time this runs at, stamped. */
-.path-point__clock {
-  flex: none;
-  width: 3.4em;
-  padding-top: 1px;
+.route-head__line em {
+  font-style: normal;
+  color: var(--ember, inherit);
+  text-shadow: var(--ember-bloom, none);
+}
+
+.route-head__sub {
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: var(--text-s);
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/*
- * A time inherited from whatever came before, rather than set on the task.
- * Quieter, because it isn't a commitment you made — it is where the sequence
- * happens to put this, and it moves when the things above it move.
- */
-.path-point__clock--follows {
+  font-size: var(--text-stamp);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  opacity: 0.7;
+}
+
+.route-head__marker {
+  color: var(--cyan, inherit);
+  text-shadow: var(--cyan-glow, none);
+}
+
+.route-foot {
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  line-height: 1.9;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.route-foot b {
+  font-weight: 400;
+  color: var(--acid, inherit);
+  text-shadow: var(--acid-glow, none);
+}
+
+/* ── The spine ────────────────────────────────────────────────────────── */
+
+/*
+ * No gap between stations: the spine is one continuous line and a gap in it
+ * would read as a break in the day. What spacing there is belongs to the
+ * panels, inside the node.
+ */
+.path-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.path-node {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding-left: 5.4rem;
 }
 
 /*
- * Quiet until you go looking for it. Taking something off the path is a real
- * edit — it clears the rule that put it there — so it shouldn't sit at the
- * same weight as the thing you're meant to be doing. Always present for
- * keyboard and touch, which have no hover to reveal it.
+ * The panel takes the width; the builder's tools sit beside it, not under.
+ * Named rather than `:first-child` — the clock and the pip come first in the
+ * markup and are both taken out of flow, so first-child is never the panel.
  */
-.path-point__remove {
-  flex: none;
+.path-node > .path-card,
+.path-node > .path-wildcard,
+.path-node > .insert-form {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * A point inside a wildcard. It gets its own small rail so it still reads as a
+ * station, but no spine — the wildcard's own edge is already saying that
+ * everything in here belongs together.
+ */
+.path-node--inset {
+  padding-left: 4.6rem;
+}
+
+.path-node--inset::before {
+  content: none;
+}
+
+.path-node--inset .path-node__pip {
+  left: 2.4rem;
+}
+
+.path-node--inset .path-node__time {
+  width: 2.2rem;
+}
+
+/*
+ * Taking something back out of a wildcard. Quiet and at the end of the card —
+ * what you put in this morning is a decision about today, so undoing it should
+ * be easy to reach and impossible to hit by accident.
+ */
+.path-card__drop {
   align-self: flex-start;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  opacity: 0.45;
 }
 
-.path-point:hover .path-point__remove,
-.path-point__remove:focus-visible {
+.path-card__drop:hover {
+  color: var(--cyan, var(--accent));
+}
+
+/* The line itself. Lit along what's ahead, dark behind what's done. */
+.path-node::before {
+  content: '';
+  position: absolute;
+  left: 3.85rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--trail-live, currentColor);
+  box-shadow: var(--trail-live-glow, none);
+  opacity: 0.85;
+}
+
+.path-node:first-of-type::before {
+  top: 1.4rem;
+}
+
+.path-node:last-of-type::before {
+  bottom: auto;
+  height: 1.4rem;
+}
+
+.path-node--cleared::before,
+.path-node--passed::before {
+  background: var(--trail-spent, currentColor);
+  box-shadow: none;
   opacity: 1;
 }
 
-.path-point__remove:hover {
-  background: var(--surface-hover);
-  color: var(--text);
+/* Rest is on the route but isn't a leg of it, so its line is dashed. */
+.path-node--rest::before,
+.path-node--open::before {
+  background: var(--trail-dashed, var(--trail-live, currentColor));
+  box-shadow: none;
 }
 
-.path-point__confirm {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+/* The thing running now is the only ember on the screen. */
+.path-node--live::before {
+  background: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+  opacity: 1;
 }
 
-.path-point__length {
+/* ── The station ──────────────────────────────────────────────────────── */
+
+/*
+ * The pip is the checkbox. It fills when the point is cleared, which is what
+ * it does on the route anyway — making it the control adds nothing to the
+ * drawing and saves standing a second tick-shaped thing next to a tick.
+ */
+.path-node__pip {
+  position: absolute;
+  left: 3.2rem;
+  top: 1rem;
+  z-index: 3;
+  width: 1.3rem;
+  height: 1.3rem;
+  transform: rotate(45deg);
+  background: var(--bg);
+  border: 2px solid var(--trail-live, currentColor);
+  box-shadow: var(--trail-live-glow, none);
+}
+
+.path-node__pip:hover {
+  border-color: var(--acid, currentColor);
+}
+
+.path-node--cleared .path-node__pip {
+  background: var(--acid, currentColor);
+  border-color: var(--acid, currentColor);
+  box-shadow: none;
+  opacity: 0.55;
+}
+
+/* Slate. The clock went past, and that is all it means. */
+.path-node--passed .path-node__pip {
+  border-color: var(--trail-spent, currentColor);
+  box-shadow: none;
+}
+
+.path-node--live .path-node__pip {
+  border-color: var(--ember, currentColor);
+  box-shadow: var(--ember-bloom, var(--ember-glow, none));
+  animation: thrum 1.8s ease-in-out infinite;
+}
+
+.path-node--live .path-node__pip::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+}
+
+@keyframes thrum {
+  50% {
+    box-shadow: var(--ember-bloom-hot, var(--ember-glow, none));
+  }
+}
+
+/* Rest is on the route, but it isn't a station. */
+.path-node__pip--rest {
+  width: 0.7rem;
+  height: 0.7rem;
+  left: 3.5rem;
+  top: 1.3rem;
+  border-width: 1px;
+  border-color: var(--trail-live, currentColor);
+  box-shadow: none;
+}
+
+/* ── The clock rail ───────────────────────────────────────────────────── */
+
+.path-node__time {
+  position: absolute;
+  left: 0;
+  top: 0.9rem;
+  width: 2.9rem;
+  text-align: right;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: var(--text-stamp);
+  line-height: 1.35;
+  letter-spacing: 0.04em;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
 
+.path-node__time b {
+  display: block;
+  font-weight: 400;
+}
+
 /*
- * Rest, drawn to scale. `--rest-minutes` is set inline because it is a
- * genuinely computed value — the sanctioned exception to keeping appearance
- * out of markup.
+ * A time inherited from whatever came before, rather than one you set. Quieter,
+ * because it isn't a commitment you made — it is where the sequence happens to
+ * put this, and it moves when the things above it move.
+ */
+.path-node__time--follows {
+  opacity: 0.6;
+}
+
+.path-node--cleared .path-node__time {
+  color: var(--acid, inherit);
+  opacity: 0.5;
+}
+
+.path-node--live .path-node__time {
+  color: var(--ember, inherit);
+  text-shadow: var(--ember-glow, none);
+  opacity: 1;
+}
+
+.path-node__time--editing {
+  width: 4.6rem;
+  left: -1.2rem;
+}
+
+.path-node__time--editing input {
+  width: 100%;
+  padding: 2px;
+  font-size: var(--text-xs);
+}
+
+/* ── The panel ────────────────────────────────────────────────────────── */
+
+.path-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raked, var(--surface));
+  border: 1px solid var(--border);
+  clip-path: var(--clip-notch, none);
+  text-align: left;
+}
+
+/* Done is quiet. It has nothing left to ask of you. */
+.path-node--cleared .path-card {
+  opacity: 0.5;
+  border-color: var(--acid-line, var(--border));
+}
+
+.path-node--passed .path-card {
+  border-color: var(--trail-spent, var(--border));
+}
+
+.path-node--live .path-card {
+  border-color: var(--ember, var(--border-strong));
+  background: var(--surface-ember, var(--surface));
+  box-shadow: var(--ember-cast, none);
+}
+
+.path-card__kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.path-node--live .path-card__kicker {
+  color: var(--ember-hot, var(--ember, inherit));
+}
+
+.path-card__state {
+  flex: none;
+}
+
+/* The one badge on the route, on the one thing that is running. */
+.path-card__state--live {
+  padding: 1px var(--space-2);
+  font-size: var(--text-stamp);
+  border: 1px solid var(--ember, currentColor);
+  color: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+  animation: blink 1.4s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.path-card__title {
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+.path-node--cleared .path-card__title {
+  font-size: var(--text-l);
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.path-node--live .path-card__title {
+  color: var(--text);
+  text-shadow: var(--ember-bloom, none);
+}
+
+.path-card__title--selected {
+  color: var(--accent);
+}
+
+.path-card__length {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/*
+ * How far the clock has run through the window you set aside — never a claim
+ * about how much of the work is done, which the app has no way of knowing.
+ */
+.path-card__rail {
+  position: relative;
+  flex: none;
+  width: 3.5rem;
+  height: 3px;
+  overflow: hidden;
+  background: var(--trail-spent, currentColor);
+}
+
+.path-card__rail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--run, 0%);
+  background: var(--trail-live, currentColor);
+}
+
+.path-node--cleared .path-card__rail::after {
+  width: 100%;
+  background: var(--acid, currentColor);
+}
+
+.path-node--live .path-card__rail::after {
+  background: var(--ember, currentColor);
+  box-shadow: var(--ember-glow, none);
+}
+
+.path-card__length .project-dot {
+  margin-left: auto;
+}
+
+/*
+ * The one button on the route, and only where it can be pressed truthfully:
+ * on the thing that is running, before you have started it. It says the first
+ * move out loud, because that is the part that is actually hard.
+ */
+.path-card__start {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  width: 100%;
+  border: none;
+  background: var(--ember, var(--accent));
+  color: var(--ember-ink, var(--text-invert));
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--text-m);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  clip-path: var(--clip-notch-s, none);
+  box-shadow: var(--ember-cast, none);
+}
+
+.path-card__start:hover {
+  background: var(--ember-hot, var(--ember, var(--accent-hover)));
+}
+
+/* Slate. The clock went past, and that is the whole of what it means. */
+.path-card__note {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.path-card__running {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ember, var(--text-muted));
+}
+
+/* Cyan tab: you are standing here, and nothing about that is owed. */
+.path-node__here {
+  position: absolute;
+  left: 5.4rem;
+  top: -0.55rem;
+  z-index: 6;
+  padding: 2px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cyan, currentColor);
+  background: var(--surface-sunken);
+  border: 1px solid var(--cyan-line, currentColor);
+  box-shadow: var(--cyan-glow, none);
+}
+
+/* ── Rest, on the route ───────────────────────────────────────────────── */
+
+/*
+ * Rest is the gap, drawn to scale. `--rest-minutes` is set inline because it
+ * is a genuinely computed value — the sanctioned exception to keeping
+ * appearance out of markup.
  *
  * The scale is tuned to the gaps you actually feel: roughly twenty minutes to
  * an hour and a half, where the difference between a short breather and a long
@@ -1110,47 +1634,435 @@ h2 {
  * would push the evening off the screen to say so. The label always states the
  * true figure.
  */
-.path-rest {
-  display: flex;
+.path-card--rest {
+  flex-direction: row;
   align-items: center;
-  padding-left: var(--space-5);
-  min-height: clamp(1rem, calc(var(--rest-minutes, 15) * 0.055rem), 5rem);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  clip-path: none;
+  min-height: clamp(1.75rem, calc(var(--rest-minutes, 15) * 0.055rem), 5rem);
+}
+
+button.path-card--rest:hover {
+  border-color: var(--acid, var(--border-strong));
+}
+
+/* The turnstile mark: this is where the route stops asking anything of you. */
+.path-rest__mark {
+  font-family: var(--font-mono);
+  color: var(--acid, currentColor);
+  opacity: 0.55;
 }
 
 .path-rest__label {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.16em;
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-.path-point--selected {
-  border-color: var(--accent);
-}
-
-.path-point--done .path-point__title {
+/*
+ * Says out loud that nothing is owed here. Rest that looks like an unticked
+ * task reads as one, and the whole point of placing it was to stop the gap
+ * feeling like a gap.
+ */
+.path-rest__flag {
+  flex: none;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-stamp);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  text-decoration: line-through;
 }
 
-.path-point__body {
+/* Cyan: time you set aside, and may spend on nothing at all. */
+.path-card--open {
+  border-color: var(--cyan-line, var(--border-strong));
+  box-shadow: var(--cyan-glow, none);
+}
+
+.path-card--open .path-rest__mark,
+.path-card--open .path-rest__label {
+  color: var(--cyan-dim, currentColor);
+}
+
+.path-card--open .path-rest__flag {
+  border-color: var(--cyan-line, var(--border));
+  color: var(--cyan-dim, currentColor);
+}
+
+/* ── Build mode ───────────────────────────────────────────────────────── */
+
+/*
+ * One control with two labels. BUILD opens the week for changing, RUN closes
+ * it again — the same door, which is what makes leaving as obvious as
+ * arriving. RUN carries the ember because it is the one that hands you back
+ * something to act on.
+ */
+.path-mode-switch {
+  margin-left: auto;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.path-mode-switch:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.path-mode-switch--run {
+  border-color: var(--ember, var(--border-strong));
+  color: var(--ember, var(--text));
+  box-shadow: var(--ember-glow, none);
+}
+
+.path-mode-switch--run:hover {
+  border-color: var(--ember, var(--accent));
+  color: var(--ember, var(--accent));
+}
+
+/*
+ * The week, while you're building it. Seven equal columns rather than a
+ * scroller: the whole point is seeing the shape of a week at once, and a
+ * strip you have to scroll to reach Sunday is a strip that has stopped
+ * showing you a week.
+ */
+.weekday-strip {
+  padding: var(--space-4) var(--space-6) 0;
+}
+
+.weekday-strip__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.weekday {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid transparent;
+  border-bottom-color: var(--border);
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+}
+
+.weekday:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.weekday__name {
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+}
+
+.weekday__number {
+  font-size: var(--text-m);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * How much the pattern holds for that day — an empty Sunday says so from
+ * here. Kept well under the date so two numbers in a column don't read as one
+ * ambiguous pair; the date is what you're picking, the tally is a hint.
+ */
+.weekday__count {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  opacity: 0.45;
+}
+
+.weekday--today .weekday__name {
+  color: var(--acid, currentColor);
+}
+
+.weekday--current {
+  border-color: var(--border-strong);
+  border-bottom-color: var(--accent);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ── Building the day ─────────────────────────────────────────────────── */
+
+/*
+ * One thing on the day, whatever kind it is. The tools sit on the right of the
+ * row rather than under it, so the height of a rest card stays the length it
+ * is drawing rather than the height of a control strip.
+ */
+.path-block {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.path-block > *:first-child {
   flex: 1;
   min-width: 0;
-  text-align: left;
 }
 
-.path-point__title {
-  font-weight: 600;
+.path-block--dragging {
+  opacity: 0.4;
 }
 
-/* The smallest move that starts it — the thing you actually do first. */
-.path-point__first-move {
+/*
+ * Move and remove. Quiet until you go looking: rearranging is deliberate work,
+ * and these shouldn't sit at the same weight as the thing you're meant to be
+ * doing. Always in the layout rather than appearing on hover, because a
+ * control that shifts the row when it appears is a control you misclick — and
+ * touch has no hover to reveal it with.
+ */
+.entry-tools {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: none;
+  gap: var(--space-1);
+  opacity: 0.45;
+}
+
+.path-block:hover .entry-tools,
+.entry-tools:focus-within {
+  opacity: 1;
+}
+
+.entry-tools__button {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
   font-size: var(--text-s);
+  line-height: 1;
+  color: var(--text-faint);
+}
+
+.entry-tools__button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.entry-tools__button:disabled {
+  opacity: 0.3;
+}
+
+/*
+ * The gap between two things — the `+` and the drop target, one position doing
+ * both jobs. Collapsed to a hairline until wanted, so a day reads as a route
+ * rather than a form with a button between every field.
+ */
+.path-gap {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-4);
+  margin: calc(var(--space-2) * -1) 0;
+}
+
+.path-gap__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.path-gap__add {
+  width: 100%;
+  height: var(--space-4);
+  border: 1px dashed transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  opacity: 0;
+}
+
+.path-gap:hover .path-gap__add,
+.path-gap__add:focus-visible,
+.path-gap__control--open .path-gap__add {
+  opacity: 1;
+  border-color: var(--border);
+}
+
+.path-gap__add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
+ * Nothing to hover with. Hiding a control behind hover on touch hides it
+ * outright, and the `+` is the only way onto the day that doesn't need a drag
+ * — which is itself the thing touch can't do.
+ */
+@media (hover: none) {
+  .path-gap__add {
+    opacity: 1;
+    border-color: var(--border);
+  }
+
+  .entry-tools {
+    opacity: 1;
+  }
+}
+
+/* Mid-drag: the gap the thing will land in. */
+.path-gap__control--over .path-gap__add {
+  opacity: 1;
+  height: var(--space-5);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/*
+ * Opens in place and pushes the day down. A menu floating over a scrolling
+ * list has to be positioned, repositioned and flipped near the bottom edge,
+ * and none of that survives a phone.
+ */
+.insert-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.insert-menu__choices {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.insert-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Editing something already on the day, in the place it sits. */
+.insert-form--inline {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border-strong);
+}
+
+.insert-form--inline input[type='text'],
+.insert-form--inline input:not([type]) {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.insert-form__note {
+  margin: 0;
   color: var(--text-muted);
+  font-size: var(--text-s);
+}
+
+.task-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.task-picker__search {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.task-picker__search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.task-picker__option {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  text-align: left;
+  font-size: var(--text-s);
+}
+
+.task-picker__option:hover {
+  background: var(--surface-hover);
+}
+
+.task-picker__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-picker__placed,
+.library-task__placed {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* A wildcard, once something is in it: a small sequence of its own. */
+.path-wildcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/*
+ * Filled, it needs an edge. What's inside a wildcard is only there today, and
+ * what's outside it is the week's shape — without a boundary the two read as
+ * one list and the distinction that makes a wildcard worth having disappears.
+ */
+.path-wildcard--filled {
+  padding-left: var(--space-3);
+  border-left: 2px dashed var(--cyan-line, var(--border-strong));
+}
+
+.path-wildcard__tag {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cyan-dim, var(--text-faint));
+}
+
+.path-wildcard__add {
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cyan-dim, var(--text-muted));
+}
+
+.path-wildcard__add:hover {
+  color: var(--cyan, var(--accent));
 }
 
 /* ── Path library ─────────────────────────────────────────────────────── */
@@ -1197,12 +2109,24 @@ h2 {
 }
 
 .library-task {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-2);
   border-radius: var(--radius-s);
   text-align: left;
   font-size: var(--text-s);
+}
+
+.library-task__title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Everything in this column can go onto the day, so all of it is a handle. */
+.path-library .library-task {
+  cursor: grab;
 }
 
 .library-task:hover {
@@ -1547,8 +2471,42 @@ h2 {
 
 @media (max-width: 980px) {
   .app,
-  .app--path {
+  .app--path,
+  .app--path.app--building {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * The strip is the one place seven columns has to hold on a phone, since a
+   * week with a day scrolled off the edge stops being a week. It gets there
+   * by shedding everything but the letters.
+   */
+  .weekday-strip {
+    padding-inline: var(--space-4);
+  }
+
+  /*
+   * The exit is fixed in the top-right corner, and on one column the day's own
+   * controls run straight into it — the mode switch and Sunday both ended up
+   * underneath it. Two things to press need separate ground, so the corner is
+   * kept clear rather than shared. `2rem` matches the exit's own width, set
+   * where the exit is.
+   */
+  .path-day-view__head,
+  .weekday-strip {
+    padding-right: calc(2rem + var(--space-4));
+  }
+
+  .weekday {
+    padding-inline: 0;
+  }
+
+  .weekday__name {
+    letter-spacing: 0;
+  }
+
+  .weekday__count {
+    display: none;
   }
 
   /*

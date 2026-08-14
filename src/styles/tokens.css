@@ -29,6 +29,16 @@
   --text-m: 0.94rem;
   --text-l: 1.1rem;
   --text-xl: 1.35rem;
+  /*
+   * Stamped labels — kickers, clock rails, flags. Smaller than the app's
+   * smallest text on purpose: on the route these are markings on the drawing
+   * rather than things to read, and at body size they compete with the titles
+   * they are labelling.
+   */
+  --text-stamp: 0.62rem;
+  /* The route's own line, the one place the app raises its voice. */
+  --text-headline: 1.9rem;
+  --headline-haze: 0 0 30px #ff3d2e55;
 
   /* Surfaces — void is the ground, panels sit above it. */
   --bg: #04080d;
@@ -59,9 +69,19 @@
    * fair reading of every button that isn't the one.
    */
   --ember: #ff3d2e;
+  --ember-hot: #ff7a5c;
   --ember-glow: 0 0 14px #ff3d2e88;
+  /* The live station's bloom, and the harder beat it thrums to. */
+  --ember-bloom: 0 0 22px #ff3d2e99, 0 0 60px #ff3d2e55;
+  --ember-bloom-hot: 0 0 30px #ff3d2ecc, 0 0 80px #ff3d2e77;
+  /* What the live panel throws onto the ground under it. */
+  --ember-cast: 0 0 0 1px #ff3d2e44, 0 14px 50px -14px #ff3d2eaa, inset 0 0 40px #ff3d2e11;
+  --surface-ember: linear-gradient(160deg, #1a0f12 0%, #0a1b25 70%);
+  /* Ink on ember. Dark enough to read against a colour that bright. */
+  --ember-ink: #120300;
   --acid: #c6ff00;
   --acid-glow: 0 0 6px #c6ff00, 0 0 16px #c6ff0088;
+  --acid-line: #c6ff0033;
 
   /*
    * The library's spine runs lit along everything still open and goes dark
@@ -78,6 +98,18 @@
   --trail-live: #1c7f96;
   --trail-live-glow: 0 0 6px #00e5ff33;
   --trail-spent: #0e2836;
+  /* Rest is on the route but isn't a leg of it, so its line is broken. */
+  --trail-dashed: repeating-linear-gradient(180deg, #1c7f9688 0 5px, transparent 5px 13px);
+
+  /*
+   * Cyan proper: optional, yours, decline it freely. The wildcard wears it —
+   * it is time you set aside, and nothing about it is owed. Ember pulls, acid
+   * proves, cyan offers.
+   */
+  --cyan: #00e5ff;
+  --cyan-dim: #00e5ff77;
+  --cyan-line: #00e5ff44;
+  --cyan-glow: 0 0 22px -6px #00e5ff55;
 
   /* Lines */
   --border: #14384a;
@@ -114,6 +146,18 @@
    */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   --grain-opacity: 0.035;
+
+  /*
+   * The city grid, far behind everything. Masked to an ellipse so it fades out
+   * before the edges rather than stopping at them, which is what keeps it
+   * atmosphere instead of a pattern.
+   */
+  --bg-grid:
+    linear-gradient(#00ffff11 1px, transparent 1px),
+    linear-gradient(90deg, #00ffff11 1px, transparent 1px);
+  --bg-grid-size: 44px 44px;
+  --bg-grid-mask: radial-gradient(ellipse 100% 60% at 50% 40%, #000 0%, transparent 75%);
+  --bg-grid-opacity: 0.5;
 
   /* Text */
   --text: #eafaff;

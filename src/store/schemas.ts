@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
+import type { DayLog, PathPattern } from '../types/path';
 import { PROJECT_COLOR_IDS } from '../types/task';
 
 /**
@@ -140,8 +141,6 @@ export const taskSchema = z
     firstMove: z.string().nullable().catch(null),
     type: z.enum(['physical', 'abstract']).nullable().catch(null),
     defaultDuration: durationSchema.nullable().catch(null),
-    startTime: z.string().nullable().catch(null),
-    weekdayTimes: z.record(z.string(), z.string()).catch({}),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),
@@ -170,6 +169,62 @@ export const settingsSchema = z
     updatedAt: z.number().catch(0),
   })
   .passthrough();
+
+/**
+ * Path entries. No legacy shapes to upgrade — these collections are new and
+ * nothing has ever written to them.
+ */
+const entrySchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('task'),
+    id: z.string(),
+    taskId: z.string(),
+    startTime: z.string().nullable().catch(null),
+  }),
+  z.object({
+    kind: z.literal('rest'),
+    id: z.string(),
+    label: z.string().nullable().catch(null),
+    minutes: z.number(),
+  }),
+  z.object({
+    kind: z.literal('wildcard'),
+    id: z.string(),
+    startTime: z.string().nullable().catch(null),
+    minutes: z.number(),
+  }),
+]);
+
+export const pathPatternSchema = z
+  .object({
+    days: z.record(z.string(), z.array(entrySchema)).catch({}),
+    schemaVersion: z.number().catch(1),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export const dayLogSchema = z
+  .object({
+    date: z.string(),
+    cleared: z.record(z.string(), z.number()).catch({}),
+    /* Absent in logs written before starting was recorded. Reads as "nothing
+       was started", which is exactly right and asks nothing of anyone. */
+    started: z.record(z.string(), z.number()).catch({}).default({}),
+    wildcards: z.record(z.string(), z.array(z.string())).catch({}),
+    schemaVersion: z.number().catch(1),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export function parsePathPattern(data: unknown, context: string): PathPattern | null {
+  return parse(pathPatternSchema, data, context) as PathPattern | null;
+}
+
+export function parseDayLog(data: unknown, context: string): DayLog | null {
+  return parse(dayLogSchema, data, context) as DayLog | null;
+}
 
 export function parseTask(data: unknown, context: string): Task | null {
   return parse(taskSchema, data, context) as Task | null;

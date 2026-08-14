@@ -1,14 +1,18 @@
 import type { Project, Task } from '../types/task';
+import type { DayLog } from '../types/path';
 import type { AnchorRepository, Unsubscribe } from './repository';
 import {
+  dayLogDoc,
+  dayLogsCollection,
   localKey,
+  pathDoc,
   projectDoc,
   projectsCollection,
   settingsDoc,
   taskDoc,
   tasksCollection,
 } from './keys';
-import { parseProject, parseSettings, parseTask } from './schemas';
+import { parseDayLog, parsePathPattern, parseProject, parseSettings, parseTask } from './schemas';
 
 /**
  * localStorage behind the Firestore-shaped interface.
@@ -102,6 +106,7 @@ export function createLocalRepository(userId: string): AnchorRepository {
 
   const tasksPrefix = `${localKey(tasksCollection(userId))}:`;
   const projectsPrefix = `${localKey(projectsCollection(userId))}:`;
+  const dayLogsPrefix = `${localKey(dayLogsCollection(userId))}:`;
 
   return {
     async getTasks() {
@@ -144,6 +149,41 @@ export function createLocalRepository(userId: string): AnchorRepository {
       const key = localKey(projectDoc(userId, id));
       localStorage.removeItem(key);
       notify(key);
+    },
+
+    async getPathPattern() {
+      const raw = readJson<unknown>(localKey(pathDoc(userId)));
+      return raw === null ? null : parsePathPattern(raw, 'pathPattern');
+    },
+
+    subscribePathPattern(cb) {
+      const key = localKey(pathDoc(userId));
+      return watch(
+        (changed) => changed === key,
+        () => {
+          const raw = readJson<unknown>(key);
+          cb(raw === null ? null : parsePathPattern(raw, 'pathPattern'));
+        },
+      );
+    },
+
+    async savePathPattern(pattern) {
+      writeVersioned(localKey(pathDoc(userId)), pattern);
+    },
+
+    async getDayLogs() {
+      return scanAll<DayLog>(dayLogsPrefix, parseDayLog);
+    },
+
+    subscribeDayLogs(cb) {
+      return watch(
+        (changed) => changed.startsWith(dayLogsPrefix),
+        () => cb(scanAll<DayLog>(dayLogsPrefix, parseDayLog)),
+      );
+    },
+
+    async saveDayLog(log) {
+      writeVersioned(localKey(dayLogDoc(userId, log.date)), log);
     },
 
     async getSettings() {

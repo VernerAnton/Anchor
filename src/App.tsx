@@ -1,18 +1,27 @@
 import { useMemo, useState } from 'react';
 import type { Project, Recurrence, Task } from './types/task';
+import type { PathEntry } from './types/path';
 import type { SyncMode } from './store';
 import { repository } from './store';
 import {
   completeTask,
+  editEntry,
   editTask,
+  insertEntry,
+  moveEntry,
   newTask,
+  removeEntry,
   reopenTask,
   emptyTaskDraft,
-  removeFromPath,
+  setEntryCleared,
+  setEntryStarted,
   setTaskRecurrence,
+  setWildcardTasks,
+  type EntryChanges,
 } from './store/mutations';
-import { todayStr } from './lib/dates';
-import { isSample, sampleProjects, sampleTasks } from './lib/sampleData';
+import { todayStr, weekdayOf } from './lib/dates';
+import { buildDay, clearedCount, landingOn, pointsOf } from './lib/day';
+import { isSample, samplePattern, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
   defaultDueDate,
@@ -20,7 +29,7 @@ import {
   selectionKey,
   type Selection,
 } from './lib/views';
-import { useProjects, useSettings, useTasks } from './hooks/useStore';
+import { useDayLogs, usePathPattern, useProjects, useSettings, useTasks } from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
 import { PathArea } from './components/PathArea';
@@ -33,6 +42,7 @@ import { ProjectEditor, type ProjectEditorState } from './components/ProjectEdit
 import { SyncSettings } from './components/SyncSettings';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useAppUpdate } from './hooks/useAppUpdate';
+import { useNow } from './hooks/useNow';
 
 interface Props {
   syncMode: SyncMode;
@@ -50,6 +60,8 @@ export function App({ syncMode }: Props) {
   const tasks = useTasks();
   const projects = useProjects();
   const settings = useSettings();
+  const pattern = usePathPattern();
+  const logs = useDayLogs();
   const update = useAppUpdate();
 
   const [selection, setSelection] = useState<Selection>({ kind: 'today' });
@@ -57,6 +69,20 @@ export function App({ syncMode }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [projectEditor, setProjectEditor] = useState<ProjectEditorState | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  /*
+   * Which day the path is showing. Up here rather than inside the path because
+   * the library beside it offers what lands on that same day — one date read
+   * by two columns.
+   */
+  const [pathDate, setPathDate] = useState(todayStr());
+  /*
+   * Whether the week is open for changing. Deliberately not stored, unlike
+   * path mode itself: path mode is a preference and should survive a restart,
+   * whereas building is something you are doing right now. Reopening the app
+   * tomorrow should hand you the route, not the builder you walked away from.
+   */
+  const [building, setBuilding] = useState(false);
+  const pathNow = useNow(pathDate);
 
   const today = todayStr();
   const model = useMemo(
@@ -127,8 +153,47 @@ export function App({ syncMode }: Props) {
     saveTask(editTask(task, changes));
   };
 
-  /** Clears what schedules a task, so it drops out of every day. */
-  const takeOffPath = (task: Task) => saveTask(removeFromPath(task));
+  /**
+   * Ticking a point on the path records that *placement*, on that date — not
+   * the task. Two placements of one task clear independently.
+   */
+  const clearEntry = (date: string, entryId: string, cleared: boolean) => {
+    const existing = (logs ?? []).find((l) => l.date === date) ?? null;
+    void repository.saveDayLog(setEntryCleared(existing, date, entryId, cleared));
+  };
+
+  /*
+   * Arranging a day arranges that weekday, every week — the pattern is the
+   * shape of a normal week, not a diary. What belongs to one specific date is
+   * only ever what happened on it, which is the day log below.
+   */
+  const placeOnDay = (date: string, index: number, entry: PathEntry) => {
+    void repository.savePathPattern(insertEntry(pattern, weekdayOf(date), index, entry));
+  };
+
+  const moveOnDay = (date: string, from: number, to: number) => {
+    void repository.savePathPattern(moveEntry(pattern, weekdayOf(date), from, to));
+  };
+
+  const takeOffDay = (date: string, entryId: string) => {
+    void repository.savePathPattern(removeEntry(pattern, weekdayOf(date), entryId));
+  };
+
+  const reshapeEntry = (date: string, entryId: string, changes: EntryChanges) => {
+    void repository.savePathPattern(editEntry(pattern, weekdayOf(date), entryId, changes));
+  };
+
+  /** The moment you began. Says nothing about finishing — that's the tick. */
+  const startEntry = (date: string, entryId: string, started: boolean) => {
+    const existing = (logs ?? []).find((l) => l.date === date) ?? null;
+    void repository.saveDayLog(setEntryStarted(existing, date, entryId, started));
+  };
+
+  /** What went into a wildcard is a fact about the date, not about the week. */
+  const fillWildcard = (date: string, entryId: string, taskIds: string[]) => {
+    const existing = (logs ?? []).find((l) => l.date === date) ?? null;
+    void repository.saveDayLog(setWildcardTasks(existing, date, entryId, taskIds));
+  };
 
   const setRecurrence = (task: Task, recurrence: Recurrence | null) => {
     saveTask(setTaskRecurrence(task, recurrence, today));
@@ -174,6 +239,7 @@ export function App({ syncMode }: Props) {
   const loadSamples = async () => {
     await Promise.all(sampleProjects().map((p) => repository.saveProject(p)));
     await Promise.all(sampleTasks(today).map((t) => repository.saveTask(t)));
+    await repository.savePathPattern(samplePattern());
   };
 
   const clearSamples = async () => {
@@ -181,6 +247,22 @@ export function App({ syncMode }: Props) {
     await Promise.all(
       projects.filter((p) => isSample(p.id)).map((p) => repository.deleteProject(p.id)),
     );
+    // The pattern is a single document, so clearing samples empties it rather
+    // than deleting it — anything you arranged yourself would be in here too.
+    const live = pattern
+      ? Object.fromEntries(
+          Object.entries(pattern.days).map(([day, entries]) => [
+            day,
+            entries.filter((e) => !isSample(e.id)),
+          ]),
+        )
+      : {};
+    await repository.savePathPattern({
+      ...(pattern ?? { schemaVersion: 1, version: 0, updatedAt: 0 }),
+      days: live,
+      version: (pattern?.version ?? 0) + 1,
+      updatedAt: Date.now(),
+    });
     if (selectedTaskId !== null && isSample(selectedTaskId)) setSelectedTaskId(null);
   };
 
@@ -198,13 +280,25 @@ export function App({ syncMode }: Props) {
     }
   };
 
-  const live = tasks.filter((t) => !t.archived);
+  /*
+   * The readout counts today's path, not the library. "Cleared 2 / 11" is a
+   * statement about the day in front of you; the same fraction over every live
+   * task in the app counts a backlog you were never going to finish today, and
+   * so only ever reads as failure.
+   */
+  const todaySegments = buildDay(
+    tasks,
+    pattern,
+    (logs ?? []).find((l) => l.date === today) ?? null,
+    today,
+  );
+  const todayPoints = pointsOf(todaySegments);
   const statusBar = (
     <StatusBar
       today={today}
       syncMode={syncMode}
-      cleared={live.filter((t) => t.completedAt !== null).length}
-      total={live.length}
+      cleared={clearedCount(todaySegments)}
+      total={todayPoints.length}
     />
   );
 
@@ -234,36 +328,61 @@ export function App({ syncMode }: Props) {
     return (
       <>
       {statusBar}
-      <div className="app app--path app--framed">
+      <div className={building ? 'app app--path app--framed app--building' : 'app app--path app--framed'}>
         <PathArea
+          building={building}
+          onSetBuilding={setBuilding}
           tasks={tasks}
           projects={projects}
           today={today}
+          date={pathDate}
+          onSelectDate={setPathDate}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
-          onToggleTask={toggleTask}
-          onRemoveFromPath={takeOffPath}
+          pattern={pattern}
+          logs={logs ?? []}
+          onClearEntry={clearEntry}
+          onStartEntry={startEntry}
+          now={pathNow}
+          onInsertEntry={placeOnDay}
+          onMoveEntry={moveOnDay}
+          onRemoveEntry={takeOffDay}
+          onEditEntry={reshapeEntry}
+          onFillWildcard={fillWildcard}
         />
 
+        {/*
+          * Only while building. Outside it there is nothing to drag from and
+          * nothing to file, and the route reads better with the screen to
+          * itself — a timeline doesn't improve by being squeezed next to a
+          * list you aren't using.
+          */}
+        {building && (
         <PathLibrary
-          tasks={tasks}
           projects={projects}
+          landing={landingOn(tasks, pattern, pathDate)}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           /*
-           * Filed, but not scheduled. The library is every task you have,
-           * not today's route — typing into the Health section says where
-           * this belongs, not when you'll do it. Putting it on a day is the
-           * day editor's job, and silently dating it today would drop things
-           * onto the path that you never chose to put there.
+           * Dated to the day being built. This list is what lands on that day,
+           * so a task typed into it that didn't land there would vanish the
+           * moment you finished typing. It still isn't *placed* — dating it
+           * makes it available to the day, and putting it in a position is
+           * still something you do on the path.
            */
-          onAddTask={(title, projectId) => addTask(title, { projectId, dueDate: null })}
+          onAddTask={(title, projectId) => addTask(title, { projectId, dueDate: pathDate })}
           onNewProject={() => setProjectEditor({ mode: 'new', parentId: null })}
         />
+        )}
 
         {detailPanel}
 
-        <ExitPathMode onExit={() => setPathMode(false)} />
+        <ExitPathMode
+          onExit={() => {
+            setBuilding(false);
+            setPathMode(false);
+          }}
+        />
 
         {/* Path mode hides the sidebar, so this is the only way to make a
             project while you're in here. Same editor as the to-do side. */}
@@ -307,10 +426,23 @@ export function App({ syncMode }: Props) {
           tasks={tasks}
           projects={projects}
           today={today}
+          date={pathDate}
+          onSelectDate={setPathDate}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
-          onToggleTask={toggleTask}
-          onRemoveFromPath={takeOffPath}
+          pattern={pattern}
+          logs={logs ?? []}
+          onClearEntry={clearEntry}
+          onStartEntry={startEntry}
+          now={pathNow}
+          onInsertEntry={placeOnDay}
+          onMoveEntry={moveOnDay}
+          onRemoveEntry={takeOffDay}
+          onEditEntry={reshapeEntry}
+          onFillWildcard={fillWildcard}
+          /* A view of the route, not a builder. Building has a place of its
+             own, and the button in this panel's header is how you get there. */
+          building={false}
           onOpenDrawer={() => setDrawerOpen(true)}
           header={
             <header className="panel-header">
