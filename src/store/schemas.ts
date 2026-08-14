@@ -164,6 +164,10 @@ export const projectSchema = z
 export const settingsSchema = z
   .object({
     pathMode: z.boolean().catch(false),
+    /* Absent in settings written before there was a second theme, and an
+       unknown name from a future one reads as the default rather than as a
+       blank page. */
+    theme: z.enum(['system', 'noir', 'blossom']).catch('system').default('system'),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),

@@ -6,6 +6,7 @@ import { initRepository } from './store';
 
 import './styles/fonts.css';
 import './styles/tokens.css';
+import './styles/tokens-blossom.css';
 import './styles/app.css';
 
 const root = document.getElementById('root');

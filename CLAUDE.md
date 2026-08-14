@@ -12,8 +12,10 @@ applied on top and must be swappable without touching a single component.
   spacing goes through a CSS variable. Components reference `var(--surface-raised)`, never
   `#0a1b25`. This includes glows and translucent borders — half-opacity hex literals are
   exactly what leaks an old theme into a new one.
-- **One file holds every variable.** Swapping themes means swapping that file and nothing
-  else.
+- **One file holds every variable, per theme.** There are two now — `tokens.css` (noir) and
+  `tokens-blossom.css` (daylight) — and each is complete in itself, so the two can differ in
+  any dimension and neither depends on the other. Adding a third means adding one file and
+  nothing else.
 - **No inline styles for appearance.** Inline is only for genuinely computed values — a
   progress bar's width, a segment's proportional height.
 - **Components render, they don't compute.** Status, ordering, grouping and every derived
@@ -22,9 +24,15 @@ applied on top and must be swappable without touching a single component.
 - **Semantic HTML.** Real `<button>`, `<ul>`, `<form>`, real labels. A restyle must never
   require markup changes.
 
-**The test:** delete the theme file. The app must still be fully usable — ugly, but every
+**The test:** blank every theme file. The app must still be fully usable — ugly, but every
 button clickable and every state distinguishable. Run this test for real, occasionally.
 Theming that has never been exercised does not work.
+
+**Colour meaning survives the theme, the hue does not.** Ember, acid and cyan are named for
+what they mean. On a light ground the neon versions are invisible, so the daylight theme
+replaces each with something carrying the same meaning at the same weight — crimson, matcha,
+indigo — rather than with a pale version of the same hue. A theme that keeps the colour and
+loses the meaning has failed.
 
 ## Product invariants
 

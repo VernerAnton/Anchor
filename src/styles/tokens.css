@@ -1,8 +1,12 @@
 /*
- * The theme file. Every raw value in the app lives here and only here —
- * colours, shadows, radii, fonts, spacing. Swapping themes means swapping
- * this file and nothing else. (The test: blank this file and the app must
- * stay fully usable — ugly, but every state distinguishable.)
+ * A theme file. Every raw value in the app lives in one of these and nowhere
+ * else — colours, shadows, radii, fonts, spacing. Each theme file is complete
+ * in itself, so the two can differ in any dimension and neither depends on
+ * the other. (The test: blank the active one and the app must stay fully
+ * usable — ugly, but every state distinguishable.)
+ *
+ * This one is the default, and applies when nothing has been chosen. The
+ * daylight theme is `tokens-blossom.css`.
  *
  * Neon-noir. Taken from `design/anchor-path-neonnoir.html`, which is the
  * reference for the path itself. The task manager and the path builder use
@@ -15,7 +19,8 @@
  * decorate, or their meaning stops being reliable.
  */
 
-:root {
+:root,
+:root[data-theme='noir'] {
   color-scheme: dark;
 
   /* Type. Chakra Petch carries the interface, Space Mono anything numeric or
@@ -146,6 +151,8 @@
    */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   --grain-opacity: 0.035;
+  /* Overlay lifts the noise on a dark ground; on a light one it would bleach. */
+  --grain-blend: overlay;
 
   /*
    * The city grid, far behind everything. Masked to an ellipse so it fades out
