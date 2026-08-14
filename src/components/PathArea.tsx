@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Project, Task } from '../types/task';
 import type { DayLog, PathEntry, PathPattern } from '../types/path';
 import type { EntryChanges } from '../store/mutations';
-import { todayStr } from '../lib/dates';
 import { PathDay } from './PathDay';
 import { PathOverview } from './PathOverview';
 import { WeekdayStrip } from './WeekdayStrip';
@@ -78,15 +77,24 @@ export function PathArea({
   onOpenDrawer,
 }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
-
-  // A day left open overnight shouldn't still be showing yesterday.
-  const viewing = date < todayStr() && date === today ? todayStr() : date;
+  const viewing = date;
 
   /*
    * One control, two labels. BUILD opens the week up for changing; RUN closes
    * it again and hands you back the route. It is the same door, and reading it
    * as one thing is what makes leaving as obvious as arriving.
    */
+  /*
+   * Only when you have gone looking at another day. Following today needs no
+   * control — and the app rolls onto the new day by itself, so this is never
+   * the way back from having left it open overnight.
+   */
+  const backToToday = date !== today && (
+    <button type="button" className="path-day-view__today" onClick={() => onSelectDate(today)}>
+      ← Today
+    </button>
+  );
+
   const action = onSetBuilding && (
     <button
       type="button"
@@ -148,7 +156,12 @@ export function PathArea({
           onEditEntry={(entryId, changes) => onEditEntry(viewing, entryId, changes)}
           onFillWildcard={(entryId, taskIds) => onFillWildcard(viewing, entryId, taskIds)}
           building={building}
-          action={action}
+          action={
+            <>
+              {backToToday}
+              {action}
+            </>
+          }
         />
         </>
       )}
