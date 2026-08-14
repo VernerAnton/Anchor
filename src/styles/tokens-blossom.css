@@ -85,13 +85,24 @@
   --acid-line: #4a7c2f2e;
 
   /*
-   * The spine. On black, "still ahead" meant brighter; on white it means more
-   * saturated. Spent goes pale rather than dark, for the same reason.
+   * The spine, in sakura.
+   *
+   * It runs the whole length of the list, so it is the one line that has to
+   * read at a glance on paper — deep enough to clear 3:1 as a 2px graphic,
+   * which a pale blossom pink does not. Lighter and pinker than the ember it
+   * shares an axis with: on the route those two are adjacent, and the live
+   * node leans on its border, its filled pip, its badge and its button to say
+   * what it is, never on the spine alone.
+   *
+   * Spent goes neutral rather than to a paler pink. Behind you should read as
+   * drained of colour, not as a weaker version of ahead — a pale pink next to
+   * a bright one is a brightness difference, and brightness is the first thing
+   * sunlight on a screen takes away.
    */
-  --trail-live: #5b93b8;
+  --trail-live: #e8447a;
   --trail-live-glow: none;
-  --trail-spent: #e8d7dd;
-  --trail-dashed: repeating-linear-gradient(180deg, #5b93b8aa 0 5px, transparent 5px 13px);
+  --trail-spent: #ded4d7;
+  --trail-dashed: repeating-linear-gradient(180deg, #e8447aaa 0 5px, transparent 5px 13px);
 
   /* Ai-iro. Optional, yours, and the coolest thing on the page. */
   --cyan: #16628c;
