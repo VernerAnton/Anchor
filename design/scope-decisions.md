@@ -234,3 +234,26 @@ the same: it describes the route, never the person, and nothing anywhere adds it
 **Build mode has no clock.** Live and passed are the route's language, about where you are in
 a day. Arranging a Tuesday is a different job and doesn't want a marker running through it, so
 the builder reads every point as queued.
+
+---
+
+## Themes, and following the device
+
+**Two complete themes, and a preference with three settings.** Noir is the night console;
+Blossom is daylight on paper. The setting is `system` by default and follows the device as it
+changes, so a phone that dims itself at sunset takes the app with it. Choosing either theme
+explicitly is an override that stops following — that is the whole point of choosing one.
+
+**The flash is prevented with a paint hint, not by hiding the app.** The real preference lives
+in the synced settings document, which arrives after the page does, so a first paint from the
+default would flip a moment later. A tiny inline script in the document head reads
+`anchor-theme-hint` from localStorage — a cache of the last resolved answer — and sets the
+theme before anything renders. It is never the source of truth: the settings document corrects
+it on arrival, and losing the hint costs one frame. With no hint at all, which is a fresh
+install, the device's own preference is the right first guess and also the app's default.
+
+**`theme-color` is left to React rather than the head script.** Setting it before stylesheets
+load would mean two raw hex values living in `index.html`, outside any theme file, needing an
+edit whenever a theme's ground changed. The status bar tint settling a few hundred
+milliseconds after launch is a far smaller artefact than that trap — and the page itself, the
+thing you actually look at, is correct from the first paint either way.

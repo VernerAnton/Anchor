@@ -8,6 +8,33 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>Anchor</title>
+    <script>
+      /*
+       * Paints the right theme before anything renders.
+       *
+       * The real preference lives in the synced settings document, which
+       * arrives a moment after the page does — so without this the first paint
+       * uses the default and then flips. `anchor-theme-hint` caches the last
+       * resolved answer; it is never the source of truth, and the app corrects
+       * it as soon as settings land. With no hint at all — a fresh install —
+       * the device's own preference is the right first guess, which is also
+       * the app's default behaviour.
+       *
+       * Deliberately inline and dependency-free: anything loaded over the
+       * network arrives too late to prevent the flash it exists to prevent.
+       */
+      (function () {
+        try {
+          var hint = localStorage.getItem('anchor-theme-hint');
+          if (hint !== 'noir' && hint !== 'blossom') {
+            hint = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'noir' : 'blossom';
+          }
+          document.documentElement.dataset.theme = hint;
+        } catch (error) {
+          /* Storage can be blocked. The default theme is a fine fallback. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

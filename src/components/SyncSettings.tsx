@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { SyncMode } from '../store';
-import type { ThemeId } from '../types/settings';
+import type { ThemePreference } from '../lib/theme';
 import { getSyncKey, setSyncKey } from '../store/identity';
 import { hasFirebaseConfig } from '../store/firebaseConfig';
 
 interface Props {
   mode: SyncMode;
-  theme: ThemeId;
-  onSetTheme: (theme: ThemeId) => void;
+  theme: ThemePreference;
+  onSetTheme: (theme: ThemePreference) => void;
   sampleCount: number;
   onLoadSamples: () => Promise<void>;
   onClearSamples: () => Promise<void>;
@@ -125,6 +125,14 @@ export function SyncSettings({
             <button
               type="button"
               className="pick"
+              aria-pressed={theme === 'system'}
+              onClick={() => onSetTheme('system')}
+            >
+              Match the device
+            </button>
+            <button
+              type="button"
+              className="pick"
               aria-pressed={theme === 'noir'}
               onClick={() => onSetTheme('noir')}
             >
@@ -141,7 +149,8 @@ export function SyncSettings({
           </div>
           <p className="sync-note">
             Noir is the night console. Blossom is the same app in daylight — sakura, sumi ink and
-            indigo, readable with the sun on the screen.
+            indigo, readable with the sun on the screen. Matching the device follows it as it
+            changes, so a phone that dims itself at sunset takes the app with it.
           </p>
         </section>
 

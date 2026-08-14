@@ -37,7 +37,8 @@ import { PathLibrary } from './components/PathLibrary';
 import { ExitPathMode } from './components/ExitPathMode';
 import { StatusBar } from './components/StatusBar';
 import { defaultSettings } from './types/settings';
-import type { Settings, ThemeId } from './types/settings';
+import type { Settings } from './types/settings';
+import type { ThemePreference } from './lib/theme';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
 import { SyncSettings } from './components/SyncSettings';
@@ -65,7 +66,7 @@ export function App({ syncMode }: Props) {
   const pattern = usePathPattern();
   const logs = useDayLogs();
   const update = useAppUpdate();
-  useTheme(settings?.theme ?? 'noir');
+  useTheme(settings?.theme ?? 'system');
 
   const [selection, setSelection] = useState<Selection>({ kind: 'today' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -513,8 +514,8 @@ export function App({ syncMode }: Props) {
       {syncOpen && (
         <SyncSettings
           mode={syncMode}
-          theme={settings?.theme ?? 'noir'}
-          onSetTheme={(theme: ThemeId) => saveSetting({ theme })}
+          theme={settings?.theme ?? 'system'}
+          onSetTheme={(theme: ThemePreference) => saveSetting({ theme })}
           sampleCount={samples.length}
           onLoadSamples={loadSamples}
           onClearSamples={clearSamples}
