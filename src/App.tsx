@@ -70,11 +70,15 @@ export function App({ syncMode }: Props) {
   const [projectEditor, setProjectEditor] = useState<ProjectEditorState | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   /*
-   * Which day the path is showing. Up here rather than inside the path because
-   * the library beside it offers what lands on that same day — one date read
-   * by two columns.
+   * Which day the path is showing, or `null` while it is simply following
+   * today. Up here rather than inside the path because the library beside it
+   * offers what lands on that same day — one date read by two columns.
+   * The null matters: a device left open overnight has to wake up on
+   * the new day, and there is no way to tell "yesterday because I left it
+   * open" from "yesterday because I went to look at it" by comparing dates.
+   * Not having picked one is the thing worth storing.
    */
-  const [pathDate, setPathDate] = useState(todayStr());
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
   /*
    * Whether the week is open for changing. Deliberately not stored, unlike
    * path mode itself: path mode is a preference and should survive a restart,
@@ -82,9 +86,12 @@ export function App({ syncMode }: Props) {
    * tomorrow should hand you the route, not the builder you walked away from.
    */
   const [building, setBuilding] = useState(false);
-  const pathNow = useNow(pathDate);
 
   const today = todayStr();
+  const pathDate = pickedDate ?? today;
+  // Picking today is the same as not having picked: it follows again from here.
+  const selectPathDate = (date: string) => setPickedDate(date === today ? null : date);
+  const pathNow = useNow(pathDate);
   const model = useMemo(
     () => (tasks ? buildTaskList(selection, tasks, today) : null),
     [tasks, selection, today],
@@ -336,7 +343,7 @@ export function App({ syncMode }: Props) {
           projects={projects}
           today={today}
           date={pathDate}
-          onSelectDate={setPathDate}
+          onSelectDate={selectPathDate}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           pattern={pattern}
@@ -427,7 +434,7 @@ export function App({ syncMode }: Props) {
           projects={projects}
           today={today}
           date={pathDate}
-          onSelectDate={setPathDate}
+          onSelectDate={selectPathDate}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           pattern={pattern}
