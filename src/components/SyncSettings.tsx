@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import type { SyncMode } from '../store';
+import type { ThemeId } from '../types/settings';
 import { getSyncKey, setSyncKey } from '../store/identity';
 import { hasFirebaseConfig } from '../store/firebaseConfig';
 
 interface Props {
   mode: SyncMode;
+  theme: ThemeId;
+  onSetTheme: (theme: ThemeId) => void;
   sampleCount: number;
   onLoadSamples: () => Promise<void>;
   onClearSamples: () => Promise<void>;
@@ -18,6 +21,8 @@ interface Props {
  */
 export function SyncSettings({
   mode,
+  theme,
+  onSetTheme,
   sampleCount,
   onLoadSamples,
   onClearSamples,
@@ -108,6 +113,37 @@ export function SyncSettings({
             </div>
           </>
         )}
+
+        {/*
+          Two complete themes rather than one dimmed: the night one is the
+          console, the daylight one is paper. Remembered and synced, because
+          which one you want is a decision about how you work.
+        */}
+        <section className="field">
+          <h3 className="field__title">Theme</h3>
+          <div className="field-row">
+            <button
+              type="button"
+              className="pick"
+              aria-pressed={theme === 'noir'}
+              onClick={() => onSetTheme('noir')}
+            >
+              Noir
+            </button>
+            <button
+              type="button"
+              className="pick"
+              aria-pressed={theme === 'blossom'}
+              onClick={() => onSetTheme('blossom')}
+            >
+              Blossom
+            </button>
+          </div>
+          <p className="sync-note">
+            Noir is the night console. Blossom is the same app in daylight — sakura, sumi ink and
+            indigo, readable with the sun on the screen.
+          </p>
+        </section>
 
         {/*
           Something to try the app on before it holds anything real. Every

@@ -37,12 +37,14 @@ import { PathLibrary } from './components/PathLibrary';
 import { ExitPathMode } from './components/ExitPathMode';
 import { StatusBar } from './components/StatusBar';
 import { defaultSettings } from './types/settings';
+import type { Settings, ThemeId } from './types/settings';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
 import { SyncSettings } from './components/SyncSettings';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useAppUpdate } from './hooks/useAppUpdate';
 import { useNow } from './hooks/useNow';
+import { useTheme } from './hooks/useTheme';
 
 interface Props {
   syncMode: SyncMode;
@@ -63,6 +65,7 @@ export function App({ syncMode }: Props) {
   const pattern = usePathPattern();
   const logs = useDayLogs();
   const update = useAppUpdate();
+  useTheme(settings?.theme ?? 'noir');
 
   const [selection, setSelection] = useState<Selection>({ kind: 'today' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -222,14 +225,18 @@ export function App({ syncMode }: Props) {
    * restart and reaches your other devices, so the app opens where you left
    * it rather than asking again every morning.
    */
-  const setPathMode = (pathMode: boolean) => {
+  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme'>>) => {
     const base = settings ?? defaultSettings();
     void repository.saveSettings({
       ...base,
-      pathMode,
+      ...changes,
       version: base.version + 1,
       updatedAt: Date.now(),
     });
+  };
+
+  const setPathMode = (pathMode: boolean) => {
+    saveSetting({ pathMode });
     setSelectedTaskId(null);
   };
 
@@ -506,6 +513,8 @@ export function App({ syncMode }: Props) {
       {syncOpen && (
         <SyncSettings
           mode={syncMode}
+          theme={settings?.theme ?? 'noir'}
+          onSetTheme={(theme: ThemeId) => saveSetting({ theme })}
           sampleCount={samples.length}
           onLoadSamples={loadSamples}
           onClearSamples={clearSamples}

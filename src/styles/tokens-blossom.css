@@ -1,0 +1,181 @@
+/*
+ * The second theme file. Complete in itself, exactly as `tokens.css` is: every
+ * variable the app reads is defined here, so the two can differ in any
+ * dimension and neither depends on the other.
+ *
+ * Blossom. Daylight, and a deliberate reading of the same aesthetic rather
+ * than a bleached copy of it — cyberpunk's debt to Japan paid back the other
+ * way, in sakura and sumi ink and indigo instead of neon on wet asphalt.
+ *
+ * The hard part isn't the surfaces, it's the three state colours. Ember, acid
+ * and cyan carry meaning, and none of the three survives the move: lime on
+ * white is invisible, cyan nearly so. So each is replaced by something that
+ * holds the *same meaning at the same weight*, which is what the app actually
+ * depends on — not by a lighter version of the same hue, which would keep the
+ * colour and lose the point.
+ *
+ *   ember → sakura crimson.  The thing pulling you now. The deep red at the
+ *           centre of a blossom, not the pale pink of its edge.
+ *   acid  → matcha.          Proof something happened. Green reads as done
+ *           without ever reading as urgent, which is the whole job.
+ *   cyan  → ai-iro, indigo.  Optional, yours, decline it freely. Cool, calm,
+ *           and the one traditional dye everyone recognises.
+ *
+ * Shape and spacing are identical to noir on purpose. A theme may change them
+ * — that is why they live here — but changing colour and silhouette at once
+ * makes it impossible to judge either.
+ */
+
+:root[data-theme='blossom'] {
+  color-scheme: light;
+
+  --font-ui: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-display: 'Fraunces', Georgia, serif;
+  --text-xs: 0.72rem;
+  --text-s: 0.83rem;
+  --text-m: 0.94rem;
+  --text-l: 1.1rem;
+  --text-xl: 1.35rem;
+  --text-stamp: 0.62rem;
+  --text-headline: 1.9rem;
+  /* No haze in daylight. A glow behind dark text on white is just a smudge. */
+  --headline-haze: none;
+
+  /* Surfaces — washi paper, with the blush kept well under the text. */
+  --bg: #fdf7f8;
+  --surface: #ffffff;
+  --surface-sunken: #faf1f3;
+  --surface-hover: #fbeaee;
+  --surface-active: #f6dde3;
+  --backdrop: rgba(58, 40, 47, 0.38);
+
+  /*
+   * Three hazes, one per state colour, exactly as noir has — but at a third of
+   * the strength. Tint on white shows up far more readily than glow on black.
+   */
+  --bg-atmosphere:
+    radial-gradient(ellipse 80% 50% at 20% -5%, #d92b5312 0%, transparent 60%),
+    radial-gradient(ellipse 70% 45% at 90% 30%, #16628c0c 0%, transparent 60%),
+    radial-gradient(ellipse 90% 50% at 50% 105%, #4a7c2f0c 0%, transparent 60%),
+    #fdf7f8;
+
+  /*
+   * Sakura crimson. Deep enough to carry text on white, which the noir ember
+   * never had to do — there it only ever sat on black or filled a button.
+   */
+  --ember: #d92b53;
+  --ember-hot: #b81f42;
+  /*
+   * Glows become shadows. Light doesn't bloom on a white ground; the thing
+   * that makes something feel live in daylight is that it sits above the page
+   * rather than that it emits.
+   */
+  --ember-glow: 0 1px 6px #d92b5333;
+  --ember-bloom: 0 2px 12px #d92b5340;
+  --ember-bloom-hot: 0 3px 18px #d92b5359;
+  --ember-cast: 0 0 0 1px #d92b5326, 0 10px 30px -12px #d92b5359;
+  --surface-ember: linear-gradient(160deg, #fff0f3 0%, #ffffff 70%);
+  /* Ink on ember. White, because the crimson is dark rather than bright. */
+  --ember-ink: #fffbfc;
+
+  /* Matcha. Proof, and nothing more insistent than that. */
+  --acid: #4a7c2f;
+  --acid-glow: none;
+  --acid-line: #4a7c2f2e;
+
+  /*
+   * The spine. On black, "still ahead" meant brighter; on white it means more
+   * saturated. Spent goes pale rather than dark, for the same reason.
+   */
+  --trail-live: #5b93b8;
+  --trail-live-glow: none;
+  --trail-spent: #e8d7dd;
+  --trail-dashed: repeating-linear-gradient(180deg, #5b93b8aa 0 5px, transparent 5px 13px);
+
+  /* Ai-iro. Optional, yours, and the coolest thing on the page. */
+  --cyan: #16628c;
+  --cyan-dim: #16628ca8;
+  --cyan-line: #16628c47;
+  --cyan-glow: 0 1px 8px #16628c26;
+
+  /* Lines */
+  --border: #ecd9df;
+  --border-strong: #d4b3be;
+
+  --surface-raked: linear-gradient(158deg, var(--surface), var(--surface-sunken));
+  --edge-highlight: linear-gradient(90deg, #ffffffcc, #ffffff55 55%, transparent);
+  --clip-notch: polygon(
+    0 0,
+    calc(100% - 13px) 0,
+    100% 13px,
+    100% 100%,
+    13px 100%,
+    0 calc(100% - 13px)
+  );
+  --clip-notch-s: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
+
+  /*
+   * The same grain, blended the other way. Overlay on a light ground brightens
+   * where it should darken; multiply keeps it reading as paper tooth. Lighter
+   * too — texture is far more visible on white than on black.
+   */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.02;
+  --grain-blend: multiply;
+
+  /* The grid, as graph paper rather than as a city seen from above. */
+  --bg-grid:
+    linear-gradient(#d92b530f 1px, transparent 1px),
+    linear-gradient(90deg, #d92b530f 1px, transparent 1px);
+  --bg-grid-size: 44px 44px;
+  --bg-grid-mask: radial-gradient(ellipse 100% 60% at 50% 40%, #000 0%, transparent 75%);
+  --bg-grid-opacity: 0.7;
+
+  /* Sumi ink, warmed towards plum so it belongs to the rest of the page. */
+  --text: #2c1f25;
+  --text-muted: #6d5760;
+  --text-faint: #8a7079;
+  --text-invert: #fffbfc;
+
+  /* Interaction stays with the "optional" colour, exactly as in noir. */
+  --accent: #16628c;
+  --accent-hover: #0f4b6d;
+  --accent-soft: #16628c14;
+  --focus-ring: #16628c99;
+
+  --shadow-raised: 0 16px 40px rgba(88, 54, 66, 0.18);
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --radius-l: 12px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Priority — deepened so it reads on white, and still off the state axis. */
+  --priority-1: #c2410c;
+  --priority-2: #a16207;
+  --priority-3: #1d6a96;
+  --priority-4: #6b7280;
+
+  /* Project identity stays the muted axis: deepened, never saturated. */
+  --project-steel: #4a6d87;
+  --project-violet: #6b5aa0;
+  --project-teal: #2f7f72;
+  --project-sage: #5c7a45;
+  --project-ochre: #96702c;
+  --project-plum: #8a4d66;
+  --project-indigo: #4a559b;
+  --project-clay: #96543a;
+}
