@@ -16,7 +16,9 @@ export type Selection =
   | { kind: 'path' }
   | { kind: 'project'; projectId: string }
   /** One label's tasks, gathered from wherever they're filed. */
-  | { kind: 'label'; labelId: string };
+  | { kind: 'label'; labelId: string }
+  /** Every label, to rename and reorder. Not a task list. */
+  | { kind: 'labels' };
 
 export function selectionKey(selection: Selection): string {
   if (selection.kind === 'project') return `project:${selection.projectId}`;
@@ -140,8 +142,9 @@ export function buildTaskList(
       };
     }
 
-    // The path renders its own screen from the repeat rules, not a task list.
+    // Both render their own screen rather than a task list.
     case 'path':
+    case 'labels':
       return { sections: [], completed: [] };
 
     /*
@@ -191,8 +194,10 @@ export function countFor(selection: Selection, tasks: Task[], today: string = to
       return tasks.filter((t) => active(t) && t.dueDate !== null && t.dueDate > today).length;
     case 'all':
       return tasks.filter(active).length;
-    // No badge: a count here would only repeat what Today already says.
+    // No badge: a count here would only repeat what Today already says, and
+    // the labels screen is a place to manage rather than a pile to clear.
     case 'path':
+    case 'labels':
       return 0;
     case 'project':
       return tasks.filter((t) => active(t) && t.projectId === selection.projectId).length;

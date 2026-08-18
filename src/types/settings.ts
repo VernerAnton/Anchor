@@ -1,5 +1,6 @@
 import { SCHEMA_VERSION } from '../store/keys';
 import type { ThemePreference } from '../lib/theme';
+import type { GroupBy } from '../lib/grouping';
 
 /**
  * App-level settings. Nearly empty today; it exists from day one because the
@@ -21,6 +22,12 @@ export interface Settings {
    * app too; the other two are a deliberate override that stops following.
    */
   theme: ThemePreference;
+  /**
+   * How the flat views cut themselves into sections. One setting rather than
+   * one per view: grouping by label is a way of looking at your work, and
+   * wanting it on Today but not on All tasks is a distinction nobody makes.
+   */
+  grouping: GroupBy;
   schemaVersion: number;
   version: number;
   updatedAt: number;
@@ -30,6 +37,7 @@ export function defaultSettings(): Settings {
   return {
     pathMode: false,
     theme: 'system',
+    grouping: 'none',
     schemaVersion: SCHEMA_VERSION,
     version: 1,
     updatedAt: Date.now(),

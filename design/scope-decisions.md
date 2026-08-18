@@ -294,5 +294,28 @@ lose the thing you tagged.
 **Deleting a label takes it off every task.** Leaving the id behind would be a task pointing
 at nothing — invisible until the id was reused, at which point the label would reappear.
 
-**Grouping and sorting are the next step, not this one.** Labels are what the Today view will
-group *by*; the settings that choose the grouping come after.
+**Labels live on a screen, not in the sidebar.** They're a small set you arrange occasionally
+and then stop thinking about, so they get one line in the views list and a screen of their own
+— renaming and reordering happen in place there, because a modal takes away the list of names
+you came to compare against.
+
+## Grouping
+
+**A second cut through rows a view already chose**, offered top-right on Today and All tasks.
+Upcoming doesn't get it — it's already one section per date, and grouping would nest a project
+inside a day. Nor does a project's or a label's own list, which are already the answer to
+grouping by that thing.
+
+**Structural date sections survive it.** Today's "Earlier" stays on top when grouping is on:
+overdue is a fact about the date, and burying it inside "Salesforce" would lose the one thing
+that section exists to say.
+
+**One setting, not one per view.** Grouping by label is a way of looking at your work; wanting
+it on Today but not on All tasks is a distinction nobody makes. It syncs, like the theme.
+
+**A task with two labels appears under both.** That is what having two labels means, and
+showing it under only the first would make the second a lie. Grouping by project can't do
+this — a task has exactly one — which is the clearest statement of how the two axes differ.
+
+**Empty groups are left out; the ungrouped group is named and last.** "No label" at the bottom
+is true and useful to read; an untitled section of leftovers is a puzzle.

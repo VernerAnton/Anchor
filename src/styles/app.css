@@ -686,6 +686,93 @@ h2 {
   letter-spacing: 0.04em;
 }
 
+/* ── The labels screen ────────────────────────────────────────────────── */
+
+/*
+ * Where labels are arranged, and the reason they get a screen rather than a
+ * permanent list in the sidebar: this is a thing you do occasionally and then
+ * stop thinking about.
+ */
+.label-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.label-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.label-row__face {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.label-row__open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-s);
+  text-align: left;
+}
+
+.label-row__open:hover {
+  background: var(--surface-hover);
+}
+
+.label-row__name {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * Always in the layout rather than revealed on hover — there is no hover on a
+ * phone, and reordering is most of what this screen is for.
+ */
+.label-row__tools {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* Editing expands the row rather than covering it: you came here to compare
+   names against each other, and a modal takes the list away. */
+.label-row__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+}
+
+.label-row__form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-header__count,
+.panel-header__group {
+  margin-left: auto;
+}
+
+.panel-header__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-s);
+  color: var(--text-faint);
+}
+
+.panel-header__group select {
+  font-size: var(--text-s);
+  padding: var(--space-1) var(--space-2);
+}
+
+.panel-empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 /* The sidebar's own mark, the same outline shrunk to a bullet. */
 .label-chip {
   flex: none;
@@ -693,11 +780,6 @@ h2 {
   height: 9px;
   border: 2px solid currentColor;
   border-radius: var(--radius-l);
-}
-
-.label-list {
-  display: flex;
-  flex-direction: column;
 }
 
 /*

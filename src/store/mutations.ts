@@ -451,6 +451,17 @@ export function editLabel(
   return touch({ ...label, ...changes });
 }
 
+/**
+ * Moves one label up or down the list, returning both labels that changed.
+ *
+ * A swap rather than a renumber: only the two that moved are written, so
+ * reordering a long list is two documents rather than all of them, and two
+ * devices reordering different parts of the list don't fight over every row.
+ */
+export function swapLabelOrder(a: Label, b: Label): [Label, Label] {
+  return [touch({ ...a, order: b.order }), touch({ ...b, order: a.order })];
+}
+
 export function editProject(
   project: Project,
   changes: Partial<Pick<Project, 'name' | 'colorId' | 'parentId' | 'order' | 'archived'>>,

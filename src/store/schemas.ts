@@ -184,6 +184,7 @@ export const settingsSchema = z
        unknown name from a future one reads as the default rather than as a
        blank page. */
     theme: z.enum(['system', 'noir', 'blossom']).catch('system').default('system'),
+    grouping: z.enum(['none', 'project', 'label']).catch('none').default('none'),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),

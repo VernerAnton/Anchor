@@ -17,12 +17,15 @@ import {
   setEntryStarted,
   setTaskRecurrence,
   setWildcardTasks,
+  newLabel,
   stripLabel,
+  swapLabelOrder,
   toggleTaskLabel,
   type EntryChanges,
 } from './store/mutations';
 import { todayStr, weekdayOf } from './lib/dates';
 import { buildDay, clearedCount, landingOn, pointsOf } from './lib/day';
+import { regroup, type GroupBy } from './lib/grouping';
 import { isSample, samplePattern, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
@@ -50,7 +53,7 @@ import type { Settings } from './types/settings';
 import type { ThemePreference } from './lib/theme';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
-import { LabelEditor, type LabelEditorState } from './components/LabelEditor';
+import { LabelsPanel } from './components/LabelsPanel';
 import { SyncSettings } from './components/SyncSettings';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useAppUpdate } from './hooks/useAppUpdate';
@@ -83,7 +86,6 @@ export function App({ syncMode }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [projectEditor, setProjectEditor] = useState<ProjectEditorState | null>(null);
-  const [labelEditor, setLabelEditor] = useState<LabelEditorState | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   /*
    * Which day the path is showing, or `null` while it is simply following
@@ -242,6 +244,22 @@ export function App({ syncMode }: Props) {
    * — leaving the id behind — is a task pointing at nothing, which reads as
    * "no labels" everywhere but quietly comes back if the id is ever reused.
    */
+  const addLabel = (name: string) => {
+    const order = labelList.length === 0 ? 0 : Math.max(...labelList.map((l) => l.order)) + 1;
+    saveLabel(newLabel(name, order));
+  };
+
+  /** Swaps with its neighbour in the shown order, which is the order stored. */
+  const moveLabel = (label: Label, direction: -1 | 1) => {
+    const ordered = [...labelList]
+      .filter((l) => !l.archived)
+      .sort((a, b) => (a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name)));
+    const at = ordered.findIndex((l) => l.id === label.id);
+    const neighbour = ordered[at + direction];
+    if (!neighbour) return;
+    for (const next of swapLabelOrder(label, neighbour)) saveLabel(next);
+  };
+
   const deleteLabel = (label: Label) => {
     for (const task of tasks.filter((t) => (t.labelIds ?? []).includes(label.id))) {
       saveTask(stripLabel(task, label.id));
@@ -257,7 +275,7 @@ export function App({ syncMode }: Props) {
    * restart and reaches your other devices, so the app opens where you left
    * it rather than asking again every morning.
    */
-  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme'>>) => {
+  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme' | 'grouping'>>) => {
     const base = settings ?? defaultSettings();
     void repository.saveSettings({
       ...base,
@@ -266,6 +284,15 @@ export function App({ syncMode }: Props) {
       updatedAt: Date.now(),
     });
   };
+
+  const grouping: GroupBy = settings?.grouping ?? 'none';
+  /*
+   * Where a second cut adds something. Upcoming is already one section per
+   * date and grouping it would nest a project inside a day; a project's own
+   * list is already the answer to "group by project"; and a label's list is
+   * already the answer to grouping by label.
+   */
+  const groupable = selection.kind === 'today' || selection.kind === 'all';
 
   const setPathMode = (pathMode: boolean) => {
     saveSetting({ pathMode });
@@ -465,9 +492,6 @@ export function App({ syncMode }: Props) {
         onSelect={select}
         onNewProject={(parentId) => setProjectEditor({ mode: 'new', parentId })}
         onEditProject={(project) => setProjectEditor({ mode: 'edit', project })}
-        labels={labelList}
-        onNewLabel={() => setLabelEditor({ mode: 'new' })}
-        onEditLabel={(label) => setLabelEditor({ mode: 'edit', label })}
         onOpenSync={() => setSyncOpen(true)}
         syncMode={syncMode}
       />
@@ -512,10 +536,33 @@ export function App({ syncMode }: Props) {
             </header>
           }
         />
+      ) : selection.kind === 'labels' ? (
+        <LabelsPanel
+          labels={labelList}
+          tasks={tasks}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onOpen={(labelId) => select({ kind: 'label', labelId })}
+          onAdd={addLabel}
+          onSave={saveLabel}
+          onDelete={deleteLabel}
+          onMove={moveLabel}
+        />
       ) : (
         <TaskListPanel
           selection={selection}
-          model={model}
+          /*
+           * Grouping is a second cut through rows the view already chose. It
+           * applies where a list is otherwise flat or date-sectioned; the date
+           * sections a view considers structural — Today's "Earlier" — survive
+           * it, because overdue is a fact about the date rather than about
+           * which project something is filed under.
+           */
+          model={{
+            ...model,
+            sections: groupable
+              ? regroup(model.sections, grouping, projects, labelList)
+              : model.sections,
+          }}
           projects={projects}
           labels={labelList}
           today={today}
@@ -524,6 +571,8 @@ export function App({ syncMode }: Props) {
           onSelectTask={setSelectedTaskId}
           onToggleTask={toggleTask}
           onAddTask={addTask}
+          grouping={groupable ? grouping : undefined}
+          onSetGrouping={groupable ? (next) => saveSetting({ grouping: next }) : undefined}
         />
       )}
 
@@ -545,16 +594,6 @@ export function App({ syncMode }: Props) {
           onSave={saveProject}
           onDelete={deleteProject}
           onClose={() => setProjectEditor(null)}
-        />
-      )}
-
-      {labelEditor && (
-        <LabelEditor
-          state={labelEditor}
-          labels={labelList}
-          onSave={saveLabel}
-          onDelete={deleteLabel}
-          onClose={() => setLabelEditor(null)}
         />
       )}
 

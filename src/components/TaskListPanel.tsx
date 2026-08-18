@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Label, Project, Task } from '../types/task';
 import { dateLabel, type Selection, type TaskListModel } from '../lib/views';
+import { GROUP_BY_OPTIONS, type GroupBy } from '../lib/grouping';
 import { TaskRow } from './TaskRow';
 
 interface Props {
@@ -14,6 +15,13 @@ interface Props {
   onSelectTask: (id: string) => void;
   onToggleTask: (task: Task) => void;
   onAddTask: (title: string) => void;
+  /**
+   * Present only on the views a grouping applies to. Today's date sections and
+   * Upcoming's are the view's own arrangement; a project or a label is a
+   * second cut through the same rows.
+   */
+  grouping?: GroupBy;
+  onSetGrouping?: (grouping: GroupBy) => void;
 }
 
 function panelTitle(selection: Selection, projects: Project[], labels: Label[]): string {
@@ -30,6 +38,8 @@ function panelTitle(selection: Selection, projects: Project[], labels: Label[]):
       return projects.find((p) => p.id === selection.projectId)?.name ?? 'Project';
     case 'label':
       return labels.find((l) => l.id === selection.labelId)?.name ?? 'Label';
+    case 'labels':
+      return 'Labels';
   }
 }
 
@@ -44,6 +54,8 @@ export function TaskListPanel({
   onSelectTask,
   onToggleTask,
   onAddTask,
+  grouping,
+  onSetGrouping,
 }: Props) {
   const [draft, setDraft] = useState('');
 
@@ -65,6 +77,27 @@ export function TaskListPanel({
           ☰
         </button>
         <h1>{panelTitle(selection, projects, labels)}</h1>
+        {/*
+          Top right, where a view's own controls belong. A select rather than
+          a row of buttons: three options that are mutually exclusive and read
+          rarely, which is exactly the shape a select is for.
+        */}
+        {grouping !== undefined && onSetGrouping && (
+          <label className="panel-header__group">
+            <span className="visually-hidden">Group by</span>
+            <select
+              value={grouping}
+              onChange={(event) => onSetGrouping(event.target.value as GroupBy)}
+              aria-label="Group by"
+            >
+              {GROUP_BY_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  Group: {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </header>
 
       <form className="quick-add" onSubmit={submit}>
