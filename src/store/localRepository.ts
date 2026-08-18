@@ -1,9 +1,11 @@
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import type { DayLog } from '../types/path';
 import type { AnchorRepository, Unsubscribe } from './repository';
 import {
   dayLogDoc,
   dayLogsCollection,
+  labelDoc,
+  labelsCollection,
   localKey,
   pathDoc,
   projectDoc,
@@ -12,7 +14,14 @@ import {
   taskDoc,
   tasksCollection,
 } from './keys';
-import { parseDayLog, parsePathPattern, parseProject, parseSettings, parseTask } from './schemas';
+import {
+  parseDayLog,
+  parseLabel,
+  parsePathPattern,
+  parseProject,
+  parseSettings,
+  parseTask,
+} from './schemas';
 
 /**
  * localStorage behind the Firestore-shaped interface.
@@ -107,6 +116,7 @@ export function createLocalRepository(userId: string): AnchorRepository {
   const tasksPrefix = `${localKey(tasksCollection(userId))}:`;
   const projectsPrefix = `${localKey(projectsCollection(userId))}:`;
   const dayLogsPrefix = `${localKey(dayLogsCollection(userId))}:`;
+  const labelsPrefix = `${localKey(labelsCollection(userId))}:`;
 
   return {
     async getTasks() {
@@ -147,6 +157,27 @@ export function createLocalRepository(userId: string): AnchorRepository {
 
     async deleteProject(id) {
       const key = localKey(projectDoc(userId, id));
+      localStorage.removeItem(key);
+      notify(key);
+    },
+
+    async getLabels() {
+      return scanAll<Label>(labelsPrefix, parseLabel);
+    },
+
+    subscribeLabels(cb) {
+      return watch(
+        (changed) => changed.startsWith(labelsPrefix),
+        () => cb(scanAll<Label>(labelsPrefix, parseLabel)),
+      );
+    },
+
+    async saveLabel(label) {
+      writeVersioned(localKey(labelDoc(userId, label.id)), label);
+    },
+
+    async deleteLabel(id) {
+      const key = localKey(labelDoc(userId, id));
       localStorage.removeItem(key);
       notify(key);
     },

@@ -1,4 +1,4 @@
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import { describeRecurrence } from '../lib/recurrence';
 import { taskRef } from '../lib/taskRef';
 import { dateLabel, type Selection } from '../lib/views';
@@ -7,6 +7,7 @@ interface Props {
   task: Task;
   subtasks: Task[];
   projects: Project[];
+  labels: Label[];
   selection: Selection;
   today: string;
   selectedTaskId: string | null;
@@ -18,6 +19,7 @@ export function TaskRow({
   task,
   subtasks,
   projects,
+  labels,
   selection,
   today,
   selectedTaskId,
@@ -37,6 +39,15 @@ export function TaskRow({
   const showProject = project !== null && selection.kind !== 'project';
   const showDate =
     task.dueDate !== null && selection.kind !== 'upcoming' && !(selection.kind === 'today' && !done);
+
+  /*
+   * Labels a task actually carries, in the label list's own order so two rows
+   * never show the same pair the other way round. The one you're already
+   * inside is left off — it would be on every row and say nothing.
+   */
+  const worn = labels.filter(
+    (l) => (task.labelIds ?? []).includes(l.id) && l.id !== (selection.kind === 'label' ? selection.labelId : null),
+  );
 
   return (
     <li className={classes.join(' ')}>
@@ -72,6 +83,11 @@ export function TaskRow({
                 {project.name}
               </span>
             )}
+            {worn.map((label) => (
+              <span key={label.id} className="meta-label" data-color={label.colorId}>
+                {label.name}
+              </span>
+            ))}
             {showDate && <span className="meta-due">{dateLabel(task.dueDate!, today)}</span>}
             {task.recurrence !== null && (
               <span className="meta-recurrence">↻ {describeRecurrence(task.recurrence)}</span>
@@ -93,6 +109,7 @@ export function TaskRow({
               task={sub}
               subtasks={[]}
               projects={projects}
+              labels={labels}
               selection={selection}
               today={today}
               selectedTaskId={selectedTaskId}

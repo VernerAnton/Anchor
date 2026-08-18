@@ -34,6 +34,15 @@ export function projectDoc(userId: string, id: string): string[] {
   return [...projectsCollection(userId), id];
 }
 
+/** The second identity axis: cross-cutting tags, flat and id-keyed. */
+export function labelsCollection(userId: string): string[] {
+  return ['users', userId, 'v2-labels'];
+}
+
+export function labelDoc(userId: string, id: string): string[] {
+  return [...labelsCollection(userId), id];
+}
+
 export function settingsDoc(userId: string): string[] {
   return ['users', userId, 'v2-settings', 'app'];
 }

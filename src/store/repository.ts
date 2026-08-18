@@ -1,4 +1,4 @@
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 import type { DayLog, PathPattern } from '../types/path';
 
@@ -37,6 +37,16 @@ export interface AnchorRepository {
   subscribeProjects(cb: (projects: Project[]) => void): Unsubscribe;
   saveProject(project: Project): Promise<void>;
   deleteProject(id: string): Promise<void>;
+
+  /**
+   * Labels. Subscribed whole like projects — the same shape of data, and the
+   * same reason: a personal tag list is tens of documents, and holding it lets
+   * every view group and filter without a round trip.
+   */
+  getLabels(): Promise<Label[]>;
+  subscribeLabels(cb: (labels: Label[]) => void): Unsubscribe;
+  saveLabel(label: Label): Promise<void>;
+  deleteLabel(id: string): Promise<void>;
 
   /** The week's arrangement. A single document, like settings. */
   getPathPattern(): Promise<PathPattern | null>;

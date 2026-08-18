@@ -1,21 +1,36 @@
 import { useState } from 'react';
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import { dateLabel, type Selection, type TaskListModel } from '../lib/views';
+import { GROUP_BY_OPTIONS, type GroupBy } from '../lib/grouping';
+import { SORT_OPTIONS, type SortBy } from '../lib/sorting';
 import { TaskRow } from './TaskRow';
 
 interface Props {
   selection: Selection;
   model: TaskListModel;
   projects: Project[];
+  labels: Label[];
   today: string;
   selectedTaskId: string | null;
   onOpenDrawer: () => void;
   onSelectTask: (id: string) => void;
   onToggleTask: (task: Task) => void;
   onAddTask: (title: string) => void;
+  /**
+   * Present only on the views a grouping applies to. Today's date sections and
+   * Upcoming's are the view's own arrangement; a project or a label is a
+   * second cut through the same rows.
+   */
+  grouping?: GroupBy;
+  onSetGrouping?: (grouping: GroupBy) => void;
+  /** Sorting has something to say inside every list, so it is never absent. */
+  sortBy: SortBy;
+  reverse: boolean;
+  onSetSort: (sortBy: SortBy) => void;
+  onToggleReverse: () => void;
 }
 
-function panelTitle(selection: Selection, projects: Project[]): string {
+function panelTitle(selection: Selection, projects: Project[], labels: Label[]): string {
   switch (selection.kind) {
     case 'today':
       return 'Today';
@@ -27,6 +42,10 @@ function panelTitle(selection: Selection, projects: Project[]): string {
       return 'Path';
     case 'project':
       return projects.find((p) => p.id === selection.projectId)?.name ?? 'Project';
+    case 'label':
+      return labels.find((l) => l.id === selection.labelId)?.name ?? 'Label';
+    case 'labels':
+      return 'Labels';
   }
 }
 
@@ -34,12 +53,19 @@ export function TaskListPanel({
   selection,
   model,
   projects,
+  labels,
   today,
   selectedTaskId,
   onOpenDrawer,
   onSelectTask,
   onToggleTask,
   onAddTask,
+  grouping,
+  onSetGrouping,
+  sortBy,
+  reverse,
+  onSetSort,
+  onToggleReverse,
 }: Props) {
   const [draft, setDraft] = useState('');
 
@@ -60,7 +86,59 @@ export function TaskListPanel({
         <button type="button" className="drawer-button" aria-label="Open menu" onClick={onOpenDrawer}>
           ☰
         </button>
-        <h1>{panelTitle(selection, projects)}</h1>
+        <h1>{panelTitle(selection, projects, labels)}</h1>
+        {/*
+          Top right, where a view's own controls belong. A select rather than
+          a row of buttons: three options that are mutually exclusive and read
+          rarely, which is exactly the shape a select is for.
+        */}
+        <div className="panel-header__options">
+          {grouping !== undefined && onSetGrouping && (
+            <label className="panel-header__group">
+              <span className="visually-hidden">Group by</span>
+              <select
+                value={grouping}
+                onChange={(event) => onSetGrouping(event.target.value as GroupBy)}
+                aria-label="Group by"
+              >
+                {GROUP_BY_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    Group: {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label className="panel-header__group">
+            <span className="visually-hidden">Sort by</span>
+            <select
+              value={sortBy}
+              onChange={(event) => onSetSort(event.target.value as SortBy)}
+              aria-label="Sort by"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  Sort: {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Reads the same order from the bottom. A toggle rather than two
+              more entries in the list above: reversing is a thing you do to
+              whichever sort you picked, not a sort of its own. */}
+          <button
+            type="button"
+            className="panel-header__reverse"
+            aria-pressed={reverse}
+            aria-label={reverse ? 'Sorting reversed' : 'Reverse the sort'}
+            title={reverse ? 'Reversed' : 'Reverse'}
+            onClick={onToggleReverse}
+          >
+            {reverse ? '↑' : '↓'}
+          </button>
+        </div>
       </header>
 
       <form className="quick-add" onSubmit={submit}>
@@ -89,6 +167,7 @@ export function TaskListPanel({
                     task={task}
                     subtasks={subtasks}
                     projects={projects}
+              labels={labels}
                     selection={selection}
                     today={today}
                     selectedTaskId={selectedTaskId}
@@ -117,6 +196,7 @@ export function TaskListPanel({
                   task={task}
                   subtasks={[]}
                   projects={projects}
+              labels={labels}
                   selection={selection}
                   today={today}
                   selectedTaskId={selectedTaskId}

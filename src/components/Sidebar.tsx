@@ -24,6 +24,9 @@ const VIEWS: { selection: Selection; label: string }[] = [
   { selection: { kind: 'upcoming' }, label: 'Upcoming' },
   { selection: { kind: 'all' }, label: 'All tasks' },
   { selection: { kind: 'path' }, label: 'Path' },
+  /* Labels are a small set you arrange occasionally, so they get one line here
+     and a screen of their own rather than a permanent list in the sidebar. */
+  { selection: { kind: 'labels' }, label: 'Labels' },
 ];
 
 export function Sidebar({

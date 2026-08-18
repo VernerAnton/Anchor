@@ -257,3 +257,92 @@ load would mean two raw hex values living in `index.html`, outside any theme fil
 edit whenever a theme's ground changed. The status bar tint settling a few hundred
 milliseconds after launch is a far smaller artefact than that trap — and the page itself, the
 thing you actually look at, is correct from the first paint either way.
+
+---
+
+## Two apps, one task store
+
+Anchor is a to-do app and a path app sharing one library. That sharing is the whole reason
+they live together — you decide which mode suits you without moving data between two places.
+
+**It follows that "does the path need this?" is the wrong test for a to-do feature.** The
+to-do side can be as complete as any list app without that costing the path anything, and a
+feature there needs no justification from the other half.
+
+## Labels
+
+**A second identity axis, not a second kind of project.** A task lives in exactly one project
+— where it belongs — and carries any number of labels, which say something true about it from
+a different direction: what it needs from you, where you have to be, how much of you it takes.
+"Salesforce Admin" is a project; "quick win" and "deep work" are labels, and a task is both at
+once.
+
+**Flat.** Projects nest because a body of work has parts. A tag that needs a parent is a
+project wearing the wrong hat, and the moment labels grow a hierarchy there are two answers to
+"where does this live".
+
+**Same palette as projects, different shape.** Identity is one axis and splitting it in two
+would mean a second palette that has to stay distinguishable from the first for no gain. A
+project is a filled dot; a label is an outlined chip. Shape carries the axis, colour carries
+the item — so a coloured circle never means two different things on one line.
+
+**The label view gathers across projects**, which is the thing a project tree can never do: it
+only ever shows you one branch. A labelled subtask appears there on its own merits rather than
+only under a labelled parent — the label was put on that specific task, and hiding it would
+lose the thing you tagged.
+
+**Deleting a label takes it off every task.** Leaving the id behind would be a task pointing
+at nothing — invisible until the id was reused, at which point the label would reappear.
+
+**Labels live on a screen, not in the sidebar.** They're a small set you arrange occasionally
+and then stop thinking about, so they get one line in the views list and a screen of their own
+— renaming and reordering happen in place there, because a modal takes away the list of names
+you came to compare against.
+
+## Grouping
+
+**A second cut through rows a view already chose**, offered top-right on Today and All tasks.
+Upcoming doesn't get it — it's already one section per date, and grouping would nest a project
+inside a day. Nor does a project's or a label's own list, which are already the answer to
+grouping by that thing.
+
+**Structural date sections survive it.** Today's "Earlier" stays on top when grouping is on:
+overdue is a fact about the date, and burying it inside "Salesforce" would lose the one thing
+that section exists to say.
+
+**Per view, not one setting for all of them.** Today and All tasks have different jobs — one
+is "what am I doing now", the other is the library — and grouping the library by project while
+sorting today by priority is an ordinary thing to want, not an inconsistency to iron out. A
+view with no entry uses the defaults, so nothing is written for views never touched. It syncs,
+like the theme.
+
+**A task with two labels appears under both.** That is what having two labels means, and
+showing it under only the first would make the second a lie. Grouping by project can't do
+this — a task has exactly one — which is the clearest statement of how the two axes differ.
+
+**Empty groups are left out; the ungrouped group is named and last.** "No label" at the bottom
+is true and useful to read; an untitled section of leftovers is a puzzle.
+
+## Sorting
+
+**Separate from grouping, and both answered at once.** Grouping decides which pile a row goes
+in; sorting decides where it sits in that pile. Turning one on never turns the other off, and
+grouping happens first — sorting a list that is about to be cut up is work thrown away, and
+the order that matters is the one you read down a section.
+
+**Absent values sort last, always.** An unprioritised task is not a P5 and an undated one is
+not overdue, but something has to go somewhere, and the end is the position that implies no
+judgement. Reversing brings them to the front, which is the honest consequence of asking for
+the reverse rather than a special case worth suppressing: flip the list and the bottom becomes
+the top.
+
+**Reversing negates the whole comparator, tiebreaks included**, so the reversed list is exactly
+the list read from the bottom. Anything else would leave equal pairs in a third order nobody
+asked for.
+
+**Every comparator ends at the title and then the id.** Without a stable tail, adding one task
+somewhere else in the list reshuffles rows that had nothing to do with it.
+
+**Sorting is offered on every task list; grouping is not.** A sort has something to say inside
+any list, including a single project's or a single date's. Grouping only earns its place where
+the list isn't already cut along that axis.

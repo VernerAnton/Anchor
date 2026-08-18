@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Duration, Project, Recurrence, Task, TaskType } from '../types/task';
+import type { Duration, Label, Project, Recurrence, Task, TaskType } from '../types/task';
 import type { TaskDraft } from '../store/mutations';
 import { PRIORITIES } from '../lib/priorities';
 import { DEFAULT_MINUTES } from '../lib/day';
@@ -10,6 +10,7 @@ interface Props {
   task: Task | null;
   tasks: Task[];
   projects: Project[];
+  labels: Label[];
   today: string;
   onClose: () => void;
   onUpdate: (task: Task, changes: Partial<TaskDraft>) => void;
@@ -22,6 +23,8 @@ interface Props {
   onDelete: (task: Task) => void;
   onAddSubtask: (parent: Task, title: string) => void;
   onSelectTask: (id: string) => void;
+  /** Adds or removes one label. A press is the whole interaction. */
+  onToggleLabel: (task: Task, labelId: string) => void;
 }
 
 export function DetailPanel(props: Props) {
@@ -41,6 +44,7 @@ function TaskForm({
   task,
   tasks,
   projects,
+  labels,
   today,
   onClose,
   onUpdate,
@@ -49,6 +53,7 @@ function TaskForm({
   onDelete,
   onAddSubtask,
   onSelectTask,
+  onToggleLabel,
 }: Props & { task: Task }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes ?? '');
@@ -202,6 +207,37 @@ function TaskForm({
           )}
         </div>
       </label>
+
+      {/*
+        Every label at once rather than a picker that opens: there are few
+        enough of them to show, and seeing which are off is half of what you
+        came here for. A project answers where this belongs; labels answer
+        what it needs from you, and a task can carry any number of them.
+      */}
+      <fieldset className="field">
+        <legend>Labels</legend>
+        {labels.filter((l) => !l.archived).length === 0 ? (
+          <p className="sync-note">No labels yet. Make one from the sidebar.</p>
+        ) : (
+          <div className="field-row label-picker">
+            {labels
+              .filter((l) => !l.archived)
+              .sort((a, b) => (a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name)))
+              .map((label) => (
+                <button
+                  key={label.id}
+                  type="button"
+                  className="label-pick"
+                  data-color={label.colorId}
+                  aria-pressed={(task.labelIds ?? []).includes(label.id)}
+                  onClick={() => onToggleLabel(task, label.id)}
+                >
+                  {label.name}
+                </button>
+              ))}
+          </div>
+        )}
+      </fieldset>
 
       <fieldset className="field">
         <legend>Priority</legend>

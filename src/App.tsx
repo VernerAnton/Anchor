@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Project, Recurrence, Task } from './types/task';
+import type { Label, Project, Recurrence, Task } from './types/task';
 import type { PathEntry } from './types/path';
 import type { SyncMode } from './store';
 import { repository } from './store';
@@ -17,10 +17,16 @@ import {
   setEntryStarted,
   setTaskRecurrence,
   setWildcardTasks,
+  newLabel,
+  stripLabel,
+  swapLabelOrder,
+  toggleTaskLabel,
   type EntryChanges,
 } from './store/mutations';
 import { todayStr, weekdayOf } from './lib/dates';
 import { buildDay, clearedCount, landingOn, pointsOf } from './lib/day';
+import { regroup } from './lib/grouping';
+import { sortItems } from './lib/sorting';
 import { isSample, samplePattern, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
@@ -29,7 +35,14 @@ import {
   selectionKey,
   type Selection,
 } from './lib/views';
-import { useDayLogs, usePathPattern, useProjects, useSettings, useTasks } from './hooks/useStore';
+import {
+  useDayLogs,
+  useLabels,
+  usePathPattern,
+  useProjects,
+  useSettings,
+  useTasks,
+} from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
 import { PathArea } from './components/PathArea';
@@ -37,10 +50,12 @@ import { PathLibrary } from './components/PathLibrary';
 import { ExitPathMode } from './components/ExitPathMode';
 import { StatusBar } from './components/StatusBar';
 import { defaultSettings } from './types/settings';
-import type { Settings } from './types/settings';
+import type { Settings, ViewOptions } from './types/settings';
+import { defaultViewOptions } from './types/settings';
 import type { ThemePreference } from './lib/theme';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
+import { LabelsPanel } from './components/LabelsPanel';
 import { SyncSettings } from './components/SyncSettings';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useAppUpdate } from './hooks/useAppUpdate';
@@ -62,6 +77,7 @@ interface Props {
 export function App({ syncMode }: Props) {
   const tasks = useTasks();
   const projects = useProjects();
+  const labels = useLabels();
   const settings = useSettings();
   const pattern = usePathPattern();
   const logs = useDayLogs();
@@ -106,6 +122,8 @@ export function App({ syncMode }: Props) {
   }
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
+  // An empty list is an answer; null only means the subscription hasn't fired.
+  const labelList = labels ?? [];
 
   const select = (next: Selection) => {
     setSelection(next);
@@ -221,12 +239,45 @@ export function App({ syncMode }: Props) {
 
   const saveProject = (project: Project) => void repository.saveProject(project);
 
+  const saveLabel = (label: Label) => void repository.saveLabel(label);
+
+  /**
+   * Deleting a label takes it off every task that carried it. The alternative
+   * — leaving the id behind — is a task pointing at nothing, which reads as
+   * "no labels" everywhere but quietly comes back if the id is ever reused.
+   */
+  const addLabel = (name: string) => {
+    const order = labelList.length === 0 ? 0 : Math.max(...labelList.map((l) => l.order)) + 1;
+    saveLabel(newLabel(name, order));
+  };
+
+  /** Swaps with its neighbour in the shown order, which is the order stored. */
+  const moveLabel = (label: Label, direction: -1 | 1) => {
+    const ordered = [...labelList]
+      .filter((l) => !l.archived)
+      .sort((a, b) => (a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name)));
+    const at = ordered.findIndex((l) => l.id === label.id);
+    const neighbour = ordered[at + direction];
+    if (!neighbour) return;
+    for (const next of swapLabelOrder(label, neighbour)) saveLabel(next);
+  };
+
+  const deleteLabel = (label: Label) => {
+    for (const task of tasks.filter((t) => (t.labelIds ?? []).includes(label.id))) {
+      saveTask(stripLabel(task, label.id));
+    }
+    void repository.deleteLabel(label.id);
+    if (selection.kind === 'label' && selection.labelId === label.id) {
+      select({ kind: 'today' });
+    }
+  };
+
   /**
    * Switching sides is a stored setting, not navigation — it survives a
    * restart and reaches your other devices, so the app opens where you left
    * it rather than asking again every morning.
    */
-  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme'>>) => {
+  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme' | 'views'>>) => {
     const base = settings ?? defaultSettings();
     void repository.saveSettings({
       ...base,
@@ -235,6 +286,26 @@ export function App({ syncMode }: Props) {
       updatedAt: Date.now(),
     });
   };
+
+  /*
+   * How this view arranges itself, and how a change to it is written back.
+   * Views that were never touched carry no entry at all.
+   */
+  const viewKey = selectionKey(selection);
+  const viewOptions = settings?.views?.[viewKey] ?? defaultViewOptions();
+  const setViewOptions = (changes: Partial<ViewOptions>) =>
+    saveSetting({
+      views: { ...(settings?.views ?? {}), [viewKey]: { ...viewOptions, ...changes } },
+    });
+
+  /*
+   * Grouping is a second cut, and only some views want one. Upcoming is
+   * already a section per date and grouping would nest a project inside a day;
+   * a project's own list is already the answer to "group by project", and a
+   * label's to grouping by label. Sorting, by contrast, has something to say
+   * inside every list there is.
+   */
+  const groupable = selection.kind === 'today' || selection.kind === 'all';
 
   const setPathMode = (pathMode: boolean) => {
     saveSetting({ pathMode });
@@ -320,6 +391,8 @@ export function App({ syncMode }: Props) {
   const detailPanel = (
     <DetailPanel
       task={selectedTask}
+      labels={labelList}
+      onToggleLabel={(task, labelId) => saveTask(toggleTaskLabel(task, labelId))}
       tasks={tasks}
       projects={projects}
       today={today}
@@ -476,17 +549,57 @@ export function App({ syncMode }: Props) {
             </header>
           }
         />
+      ) : selection.kind === 'labels' ? (
+        <LabelsPanel
+          labels={labelList}
+          tasks={tasks}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onOpen={(labelId) => select({ kind: 'label', labelId })}
+          onAdd={addLabel}
+          onSave={saveLabel}
+          onDelete={deleteLabel}
+          onMove={moveLabel}
+        />
       ) : (
         <TaskListPanel
           selection={selection}
-          model={model}
+          /*
+           * Grouping is a second cut through rows the view already chose. It
+           * applies where a list is otherwise flat or date-sectioned; the date
+           * sections a view considers structural — Today's "Earlier" — survive
+           * it, because overdue is a fact about the date rather than about
+           * which project something is filed under.
+           */
+          model={{
+            ...model,
+            /*
+             * Group first, then sort inside each group. The other way round
+             * would sort a list that is about to be cut up, which is work
+             * thrown away — and the order that matters is the one you read
+             * down a section, not the one the rows had before they were split.
+             */
+            sections: (groupable
+              ? regroup(model.sections, viewOptions.groupBy, projects, labelList)
+              : model.sections
+            ).map((section) => ({
+              ...section,
+              items: sortItems(section.items, viewOptions.sortBy, viewOptions.reverse),
+            })),
+          }}
           projects={projects}
+          labels={labelList}
           today={today}
           selectedTaskId={selectedTaskId}
           onOpenDrawer={() => setDrawerOpen(true)}
           onSelectTask={setSelectedTaskId}
           onToggleTask={toggleTask}
           onAddTask={addTask}
+          grouping={groupable ? viewOptions.groupBy : undefined}
+          onSetGrouping={groupable ? (groupBy) => setViewOptions({ groupBy }) : undefined}
+          sortBy={viewOptions.sortBy}
+          reverse={viewOptions.reverse}
+          onSetSort={(sortBy) => setViewOptions({ sortBy })}
+          onToggleReverse={() => setViewOptions({ reverse: !viewOptions.reverse })}
         />
       )}
 

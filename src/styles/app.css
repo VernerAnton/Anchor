@@ -346,6 +346,17 @@ h2 {
   visibility: visible;
 }
 
+/*
+ * Nothing to hover with. Hidden behind hover on a touch device means hidden
+ * outright, and this is the only way to rename or recolour a project or a
+ * label — so on a phone it simply stays out.
+ */
+@media (hover: none) {
+  .project-row .row-action {
+    visibility: visible;
+  }
+}
+
 .project-row--child {
   padding-left: var(--space-5);
 }
@@ -657,6 +668,201 @@ h2 {
 .meta-recurrence {
   font-family: var(--font-mono);
 }
+
+/*
+ * A label on a row. Outlined, where a project is a filled dot — the two are
+ * different axes and the eye needs to tell them apart without reading either.
+ * Shape carries the axis, colour carries the item; if both used a dot, a
+ * coloured circle would mean two different things on the same line.
+ */
+.meta-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-l);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+}
+
+/* ── The labels screen ────────────────────────────────────────────────── */
+
+/*
+ * Where labels are arranged, and the reason they get a screen rather than a
+ * permanent list in the sidebar: this is a thing you do occasionally and then
+ * stop thinking about.
+ */
+.label-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.label-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.label-row__face {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.label-row__open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-s);
+  text-align: left;
+}
+
+.label-row__open:hover {
+  background: var(--surface-hover);
+}
+
+.label-row__name {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * Always in the layout rather than revealed on hover — there is no hover on a
+ * phone, and reordering is most of what this screen is for.
+ */
+.label-row__tools {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* Editing expands the row rather than covering it: you came here to compare
+   names against each other, and a modal takes the list away. */
+.label-row__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+}
+
+.label-row__form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-header__count,
+.panel-header__options {
+  margin-left: auto;
+}
+
+/* The view's own controls, together at the far end of its title line. */
+.panel-header__options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel-header__reverse {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.panel-header__reverse[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.panel-header__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-s);
+  color: var(--text-faint);
+}
+
+.panel-header__group select {
+  font-size: var(--text-s);
+  padding: var(--space-1) var(--space-2);
+}
+
+.panel-empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* The sidebar's own mark, the same outline shrunk to a bullet. */
+.label-chip {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-radius: var(--radius-l);
+}
+
+/*
+ * Every label at once, in the detail panel. Pressed means the task carries it.
+ * Rounded where the priority and type pickers are square, so the two rows of
+ * buttons never read as one control.
+ */
+.label-picker {
+  flex-wrap: wrap;
+}
+
+.label-pick {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  font-size: var(--text-s);
+  color: var(--text-muted);
+}
+
+.label-pick:hover {
+  border-color: currentColor;
+  color: var(--text);
+}
+
+.label-pick[aria-pressed='true'] {
+  border-color: currentColor;
+  background: var(--surface-hover);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/*
+ * Label colour comes from the same muted identity palette projects use — one
+ * axis, one palette. `color` rather than `background` so the outline, the text
+ * and the bullet all take it from a single declaration.
+ */
+.meta-label[data-color='steel'],
+.label-chip[data-color='steel'],
+.label-pick[data-color='steel'] { color: var(--project-steel); }
+.meta-label[data-color='violet'],
+.label-chip[data-color='violet'],
+.label-pick[data-color='violet'] { color: var(--project-violet); }
+.meta-label[data-color='teal'],
+.label-chip[data-color='teal'],
+.label-pick[data-color='teal'] { color: var(--project-teal); }
+.meta-label[data-color='sage'],
+.label-chip[data-color='sage'],
+.label-pick[data-color='sage'] { color: var(--project-sage); }
+.meta-label[data-color='ochre'],
+.label-chip[data-color='ochre'],
+.label-pick[data-color='ochre'] { color: var(--project-ochre); }
+.meta-label[data-color='plum'],
+.label-chip[data-color='plum'],
+.label-pick[data-color='plum'] { color: var(--project-plum); }
+.meta-label[data-color='indigo'],
+.label-chip[data-color='indigo'],
+.label-pick[data-color='indigo'] { color: var(--project-indigo); }
+.meta-label[data-color='clay'],
+.label-chip[data-color='clay'],
+.label-pick[data-color='clay'] { color: var(--project-clay); }
 
 .priority-flag {
   font-family: var(--font-mono);
