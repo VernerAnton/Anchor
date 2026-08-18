@@ -9,4 +9,4 @@
  *
  * **Bump this by one whenever work ships to main.**
  */
-export const APP_VERSION = 21;
+export const APP_VERSION = 22;

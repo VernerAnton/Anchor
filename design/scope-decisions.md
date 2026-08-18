@@ -310,8 +310,11 @@ grouping by that thing.
 overdue is a fact about the date, and burying it inside "Salesforce" would lose the one thing
 that section exists to say.
 
-**One setting, not one per view.** Grouping by label is a way of looking at your work; wanting
-it on Today but not on All tasks is a distinction nobody makes. It syncs, like the theme.
+**Per view, not one setting for all of them.** Today and All tasks have different jobs — one
+is "what am I doing now", the other is the library — and grouping the library by project while
+sorting today by priority is an ordinary thing to want, not an inconsistency to iron out. A
+view with no entry uses the defaults, so nothing is written for views never touched. It syncs,
+like the theme.
 
 **A task with two labels appears under both.** That is what having two labels means, and
 showing it under only the first would make the second a lie. Grouping by project can't do
@@ -319,3 +322,27 @@ this — a task has exactly one — which is the clearest statement of how the t
 
 **Empty groups are left out; the ungrouped group is named and last.** "No label" at the bottom
 is true and useful to read; an untitled section of leftovers is a puzzle.
+
+## Sorting
+
+**Separate from grouping, and both answered at once.** Grouping decides which pile a row goes
+in; sorting decides where it sits in that pile. Turning one on never turns the other off, and
+grouping happens first — sorting a list that is about to be cut up is work thrown away, and
+the order that matters is the one you read down a section.
+
+**Absent values sort last, always.** An unprioritised task is not a P5 and an undated one is
+not overdue, but something has to go somewhere, and the end is the position that implies no
+judgement. Reversing brings them to the front, which is the honest consequence of asking for
+the reverse rather than a special case worth suppressing: flip the list and the bottom becomes
+the top.
+
+**Reversing negates the whole comparator, tiebreaks included**, so the reversed list is exactly
+the list read from the bottom. Anything else would leave equal pairs in a third order nobody
+asked for.
+
+**Every comparator ends at the title and then the id.** Without a stable tail, adding one task
+somewhere else in the list reshuffles rows that had nothing to do with it.
+
+**Sorting is offered on every task list; grouping is not.** A sort has something to say inside
+any list, including a single project's or a single date's. Grouping only earns its place where
+the list isn't already cut along that axis.

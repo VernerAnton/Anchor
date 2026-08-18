@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Label, Project, Task } from '../types/task';
 import { dateLabel, type Selection, type TaskListModel } from '../lib/views';
 import { GROUP_BY_OPTIONS, type GroupBy } from '../lib/grouping';
+import { SORT_OPTIONS, type SortBy } from '../lib/sorting';
 import { TaskRow } from './TaskRow';
 
 interface Props {
@@ -22,6 +23,11 @@ interface Props {
    */
   grouping?: GroupBy;
   onSetGrouping?: (grouping: GroupBy) => void;
+  /** Sorting has something to say inside every list, so it is never absent. */
+  sortBy: SortBy;
+  reverse: boolean;
+  onSetSort: (sortBy: SortBy) => void;
+  onToggleReverse: () => void;
 }
 
 function panelTitle(selection: Selection, projects: Project[], labels: Label[]): string {
@@ -56,6 +62,10 @@ export function TaskListPanel({
   onAddTask,
   grouping,
   onSetGrouping,
+  sortBy,
+  reverse,
+  onSetSort,
+  onToggleReverse,
 }: Props) {
   const [draft, setDraft] = useState('');
 
@@ -82,22 +92,53 @@ export function TaskListPanel({
           a row of buttons: three options that are mutually exclusive and read
           rarely, which is exactly the shape a select is for.
         */}
-        {grouping !== undefined && onSetGrouping && (
+        <div className="panel-header__options">
+          {grouping !== undefined && onSetGrouping && (
+            <label className="panel-header__group">
+              <span className="visually-hidden">Group by</span>
+              <select
+                value={grouping}
+                onChange={(event) => onSetGrouping(event.target.value as GroupBy)}
+                aria-label="Group by"
+              >
+                {GROUP_BY_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    Group: {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <label className="panel-header__group">
-            <span className="visually-hidden">Group by</span>
+            <span className="visually-hidden">Sort by</span>
             <select
-              value={grouping}
-              onChange={(event) => onSetGrouping(event.target.value as GroupBy)}
-              aria-label="Group by"
+              value={sortBy}
+              onChange={(event) => onSetSort(event.target.value as SortBy)}
+              aria-label="Sort by"
             >
-              {GROUP_BY_OPTIONS.map((option) => (
+              {SORT_OPTIONS.map((option) => (
                 <option key={option.id} value={option.id}>
-                  Group: {option.label}
+                  Sort: {option.label}
                 </option>
               ))}
             </select>
           </label>
-        )}
+
+          {/* Reads the same order from the bottom. A toggle rather than two
+              more entries in the list above: reversing is a thing you do to
+              whichever sort you picked, not a sort of its own. */}
+          <button
+            type="button"
+            className="panel-header__reverse"
+            aria-pressed={reverse}
+            aria-label={reverse ? 'Sorting reversed' : 'Reverse the sort'}
+            title={reverse ? 'Reversed' : 'Reverse'}
+            onClick={onToggleReverse}
+          >
+            {reverse ? '↑' : '↓'}
+          </button>
+        </div>
       </header>
 
       <form className="quick-add" onSubmit={submit}>

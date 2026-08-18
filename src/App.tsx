@@ -25,7 +25,8 @@ import {
 } from './store/mutations';
 import { todayStr, weekdayOf } from './lib/dates';
 import { buildDay, clearedCount, landingOn, pointsOf } from './lib/day';
-import { regroup, type GroupBy } from './lib/grouping';
+import { regroup } from './lib/grouping';
+import { sortItems } from './lib/sorting';
 import { isSample, samplePattern, sampleProjects, sampleTasks } from './lib/sampleData';
 import {
   buildTaskList,
@@ -49,7 +50,8 @@ import { PathLibrary } from './components/PathLibrary';
 import { ExitPathMode } from './components/ExitPathMode';
 import { StatusBar } from './components/StatusBar';
 import { defaultSettings } from './types/settings';
-import type { Settings } from './types/settings';
+import type { Settings, ViewOptions } from './types/settings';
+import { defaultViewOptions } from './types/settings';
 import type { ThemePreference } from './lib/theme';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
@@ -275,7 +277,7 @@ export function App({ syncMode }: Props) {
    * restart and reaches your other devices, so the app opens where you left
    * it rather than asking again every morning.
    */
-  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme' | 'grouping'>>) => {
+  const saveSetting = (changes: Partial<Pick<Settings, 'pathMode' | 'theme' | 'views'>>) => {
     const base = settings ?? defaultSettings();
     void repository.saveSettings({
       ...base,
@@ -285,12 +287,23 @@ export function App({ syncMode }: Props) {
     });
   };
 
-  const grouping: GroupBy = settings?.grouping ?? 'none';
   /*
-   * Where a second cut adds something. Upcoming is already one section per
-   * date and grouping it would nest a project inside a day; a project's own
-   * list is already the answer to "group by project"; and a label's list is
-   * already the answer to grouping by label.
+   * How this view arranges itself, and how a change to it is written back.
+   * Views that were never touched carry no entry at all.
+   */
+  const viewKey = selectionKey(selection);
+  const viewOptions = settings?.views?.[viewKey] ?? defaultViewOptions();
+  const setViewOptions = (changes: Partial<ViewOptions>) =>
+    saveSetting({
+      views: { ...(settings?.views ?? {}), [viewKey]: { ...viewOptions, ...changes } },
+    });
+
+  /*
+   * Grouping is a second cut, and only some views want one. Upcoming is
+   * already a section per date and grouping would nest a project inside a day;
+   * a project's own list is already the answer to "group by project", and a
+   * label's to grouping by label. Sorting, by contrast, has something to say
+   * inside every list there is.
    */
   const groupable = selection.kind === 'today' || selection.kind === 'all';
 
@@ -559,9 +572,19 @@ export function App({ syncMode }: Props) {
            */
           model={{
             ...model,
-            sections: groupable
-              ? regroup(model.sections, grouping, projects, labelList)
-              : model.sections,
+            /*
+             * Group first, then sort inside each group. The other way round
+             * would sort a list that is about to be cut up, which is work
+             * thrown away — and the order that matters is the one you read
+             * down a section, not the one the rows had before they were split.
+             */
+            sections: (groupable
+              ? regroup(model.sections, viewOptions.groupBy, projects, labelList)
+              : model.sections
+            ).map((section) => ({
+              ...section,
+              items: sortItems(section.items, viewOptions.sortBy, viewOptions.reverse),
+            })),
           }}
           projects={projects}
           labels={labelList}
@@ -571,8 +594,12 @@ export function App({ syncMode }: Props) {
           onSelectTask={setSelectedTaskId}
           onToggleTask={toggleTask}
           onAddTask={addTask}
-          grouping={groupable ? grouping : undefined}
-          onSetGrouping={groupable ? (next) => saveSetting({ grouping: next }) : undefined}
+          grouping={groupable ? viewOptions.groupBy : undefined}
+          onSetGrouping={groupable ? (groupBy) => setViewOptions({ groupBy }) : undefined}
+          sortBy={viewOptions.sortBy}
+          reverse={viewOptions.reverse}
+          onSetSort={(sortBy) => setViewOptions({ sortBy })}
+          onToggleReverse={() => setViewOptions({ reverse: !viewOptions.reverse })}
         />
       )}
 

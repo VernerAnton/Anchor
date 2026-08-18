@@ -753,8 +753,30 @@ h2 {
 }
 
 .panel-header__count,
-.panel-header__group {
+.panel-header__options {
   margin-left: auto;
+}
+
+/* The view's own controls, together at the far end of its title line. */
+.panel-header__options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel-header__reverse {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.panel-header__reverse[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .panel-header__count {

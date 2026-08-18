@@ -184,7 +184,19 @@ export const settingsSchema = z
        unknown name from a future one reads as the default rather than as a
        blank page. */
     theme: z.enum(['system', 'noir', 'blossom']).catch('system').default('system'),
-    grouping: z.enum(['none', 'project', 'label']).catch('none').default('none'),
+    /* One entry per view that has been changed. An unknown group or sort name
+       from a future build reads as the default rather than as a broken list. */
+    views: z
+      .record(
+        z.string(),
+        z.object({
+          groupBy: z.enum(['none', 'project', 'label']).catch('none'),
+          sortBy: z.enum(['smart', 'priority', 'due', 'name', 'manual']).catch('smart'),
+          reverse: z.boolean().catch(false),
+        }),
+      )
+      .catch({})
+      .default({}),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),
