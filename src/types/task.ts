@@ -50,6 +50,32 @@ export interface Project {
 }
 
 /**
+ * A label: a cross-cutting tag, and the second identity axis.
+ *
+ * Deliberately not a second kind of project. A task lives in exactly one
+ * project — where it belongs — and carries any number of labels, which say
+ * something true about it from a different direction: what it needs from you,
+ * where you have to be, how much of you it takes. "Salesforce Admin" is a
+ * project; "quick win" and "at the computer" are labels, and a task can be
+ * both at once.
+ *
+ * Flat on purpose. Projects nest because a body of work has parts; a tag that
+ * needs a parent is a project wearing the wrong hat.
+ */
+export interface Label {
+  id: string;
+  name: string;
+  colorId: ProjectColor;
+  /** Manual ordering in the sidebar. */
+  order: number;
+  /** Archived rather than deleted, for the same reason projects are. */
+  archived: boolean;
+  schemaVersion: number;
+  version: number;
+  updatedAt: number;
+}
+
+/**
  * Priority exists to order a backlog, where sorting is the actual job. It is a
  * planning concept only and will never reach a scheduled Point — at the moment
  * of doing, a second axis of importance is one more decision at the worst
@@ -150,6 +176,16 @@ export interface Task {
    * placement, which can differ per day, and lives on the path entry.
    */
   defaultDuration: Duration | null;
+
+  /**
+   * Label ids, in no meaningful order — a set, stored as an array because
+   * Firestore has no set type. Empty is the ordinary case and never means
+   * anything is missing.
+   *
+   * Ids rather than names, so renaming a label renames it everywhere at once
+   * and a task can never disagree with the label list about what it's called.
+   */
+  labelIds: string[];
 
   schemaVersion: number;
   version: number;

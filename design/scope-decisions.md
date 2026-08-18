@@ -257,3 +257,42 @@ load would mean two raw hex values living in `index.html`, outside any theme fil
 edit whenever a theme's ground changed. The status bar tint settling a few hundred
 milliseconds after launch is a far smaller artefact than that trap — and the page itself, the
 thing you actually look at, is correct from the first paint either way.
+
+---
+
+## Two apps, one task store
+
+Anchor is a to-do app and a path app sharing one library. That sharing is the whole reason
+they live together — you decide which mode suits you without moving data between two places.
+
+**It follows that "does the path need this?" is the wrong test for a to-do feature.** The
+to-do side can be as complete as any list app without that costing the path anything, and a
+feature there needs no justification from the other half.
+
+## Labels
+
+**A second identity axis, not a second kind of project.** A task lives in exactly one project
+— where it belongs — and carries any number of labels, which say something true about it from
+a different direction: what it needs from you, where you have to be, how much of you it takes.
+"Salesforce Admin" is a project; "quick win" and "deep work" are labels, and a task is both at
+once.
+
+**Flat.** Projects nest because a body of work has parts. A tag that needs a parent is a
+project wearing the wrong hat, and the moment labels grow a hierarchy there are two answers to
+"where does this live".
+
+**Same palette as projects, different shape.** Identity is one axis and splitting it in two
+would mean a second palette that has to stay distinguishable from the first for no gain. A
+project is a filled dot; a label is an outlined chip. Shape carries the axis, colour carries
+the item — so a coloured circle never means two different things on one line.
+
+**The label view gathers across projects**, which is the thing a project tree can never do: it
+only ever shows you one branch. A labelled subtask appears there on its own merits rather than
+only under a labelled parent — the label was put on that specific task, and hiding it would
+lose the thing you tagged.
+
+**Deleting a label takes it off every task.** Leaving the id behind would be a task pointing
+at nothing — invisible until the id was reused, at which point the label would reappear.
+
+**Grouping and sorting are the next step, not this one.** Labels are what the Today view will
+group *by*; the settings that choose the grouping come after.

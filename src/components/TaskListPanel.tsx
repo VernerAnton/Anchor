@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import { dateLabel, type Selection, type TaskListModel } from '../lib/views';
 import { TaskRow } from './TaskRow';
 
@@ -7,6 +7,7 @@ interface Props {
   selection: Selection;
   model: TaskListModel;
   projects: Project[];
+  labels: Label[];
   today: string;
   selectedTaskId: string | null;
   onOpenDrawer: () => void;
@@ -15,7 +16,7 @@ interface Props {
   onAddTask: (title: string) => void;
 }
 
-function panelTitle(selection: Selection, projects: Project[]): string {
+function panelTitle(selection: Selection, projects: Project[], labels: Label[]): string {
   switch (selection.kind) {
     case 'today':
       return 'Today';
@@ -27,6 +28,8 @@ function panelTitle(selection: Selection, projects: Project[]): string {
       return 'Path';
     case 'project':
       return projects.find((p) => p.id === selection.projectId)?.name ?? 'Project';
+    case 'label':
+      return labels.find((l) => l.id === selection.labelId)?.name ?? 'Label';
   }
 }
 
@@ -34,6 +37,7 @@ export function TaskListPanel({
   selection,
   model,
   projects,
+  labels,
   today,
   selectedTaskId,
   onOpenDrawer,
@@ -60,7 +64,7 @@ export function TaskListPanel({
         <button type="button" className="drawer-button" aria-label="Open menu" onClick={onOpenDrawer}>
           ☰
         </button>
-        <h1>{panelTitle(selection, projects)}</h1>
+        <h1>{panelTitle(selection, projects, labels)}</h1>
       </header>
 
       <form className="quick-add" onSubmit={submit}>
@@ -89,6 +93,7 @@ export function TaskListPanel({
                     task={task}
                     subtasks={subtasks}
                     projects={projects}
+              labels={labels}
                     selection={selection}
                     today={today}
                     selectedTaskId={selectedTaskId}
@@ -117,6 +122,7 @@ export function TaskListPanel({
                   task={task}
                   subtasks={[]}
                   projects={projects}
+              labels={labels}
                   selection={selection}
                   today={today}
                   selectedTaskId={selectedTaskId}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { repository } from '../store';
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 import type { DayLog, PathPattern } from '../types/path';
 
@@ -22,6 +22,12 @@ export function useProjects(): Project[] | null {
   const [projects, setProjects] = useState<Project[] | null>(null);
   useEffect(() => repository.subscribeProjects(setProjects), []);
   return projects;
+}
+
+export function useLabels(): Label[] | null {
+  const [labels, setLabels] = useState<Label[] | null>(null);
+  useEffect(() => repository.subscribeLabels(setLabels), []);
+  return labels;
 }
 
 /**

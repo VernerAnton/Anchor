@@ -18,6 +18,7 @@ function task(id: string, projectId: string | null = null): Task {
     firstMove: null,
     type: null,
     defaultDuration: null,
+    labelIds: [],
     schemaVersion: 1,
     version: 1,
     updatedAt: 0,

@@ -40,6 +40,7 @@ function task(overrides: Partial<Task> = {}): Task {
     firstMove: null,
     type: null,
     defaultDuration: null,
+    labelIds: [],
     schemaVersion: 1,
     version: 1,
     updatedAt: 0,

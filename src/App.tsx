@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Project, Recurrence, Task } from './types/task';
+import type { Label, Project, Recurrence, Task } from './types/task';
 import type { PathEntry } from './types/path';
 import type { SyncMode } from './store';
 import { repository } from './store';
@@ -17,6 +17,8 @@ import {
   setEntryStarted,
   setTaskRecurrence,
   setWildcardTasks,
+  stripLabel,
+  toggleTaskLabel,
   type EntryChanges,
 } from './store/mutations';
 import { todayStr, weekdayOf } from './lib/dates';
@@ -29,7 +31,14 @@ import {
   selectionKey,
   type Selection,
 } from './lib/views';
-import { useDayLogs, usePathPattern, useProjects, useSettings, useTasks } from './hooks/useStore';
+import {
+  useDayLogs,
+  useLabels,
+  usePathPattern,
+  useProjects,
+  useSettings,
+  useTasks,
+} from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
 import { PathArea } from './components/PathArea';
@@ -41,6 +50,7 @@ import type { Settings } from './types/settings';
 import type { ThemePreference } from './lib/theme';
 import { DetailPanel } from './components/DetailPanel';
 import { ProjectEditor, type ProjectEditorState } from './components/ProjectEditor';
+import { LabelEditor, type LabelEditorState } from './components/LabelEditor';
 import { SyncSettings } from './components/SyncSettings';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useAppUpdate } from './hooks/useAppUpdate';
@@ -62,6 +72,7 @@ interface Props {
 export function App({ syncMode }: Props) {
   const tasks = useTasks();
   const projects = useProjects();
+  const labels = useLabels();
   const settings = useSettings();
   const pattern = usePathPattern();
   const logs = useDayLogs();
@@ -72,6 +83,7 @@ export function App({ syncMode }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [projectEditor, setProjectEditor] = useState<ProjectEditorState | null>(null);
+  const [labelEditor, setLabelEditor] = useState<LabelEditorState | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   /*
    * Which day the path is showing, or `null` while it is simply following
@@ -106,6 +118,8 @@ export function App({ syncMode }: Props) {
   }
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
+  // An empty list is an answer; null only means the subscription hasn't fired.
+  const labelList = labels ?? [];
 
   const select = (next: Selection) => {
     setSelection(next);
@@ -221,6 +235,23 @@ export function App({ syncMode }: Props) {
 
   const saveProject = (project: Project) => void repository.saveProject(project);
 
+  const saveLabel = (label: Label) => void repository.saveLabel(label);
+
+  /**
+   * Deleting a label takes it off every task that carried it. The alternative
+   * — leaving the id behind — is a task pointing at nothing, which reads as
+   * "no labels" everywhere but quietly comes back if the id is ever reused.
+   */
+  const deleteLabel = (label: Label) => {
+    for (const task of tasks.filter((t) => (t.labelIds ?? []).includes(label.id))) {
+      saveTask(stripLabel(task, label.id));
+    }
+    void repository.deleteLabel(label.id);
+    if (selection.kind === 'label' && selection.labelId === label.id) {
+      select({ kind: 'today' });
+    }
+  };
+
   /**
    * Switching sides is a stored setting, not navigation — it survives a
    * restart and reaches your other devices, so the app opens where you left
@@ -320,6 +351,8 @@ export function App({ syncMode }: Props) {
   const detailPanel = (
     <DetailPanel
       task={selectedTask}
+      labels={labelList}
+      onToggleLabel={(task, labelId) => saveTask(toggleTaskLabel(task, labelId))}
       tasks={tasks}
       projects={projects}
       today={today}
@@ -432,6 +465,9 @@ export function App({ syncMode }: Props) {
         onSelect={select}
         onNewProject={(parentId) => setProjectEditor({ mode: 'new', parentId })}
         onEditProject={(project) => setProjectEditor({ mode: 'edit', project })}
+        labels={labelList}
+        onNewLabel={() => setLabelEditor({ mode: 'new' })}
+        onEditLabel={(label) => setLabelEditor({ mode: 'edit', label })}
         onOpenSync={() => setSyncOpen(true)}
         syncMode={syncMode}
       />
@@ -481,6 +517,7 @@ export function App({ syncMode }: Props) {
           selection={selection}
           model={model}
           projects={projects}
+          labels={labelList}
           today={today}
           selectedTaskId={selectedTaskId}
           onOpenDrawer={() => setDrawerOpen(true)}
@@ -508,6 +545,16 @@ export function App({ syncMode }: Props) {
           onSave={saveProject}
           onDelete={deleteProject}
           onClose={() => setProjectEditor(null)}
+        />
+      )}
+
+      {labelEditor && (
+        <LabelEditor
+          state={labelEditor}
+          labels={labelList}
+          onSave={saveLabel}
+          onDelete={deleteLabel}
+          onClose={() => setLabelEditor(null)}
         />
       )}
 

@@ -1,4 +1,4 @@
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import type { SyncMode } from '../store';
 import { countFor, projectTree, selectionKey, type Selection } from '../lib/views';
 import { buildInfo } from '../lib/build';
@@ -15,6 +15,9 @@ interface Props {
   onSelect: (selection: Selection) => void;
   onNewProject: (parentId: string | null) => void;
   onEditProject: (project: Project) => void;
+  labels: Label[];
+  onNewLabel: () => void;
+  onEditLabel: (label: Label) => void;
   onOpenSync: () => void;
   syncMode: SyncMode;
 }
@@ -35,6 +38,9 @@ export function Sidebar({
   onSelect,
   onNewProject,
   onEditProject,
+  labels,
+  onNewLabel,
+  onEditLabel,
   onOpenSync,
   syncMode,
 }: Props) {
@@ -117,6 +123,55 @@ export function Sidebar({
           </li>
         ))}
         {tree.length === 0 && <li className="sidebar__hint">No projects yet.</li>}
+      </ul>
+
+      {/*
+        The second identity axis, and flat where projects nest. A label cuts
+        across projects, so its list is the one place tasks from anywhere sit
+        together — which is exactly what makes it worth having next to a tree
+        that can only ever show you one branch.
+      */}
+      <div className="sidebar__section-head">
+        <h2>Labels</h2>
+        <button type="button" className="row-action" aria-label="New label" onClick={onNewLabel}>
+          +
+        </button>
+      </div>
+
+      <ul className="label-list">
+        {labels
+          .filter((l) => !l.archived)
+          .sort((a, b) => (a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name)))
+          .map((label) => {
+            const key = selectionKey({ kind: 'label', labelId: label.id });
+            const count = countFor({ kind: 'label', labelId: label.id }, tasks, today);
+            return (
+              <li key={label.id} className="project-row">
+                <button
+                  type="button"
+                  className={
+                    current === key ? 'nav-link brackets nav-link--current' : 'nav-link brackets'
+                  }
+                  onClick={() => onSelect({ kind: 'label', labelId: label.id })}
+                >
+                  <span className="label-chip" data-color={label.colorId} aria-hidden="true" />
+                  <span className="nav-link__label">{label.name}</span>
+                  {count > 0 && <span className="badge">{count}</span>}
+                </button>
+                <button
+                  type="button"
+                  className="row-action"
+                  aria-label={`Edit label ${label.name}`}
+                  onClick={() => onEditLabel(label)}
+                >
+                  ✎
+                </button>
+              </li>
+            );
+          })}
+        {labels.filter((l) => !l.archived).length === 0 && (
+          <li className="sidebar__hint">No labels yet.</li>
+        )}
       </ul>
 
       <div className="sidebar__foot">

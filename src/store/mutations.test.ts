@@ -11,6 +11,8 @@ import {
   restEntry,
   setEntryCleared,
   setWildcardTasks,
+  stripLabel,
+  toggleTaskLabel,
   taskEntry,
   wildcardEntry,
 } from './mutations';
@@ -35,6 +37,7 @@ function taskWith(recurrence: Recurrence | null, dueDate: string | null): Task {
     firstMove: null,
     type: null,
     defaultDuration: null,
+    labelIds: [],
     schemaVersion: 1,
     version: 1,
     updatedAt: 0,
@@ -224,5 +227,40 @@ describe('setWildcardTasks', () => {
     const one = setWildcardTasks(null, DATE, 'w1', ['t1']);
     const two = setWildcardTasks(one, DATE, 'w2', ['t9']);
     expect(two.wildcards).toEqual({ w1: ['t1'], w2: ['t9'] });
+  });
+});
+
+describe('labels on a task', () => {
+  const plain = taskWith(null, null);
+
+  it('adds one that is not there and removes one that is', () => {
+    const on = toggleTaskLabel(plain, 'l1');
+    expect(on.labelIds).toEqual(['l1']);
+    expect(toggleTaskLabel(on, 'l1').labelIds).toEqual([]);
+  });
+
+  it('keeps the ones already on it', () => {
+    const two = toggleTaskLabel(toggleTaskLabel(plain, 'l1'), 'l2');
+    expect(two.labelIds).toEqual(['l1', 'l2']);
+    expect(toggleTaskLabel(two, 'l1').labelIds).toEqual(['l2']);
+  });
+
+  // Tasks written before labels existed have no array at all.
+  it('copes with a task that predates labels', () => {
+    const old = { ...plain, labelIds: undefined } as unknown as Task;
+    expect(toggleTaskLabel(old, 'l1').labelIds).toEqual(['l1']);
+    expect(stripLabel(old, 'l1').labelIds).toEqual([]);
+  });
+
+  // Stripping runs over every task when a label is deleted, including the
+  // ones that never carried it — a toggle would add it to all of them.
+  it('strips without ever adding', () => {
+    expect(stripLabel(plain, 'l1').labelIds).toEqual([]);
+    expect(stripLabel(toggleTaskLabel(plain, 'l1'), 'l1').labelIds).toEqual([]);
+  });
+
+  it('bumps the version so a stale echo cannot overwrite it', () => {
+    expect(toggleTaskLabel(plain, 'l1').version).toBeGreaterThan(plain.version);
+    expect(stripLabel(plain, 'l1').version).toBeGreaterThan(plain.version);
   });
 });

@@ -14,10 +14,19 @@ export type Selection =
   | { kind: 'all' }
   /** The path overview. Renders its own screen rather than a task list. */
   | { kind: 'path' }
-  | { kind: 'project'; projectId: string };
+  | { kind: 'project'; projectId: string }
+  /** One label's tasks, gathered from wherever they're filed. */
+  | { kind: 'label'; labelId: string };
 
 export function selectionKey(selection: Selection): string {
-  return selection.kind === 'project' ? `project:${selection.projectId}` : selection.kind;
+  if (selection.kind === 'project') return `project:${selection.projectId}`;
+  if (selection.kind === 'label') return `label:${selection.labelId}`;
+  return selection.kind;
+}
+
+/** Does this task carry that label? Tolerates tasks written before labels. */
+export function hasLabel(task: Task, labelId: string): boolean {
+  return (task.labelIds ?? []).includes(labelId);
 }
 
 export interface TaskListItem {
@@ -135,6 +144,28 @@ export function buildTaskList(
     case 'path':
       return { sections: [], completed: [] };
 
+    /*
+     * A label cuts across projects, so this list is the one place tasks from
+     * anywhere sit together. Subtasks are included on their own merits rather
+     * than only under a labelled parent — a label is put on a specific task,
+     * and hiding one because its parent isn't labelled would lose it.
+     */
+    case 'label': {
+      const labelled = tasks.filter((t) => active(t) && hasLabel(t, selection.labelId));
+      return {
+        sections: [
+          {
+            key: selection.labelId,
+            title: null,
+            items: labelled.sort(byImportance).map((task) => ({ task, subtasks: [] })),
+          },
+        ],
+        completed: tasks
+          .filter((t) => !t.archived && t.completedAt !== null && hasLabel(t, selection.labelId))
+          .sort(byCompletion),
+      };
+    }
+
     case 'project': {
       const top = tasks.filter(
         (t) => active(t) && t.projectId === selection.projectId && t.parentId === null,
@@ -165,6 +196,8 @@ export function countFor(selection: Selection, tasks: Task[], today: string = to
       return 0;
     case 'project':
       return tasks.filter((t) => active(t) && t.projectId === selection.projectId).length;
+    case 'label':
+      return tasks.filter((t) => active(t) && hasLabel(t, selection.labelId)).length;
   }
 }
 

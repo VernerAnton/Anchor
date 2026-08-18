@@ -8,12 +8,14 @@ import {
   setDoc,
   type Firestore,
 } from 'firebase/firestore';
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import type { DayLog } from '../types/path';
 import type { AnchorRepository, Unsubscribe } from './repository';
 import {
   dayLogDoc,
   dayLogsCollection,
+  labelDoc,
+  labelsCollection,
   pathDoc,
   projectDoc,
   projectsCollection,
@@ -21,7 +23,14 @@ import {
   taskDoc,
   tasksCollection,
 } from './keys';
-import { parseDayLog, parsePathPattern, parseProject, parseSettings, parseTask } from './schemas';
+import {
+  parseDayLog,
+  parseLabel,
+  parsePathPattern,
+  parseProject,
+  parseSettings,
+  parseTask,
+} from './schemas';
 import { createDb } from './firebase';
 
 /**
@@ -162,6 +171,23 @@ export function createFirestoreRepository(syncKey: string): AnchorRepository {
     async deleteProject(id) {
       delivered.delete(projectDoc(syncKey, id).join('/'));
       await deleteDoc(ref(projectDoc(syncKey, id)));
+    },
+
+    async getLabels() {
+      return readCollection<Label>(labelsCollection(syncKey), parseLabel);
+    },
+
+    subscribeLabels(cb) {
+      return subscribeCollection(labelsCollection(syncKey), parseLabel, cb);
+    },
+
+    async saveLabel(label) {
+      await save(labelDoc(syncKey, label.id), label);
+    },
+
+    async deleteLabel(id) {
+      delivered.delete(labelDoc(syncKey, id).join('/'));
+      await deleteDoc(ref(labelDoc(syncKey, id)));
     },
 
     async getPathPattern() {

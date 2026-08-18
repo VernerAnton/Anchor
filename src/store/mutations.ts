@@ -1,4 +1,4 @@
-import type { Priority, Project, ProjectColor, Recurrence, Task } from '../types/task';
+import type { Label, Priority, Project, ProjectColor, Recurrence, Task } from '../types/task';
 import type {
   DayLog,
   PathEntry,
@@ -44,6 +44,7 @@ export type TaskDraft = Pick<
   | 'firstMove'
   | 'type'
   | 'defaultDuration'
+  | 'labelIds'
 >;
 
 export function emptyTaskDraft(): TaskDraft {
@@ -58,6 +59,7 @@ export function emptyTaskDraft(): TaskDraft {
     firstMove: null,
     type: null,
     defaultDuration: null,
+    labelIds: [],
   };
 }
 
@@ -398,6 +400,55 @@ export function newProject(
     version: 1,
     updatedAt: Date.now(),
   };
+}
+
+/**
+ * Adds or removes one label on a task.
+ *
+ * A toggle rather than a set, because that is the whole of the interaction —
+ * you press a label, and it is either on or off. Order isn't kept: labels are
+ * a set, and the only reason they live in an array is that Firestore has no
+ * set type.
+ */
+export function toggleTaskLabel(task: Task, labelId: string): Task {
+  const held = task.labelIds ?? [];
+  const next = held.includes(labelId)
+    ? held.filter((id) => id !== labelId)
+    : [...held, labelId];
+  return touch({ ...task, labelIds: next });
+}
+
+/**
+ * Takes a label off a task, used when the label itself is deleted.
+ *
+ * Separate from the toggle because it has to be safe to run over every task,
+ * including the ones that never carried it — a toggle would happily add it to
+ * all of them.
+ */
+export function stripLabel(task: Task, labelId: string): Task {
+  return touch({ ...task, labelIds: (task.labelIds ?? []).filter((id) => id !== labelId) });
+}
+
+// ── Labels ─────────────────────────────────────────────────────────────────
+
+export function newLabel(name: string, order: number, colorId?: ProjectColor): Label {
+  return {
+    id: newId(),
+    name,
+    colorId: colorId ?? PROJECT_COLOR_IDS[order % PROJECT_COLOR_IDS.length]!,
+    order,
+    archived: false,
+    schemaVersion: SCHEMA_VERSION,
+    version: 1,
+    updatedAt: Date.now(),
+  };
+}
+
+export function editLabel(
+  label: Label,
+  changes: Partial<Pick<Label, 'name' | 'colorId' | 'order' | 'archived'>>,
+): Label {
+  return touch({ ...label, ...changes });
 }
 
 export function editProject(

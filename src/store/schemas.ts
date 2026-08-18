@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
 import type { Settings } from '../types/settings';
 import type { DayLog, PathPattern } from '../types/path';
 import { PROJECT_COLOR_IDS } from '../types/task';
@@ -141,6 +141,9 @@ export const taskSchema = z
     firstMove: z.string().nullable().catch(null),
     type: z.enum(['physical', 'abstract']).nullable().catch(null),
     defaultDuration: durationSchema.nullable().catch(null),
+    /* Absent on every task written before labels existed, which reads as
+       "no labels" — the ordinary case, and nothing to repair. */
+    labelIds: z.array(z.string()).catch([]).default([]),
     schemaVersion: z.number().catch(1),
     version: z.number().catch(0),
     updatedAt: z.number().catch(0),
@@ -153,6 +156,19 @@ export const projectSchema = z
     name: z.string(),
     colorId: z.enum(PROJECT_COLOR_IDS).catch('steel'),
     parentId: z.string().nullable().catch(null),
+    order: z.number().catch(0),
+    archived: z.boolean().catch(false),
+    schemaVersion: z.number().catch(1),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export const labelSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    colorId: z.enum(PROJECT_COLOR_IDS).catch('steel'),
     order: z.number().catch(0),
     archived: z.boolean().catch(false),
     schemaVersion: z.number().catch(1),
@@ -224,6 +240,10 @@ export const dayLogSchema = z
 
 export function parsePathPattern(data: unknown, context: string): PathPattern | null {
   return parse(pathPatternSchema, data, context) as PathPattern | null;
+}
+
+export function parseLabel(data: unknown, context: string): Label | null {
+  return parse(labelSchema, data, context) as Label | null;
 }
 
 export function parseDayLog(data: unknown, context: string): DayLog | null {
