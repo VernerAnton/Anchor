@@ -12,6 +12,7 @@ import {
   newTask,
   removeEntry,
   reopenTask,
+  rescheduleTask,
   emptyTaskDraft,
   setEntryCleared,
   setEntryStarted,
@@ -228,6 +229,11 @@ export function App({ syncMode }: Props) {
     saveTask(setTaskRecurrence(task, recurrence, today));
   };
 
+  /** Moves the task and re-phases its rule — see `rescheduleTask`. */
+  const reschedule = (task: Task, date: string) => {
+    saveTask(rescheduleTask(task, date));
+  };
+
   const deleteTask = (task: Task) => {
     // Subtasks go with their parent — an orphaned subtask has no home to show in.
     for (const sub of tasks.filter((t) => t.parentId === task.id)) {
@@ -399,6 +405,7 @@ export function App({ syncMode }: Props) {
       onClose={() => setSelectedTaskId(null)}
       onUpdate={updateTask}
       onSetRecurrence={setRecurrence}
+      onReschedule={reschedule}
       onToggle={toggleTask}
       onDelete={deleteTask}
       onAddSubtask={addSubtask}

@@ -3,6 +3,7 @@ import type { Duration, Label, Project, Recurrence, Task, TaskType } from '../ty
 import type { TaskDraft } from '../store/mutations';
 import { PRIORITIES } from '../lib/priorities';
 import { DEFAULT_MINUTES } from '../lib/day';
+import { rescheduleOptions } from '../lib/reschedule';
 import { RecurrenceEditor } from './RecurrenceEditor';
 import { NumberField } from './NumberField';
 
@@ -19,6 +20,11 @@ interface Props {
    * which is a rule of the model rather than a plain field write.
    */
   onSetRecurrence: (task: Task, recurrence: Recurrence | null) => void;
+  /**
+   * Also separate from `onUpdate`: moving a task moves the phase its rule
+   * counts from, which a plain `dueDate` write would leave behind.
+   */
+  onReschedule: (task: Task, date: string) => void;
   onToggle: (task: Task) => void;
   onDelete: (task: Task) => void;
   onAddSubtask: (parent: Task, title: string) => void;
@@ -49,6 +55,7 @@ function TaskForm({
   onClose,
   onUpdate,
   onSetRecurrence,
+  onReschedule,
   onToggle,
   onDelete,
   onAddSubtask,
@@ -163,6 +170,33 @@ function TaskForm({
           aria-label="Task title"
         />
       </div>
+
+      {/*
+        Directly under the title, above everything you'd have to read to
+        decide. Moving a thing is the commonest edit a task ever gets, and it
+        shouldn't cost a trip to a date picker. Hidden once it's done: a
+        completed task with a future due date is a state nothing else in the
+        app can produce, and nothing should start.
+      */}
+      {!done && (
+        <div className="reschedule" role="group" aria-label="Move this task">
+          {rescheduleOptions(task, today).map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="reschedule__option"
+              /* Where the task already sits. The press is otherwise invisible
+                 until you scroll to the date field, and a button that seems to
+                 do nothing gets pressed again. */
+              aria-current={task.dueDate === option.date}
+              onClick={() => onReschedule(task, option.date)}
+            >
+              <span className="reschedule__label">{option.label}</span>
+              <span className="reschedule__date">{option.dateLabel}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <label className="field">
         <span>Notes</span>

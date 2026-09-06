@@ -346,3 +346,33 @@ somewhere else in the list reshuffles rows that had nothing to do with it.
 **Sorting is offered on every task list; grouping is not.** A sort has something to say inside
 any list, including a single project's or a single date's. Grouping only earns its place where
 the list isn't already cut along that axis.
+
+## Rescheduling
+
+**Three moves under the title: Tomorrow, In a week, Next occurrence.** Moving a thing is the
+commonest edit a task ever gets, and a date picker charges three decisions — month, week, day —
+for something you already knew. The first two always show, so a dateless backlog task can be
+given a date this way. The third only appears when the task repeats and the rule can still
+produce a date; a disabled button that can't say where it would go is worse than no button.
+
+**Each button says where it lands before you press it.** "Tomorrow" needs no explanation;
+"next occurrence" very much does, and a move you can't predict isn't one you'll trust.
+
+**Moving a task moves the phase its rule counts from.** The rule keeps its shape — every other
+weekday stays every other weekday — but the anchor follows the task to its new date, so the
+counting restarts from where you just put it. Moved Monday to Tuesday, "every other weekday"
+runs Tue, Thu, Mon. Held to the old Monday phase it would say Wednesday, one day after the
+move, which is not what "every other" means to anybody. A `fromCompletion` rule has no phase to
+re-stamp — it already measures from you — so for those this is a plain date change.
+
+**Skipping measures from exactly where completing would.** The due date when it's still ahead,
+today when it has gone by, so finishing and skipping can never disagree about which occurrence
+comes next. Skipping records nothing: it is a scheduling move, not a verdict, and nothing in
+the app should be able to say an occurrence was missed.
+
+**The button matching the current due date is marked, not disabled.** It is the only feedback
+the press has — the date field is far enough down the panel to be off-screen on a phone, and a
+button that appears to do nothing gets pressed again.
+
+**The moves disappear once a task is done.** A completed task with a future due date is a state
+nothing else in the app can produce, and nothing should start.

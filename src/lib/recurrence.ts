@@ -9,10 +9,12 @@ import {
   daysInMonth,
   monthsBetween,
   nthWeekdayOfMonth,
+  shortDate,
   weekStart,
   weekdayOf,
   yearMonthOf,
   MONTH_NAMES,
+  WEEKDAY_ABBR,
 } from './dates';
 
 /**
@@ -270,8 +272,6 @@ export function recurrenceBase(dueDate: string | null, today: string): string {
 
 // ── Describing a rule ──────────────────────────────────────────────────────
 
-const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
-
 /** Monday-first for display; stored in JS order, where Sunday is 0. */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -332,7 +332,7 @@ export function describeRecurrence(rule: Recurrence): string {
     case 'weekly': {
       const ordered = DISPLAY_ORDER.filter((d) => rule.weekdays.includes(d));
       const dayList =
-        ordered.length === 7 ? 'any day' : ordered.map((d) => WEEKDAY_NAMES[d]).join(' ');
+        ordered.length === 7 ? 'any day' : ordered.map((d) => WEEKDAY_ABBR[d]).join(' ');
       if (rule.count === 'occurrences' && rule.interval > 1) {
         parts.push(`every ${ordinal(rule.interval)} of`, dayList);
       } else {
@@ -350,7 +350,7 @@ export function describeRecurrence(rule: Recurrence): string {
     case 'monthlyByWeekday':
       parts.push(
         everyPhrase(rule.interval, 'month'),
-        `${POSITION_NAMES[rule.week] ?? 'first'} ${WEEKDAY_NAMES[rule.weekday] ?? ''}`.trim(),
+        `${POSITION_NAMES[rule.week] ?? 'first'} ${WEEKDAY_ABBR[rule.weekday] ?? ''}`.trim(),
       );
       break;
 
@@ -362,7 +362,7 @@ export function describeRecurrence(rule: Recurrence): string {
       parts.push(
         everyPhrase(rule.interval, 'year'),
         monthsPhrase(rule.months),
-        `${POSITION_NAMES[rule.week] ?? 'first'} ${WEEKDAY_NAMES[rule.weekday] ?? ''}`.trim(),
+        `${POSITION_NAMES[rule.week] ?? 'first'} ${WEEKDAY_ABBR[rule.weekday] ?? ''}`.trim(),
       );
       break;
   }
@@ -390,8 +390,8 @@ export function describePreview(rule: Recurrence, from: string, max: number): st
 
   const refYear = yearMonthOf(from).year;
   const labels = dates.map((date) => {
-    const { year, month } = yearMonthOf(date);
-    const base = `${WEEKDAY_NAMES[weekdayOf(date)]} ${dayOf(date)} ${MONTH_NAMES[month - 1]}`;
+    const { year } = yearMonthOf(date);
+    const base = shortDate(date);
     return year === refYear ? base : `${base} ${year}`;
   });
 

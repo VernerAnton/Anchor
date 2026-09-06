@@ -982,6 +982,65 @@ h2 {
   background: var(--surface);
 }
 
+/*
+ * The moves, straight under the title. Equal widths because they're peers —
+ * none of the three is the one you're expected to press — and stacked rather
+ * than inline so the date underneath reads as the consequence of the label
+ * above it rather than as part of the name.
+ */
+.reschedule {
+  display: flex;
+  /* Fallback so three buttons don't run into one line of text with every
+     theme file blanked — they're side by side, and nothing else separates
+     them once the borders and padding go. */
+  gap: var(--space-2, 0.5rem);
+}
+
+.reschedule__option {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  text-align: left;
+}
+
+.reschedule__option:hover,
+.reschedule__option[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.reschedule__label {
+  font-size: var(--text-s);
+}
+
+/*
+ * Where it lands, in the app's own voice — this is the machine answering, not
+ * something you wrote. Stays legible on hover by inheriting rather than
+ * holding its own colour.
+ */
+.reschedule__date {
+  /* Pushed to the bottom so the three dates line up even when a label needs
+     two lines to fit — the dates are what you compare across the row. */
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.reschedule__option:hover .reschedule__date,
+.reschedule__option[aria-current='true'] .reschedule__date {
+  color: inherit;
+}
+
 .field {
   display: flex;
   flex-direction: column;

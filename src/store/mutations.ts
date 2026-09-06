@@ -127,6 +127,33 @@ export function setTaskPriority(task: Task, priority: Priority | null): Task {
 }
 
 /**
+ * Moves a task to a date — and moves its rhythm with it.
+ *
+ * The rule keeps its shape. "Every other weekday" stays every other weekday;
+ * what changes is where the counting starts. Moved from Monday to Tuesday, it
+ * runs Tue, Thu, Mon rather than staying on the Mon-Wed-Fri phase it had
+ * before, because the anchor — the fixed point an interval counts from —
+ * follows the task to its new date.
+ *
+ * That is the whole reason to move something. The alternative is a rule that
+ * insists on a calendar you have already left: shift Monday's task to Tuesday
+ * and the old phase would put the next one on Wednesday, one day later, which
+ * is not what "every other" meant to anybody.
+ *
+ * A `fromCompletion` rule never reads its anchor, so for those this is a plain
+ * due-date change. Right, too: those already measure from you rather than from
+ * a grid, so there is no phase to re-stamp.
+ */
+export function rescheduleTask(task: Task, date: string): Task {
+  const rule = task.recurrence;
+  return touch({
+    ...task,
+    dueDate: date,
+    recurrence: rule === null ? null : { ...rule, anchor: date },
+  });
+}
+
+/**
  * Sets a rule, stamping the phase it should count from when it doesn't carry
  * one. The task's own due date is the natural reference — picking "every other
  * Saturday" on a task due this Saturday should mean *this* Saturday's cadence.
