@@ -73,6 +73,24 @@ export function durationMinutes(duration: Duration | null): number | null {
   return minutes > 0 ? minutes : null;
 }
 
+/**
+ * "50m", "1h 30m" — a length compact enough to sit at the end of a list row,
+ * or null when the task hasn't been given one.
+ *
+ * The tilde on a runs-to-completion task is the whole distinction between a
+ * slot and a guess, and it is the shortest way to say it: `50m` is time you
+ * have set aside, `~50m` is time you expect it to take.
+ */
+export function durationLabel(duration: Duration | null): string | null {
+  const minutes = durationMinutes(duration);
+  if (minutes === null) return null;
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const body = hours === 0 ? `${rest}m` : rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+  return duration?.kind === 'natural' ? `~${body}` : body;
+}
+
 /** How long a task runs. Unset stays unset on the task; the day fills in. */
 export function effectiveDuration(task: Task): number {
   return durationMinutes(task.defaultDuration) ?? DEFAULT_MINUTES;

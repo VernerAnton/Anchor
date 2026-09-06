@@ -446,6 +446,23 @@ export function toggleTaskLabel(task: Task, labelId: string): Task {
 }
 
 /**
+ * Puts labels on a task, ignoring any it already carries.
+ *
+ * Separate from the toggle because the picker's gesture is different: typing a
+ * name means "have this one", not "flip it", and a pasted list must land as a
+ * single write — applying a toggle per name would read the same stale task
+ * three times and keep only the last.
+ *
+ * Returns the task itself when there is nothing to add, so a caller can tell a
+ * real change from a no-op without comparing arrays.
+ */
+export function addTaskLabels(task: Task, labelIds: string[]): Task {
+  const held = task.labelIds ?? [];
+  const added = labelIds.filter((id) => !held.includes(id));
+  return added.length === 0 ? task : touch({ ...task, labelIds: [...held, ...added] });
+}
+
+/**
  * Takes a label off a task, used when the label itself is deleted.
  *
  * Separate from the toggle because it has to be safe to run over every task,

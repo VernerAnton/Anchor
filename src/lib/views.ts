@@ -1,5 +1,5 @@
 import type { Project, Task } from '../types/task';
-import { MONTH_NAMES, todayStr, weekdayOf, dayOf } from './dates';
+import { MONTH_NAMES, addDays, shortDate, todayStr, weekdayOf, dayOf } from './dates';
 
 /**
  * Everything the views derive from raw data, as pure functions returning data.
@@ -86,6 +86,35 @@ export function dateLabel(date: string, today: string = todayStr()): string {
   if (date === today) return 'Today';
   const month = MONTH_NAMES[Number(date.slice(5, 7)) - 1];
   return `${WEEKDAY_NAMES[weekdayOf(date)]} · ${dayOf(date)} ${month}`;
+}
+
+/**
+ * The same date on a row, where it shares a line with everything else:
+ * "Wed 23 Sep", or a word for the two days that have one. A section heading
+ * has room to spell Wednesday out — see `dateLabel` — and a row does not.
+ */
+export function shortDateLabel(date: string, today: string = todayStr()): string {
+  if (date === today) return 'Today';
+  if (date === addDays(today, 1)) return 'Tomorrow';
+  return shortDate(date);
+}
+
+/**
+ * The first line worth showing of a note.
+ *
+ * A row can hold one line, and the first non-empty one is what a note opens
+ * with — which is where anyone puts the part they'd want reminding of. The
+ * rest stays in the panel. Blank and whitespace-only notes come back as null,
+ * so the row shows nothing rather than an empty space that looks like a bug.
+ */
+export function noteLine(notes: string | null): string | null {
+  if (notes === null) return null;
+  return (
+    notes
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line !== '') ?? null
+  );
 }
 
 /** Same day, by local calendar, for the "done today" list. */
