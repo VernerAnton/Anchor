@@ -22,6 +22,19 @@ export const MONTH_NAMES = [
   'Dec',
 ] as const;
 
+/** JavaScript's weekday order, abbreviated. Sunday is 0 here as everywhere. */
+export const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/**
+ * "Mon 8 Sep" — the compact form, for anywhere a date has to fit beside
+ * something else. No year: every caller is looking at dates within a year of
+ * now, and the ones that aren't say so themselves.
+ */
+export function shortDate(date: string): string {
+  const { month } = yearMonthOf(date);
+  return `${WEEKDAY_ABBR[weekdayOf(date)]} ${dayOf(date)} ${MONTH_NAMES[month - 1]}`;
+}
+
 export function todayStr(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
