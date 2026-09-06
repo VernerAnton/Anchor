@@ -380,6 +380,86 @@ export function describeRecurrence(rule: Recurrence): string {
 }
 
 /**
+ * The days a weekly rule falls on, as short as they go: "daily" for all seven,
+ * "Mon–Fri" for a contiguous run, "Mon Thu" for anything scattered.
+ *
+ * A range needs three days to be worth reading — "Mon–Tue" is longer than
+ * "Mon Tue" and says less. Empty is possible in the model and impossible in
+ * the editor; it returns nothing and lets the caller fall back to the interval.
+ */
+function weekdaysPhrase(weekdays: number[]): string {
+  const ordered = DISPLAY_ORDER.filter((d) => weekdays.includes(d));
+  if (ordered.length === 0) return '';
+  if (ordered.length === 7) return 'daily';
+
+  const places = ordered.map((d) => DISPLAY_ORDER.indexOf(d));
+  const runs = places.every((p, i) => i === 0 || p === places[i - 1]! + 1);
+  if (runs && ordered.length >= 3) {
+    return `${WEEKDAY_ABBR[ordered[0]!]}–${WEEKDAY_ABBR[ordered[ordered.length - 1]!]}`;
+  }
+  return ordered.map((d) => WEEKDAY_ABBR[d]).join(' ');
+}
+
+/** "1st", "15th", "last day" — the day-of-month selectors, compactly. */
+function shortDaysPhrase(days: number[]): string {
+  const ordered = [...days].sort((a, b) => (a === -1 ? 32 : a) - (b === -1 ? 32 : b));
+  return ordered.map((day) => (day === -1 ? 'last day' : ordinal(day))).join(', ');
+}
+
+/** "first Mon", "last Fri" — a position in the month. */
+function positionPhrase(week: number, weekday: number): string {
+  return `${POSITION_NAMES[week] ?? 'first'} ${WEEKDAY_ABBR[weekday] ?? ''}`.trim();
+}
+
+/** `every 3 months · ` when the interval bites, nothing when it doesn't. */
+function intervalPrefix(interval: number, unit: string): string {
+  return interval <= 1 ? '' : `every ${interval} ${unit}s · `;
+}
+
+/**
+ * The same rule at a glance, for a list row.
+ *
+ * A row has one line for this, and on a run of similar tasks the full
+ * description is both the longest thing on the line and the least
+ * distinguishing — three tasks that all say "every week · Mon Tue Wed Thu Fri
+ * · from completion" have spent their width agreeing with each other.
+ *
+ * So this says how often and on which days, and deliberately drops what a row
+ * can't act on: whether it counts from completion, when it stops, how many
+ * repeats are left. Those are mechanism, and they are one click away in the
+ * panel where they can be read properly.
+ */
+export function shortRecurrence(rule: Recurrence): string {
+  switch (rule.freq) {
+    case 'daily':
+      return rule.interval <= 1 ? 'daily' : `every ${rule.interval} days`;
+
+    case 'weekly': {
+      const days = weekdaysPhrase(rule.weekdays);
+      if (days === '') return rule.interval <= 1 ? 'weekly' : `every ${rule.interval} weeks`;
+      // Counting occurrences rather than weeks: "every 2nd · Mon–Fri" is every
+      // second matching day, which is a different rhythm from every 2nd week.
+      if (rule.count === 'occurrences' && rule.interval > 1) {
+        return `every ${ordinal(rule.interval)} · ${days}`;
+      }
+      return `${intervalPrefix(rule.interval, 'week')}${days}`;
+    }
+
+    case 'monthlyByDate':
+      return `${intervalPrefix(rule.interval, 'month')}${shortDaysPhrase(rule.days)}`;
+
+    case 'monthlyByWeekday':
+      return `${intervalPrefix(rule.interval, 'month')}${positionPhrase(rule.week, rule.weekday)}`;
+
+    case 'yearlyByDate':
+      return `${intervalPrefix(rule.interval, 'year')}${monthsPhrase(rule.months)} ${ordinal(rule.day)}`;
+
+    case 'yearlyByWeekday':
+      return `${intervalPrefix(rule.interval, 'year')}${monthsPhrase(rule.months)} · ${positionPhrase(rule.week, rule.weekday)}`;
+  }
+}
+
+/**
  * The preview as one display-ready line: "Sat 22 Aug · Sat 5 Sep · …", with
  * years shown only when they differ from the starting date's, and an explicit
  * "then ends" when the rule stops inside the window.

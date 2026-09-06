@@ -376,3 +376,53 @@ button that appears to do nothing gets pressed again.
 
 **The moves disappear once a task is done.** A completed task with a future due date is a state
 nothing else in the app can produce, and nothing should start.
+
+## What a row shows
+
+**A row carries what separates this task from its neighbours.** Three consecutive tasks that
+each spelled out "every week · Mon Tue Wed Thu Fri · from completion" spent their longest line
+agreeing with each other. The rule's mechanism — from completion, until, repeats left — comes
+off the row and stays in the panel, where there is room to read it.
+
+**The note's first line, not a marker that a note exists.** A glyph meaning "something is
+written here, but not what" is the one thing on a row that can't be acted on: it costs a click
+to learn what a line of text would have said outright. One line, then an ellipsis — a row that
+grows with the length of a note stops being a row.
+
+**Length goes at the end of the reference line**, which was carrying the reference and nothing
+else on every row in the app. Right-aligned, so it reads down as a column and a day's weight
+can be seen at a glance. `50m` is time set aside; `~50m` is time it's expected to take, and
+that tilde is the whole difference between a slot and a guess.
+
+**Type and first move stay off the row.** They are the path's questions, and the row is the
+to-do side's.
+
+## The panel's two halves
+
+**Type, first move and duration fold away under "For the path".** They exist so a day can be
+built out of a task; asking them of everything you file charges the path's cost to the to-do
+side. A real `details`, so it opens with a keyboard and survives every theme file being blanked.
+
+**The fold's state is remembered per device, not synced.** It describes how this screen is
+being used right now, and a phone in to-do mode has no reason to inherit a desktop's open panel.
+
+**Repeats stays out of the fold.** A repeating chore is a to-do idea, not a path one.
+
+## Labels
+
+**One box that searches and creates.** A wall of every label as a toggle answers "which are
+on" perfectly at five labels and not at all at fifty. The chips above the box keep that answer;
+the box serves the commoner case of knowing what you want and typing three letters of it.
+
+**Names are matched case-insensitively, so "Focus" and "focus" are one label.** A picker that
+quietly made a second one would be lying about what typing a name does. Archived names are free
+again — asking for one means a new label.
+
+**A comma finishes a label.** One paste of "focus, deep work, errand" lands as three, which is
+why the whole list is resolved before anything is written: two new names sharing one write
+would otherwise both claim the same order and the task would be saved twice from the same stale
+copy, keeping only the last.
+
+**The suggestions sit in the flow rather than floating over the fields below.** An overlay needs
+a background to hide what's under it, which is exactly what stops working when a theme file is
+missing, and inside a panel that already scrolls it is fiddly on a phone.

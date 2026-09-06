@@ -11,6 +11,7 @@ import {
   moveEntry,
   newTask,
   removeEntry,
+  addTaskLabels,
   reopenTask,
   rescheduleTask,
   emptyTaskDraft,
@@ -25,6 +26,7 @@ import {
   type EntryChanges,
 } from './store/mutations';
 import { todayStr, weekdayOf } from './lib/dates';
+import { findLabelByName, normalizeLabelName } from './lib/labelSearch';
 import { buildDay, clearedCount, landingOn, pointsOf } from './lib/day';
 import { regroup } from './lib/grouping';
 import { sortItems } from './lib/sorting';
@@ -257,6 +259,37 @@ export function App({ syncMode }: Props) {
     saveLabel(newLabel(name, order));
   };
 
+  /**
+   * Puts labels on a task by name, making the ones that don't exist yet.
+   *
+   * The whole list is resolved before anything is written, against a copy of
+   * the label list that grows as it goes — otherwise two new names pasted at
+   * once would both compute the same order, and the task would be saved twice
+   * from the same stale copy with only the second name surviving.
+   */
+  const wearLabels = (task: Task, names: string[]) => {
+    let known = labelList;
+    const ids: string[] = [];
+
+    for (const raw of names) {
+      const name = normalizeLabelName(raw);
+      if (name === '') continue;
+      const existing = findLabelByName(known, name);
+      if (existing) {
+        ids.push(existing.id);
+        continue;
+      }
+      const order = known.length === 0 ? 0 : Math.max(...known.map((l) => l.order)) + 1;
+      const made = newLabel(name, order);
+      saveLabel(made);
+      known = [...known, made];
+      ids.push(made.id);
+    }
+
+    const next = addTaskLabels(task, ids);
+    if (next !== task) saveTask(next);
+  };
+
   /** Swaps with its neighbour in the shown order, which is the order stored. */
   const moveLabel = (label: Label, direction: -1 | 1) => {
     const ordered = [...labelList]
@@ -399,6 +432,7 @@ export function App({ syncMode }: Props) {
       task={selectedTask}
       labels={labelList}
       onToggleLabel={(task, labelId) => saveTask(toggleTaskLabel(task, labelId))}
+      onWearLabels={wearLabels}
       tasks={tasks}
       projects={projects}
       today={today}

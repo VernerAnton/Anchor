@@ -6,6 +6,34 @@ import { DEFAULT_MINUTES } from '../lib/day';
 import { rescheduleOptions } from '../lib/reschedule';
 import { RecurrenceEditor } from './RecurrenceEditor';
 import { NumberField } from './NumberField';
+import { LabelPicker } from './LabelPicker';
+
+/**
+ * Whether the path's fields are folded open, remembered per device.
+ *
+ * Per device rather than in the synced settings: it describes how you are
+ * using this screen right now, not something about your tasks, and a phone in
+ * to-do mode has no reason to inherit a desktop's open panel.
+ */
+const PATH_FIELDS_KEY = 'anchor-path-fields';
+
+function readPathOpen(): boolean {
+  try {
+    return localStorage.getItem(PATH_FIELDS_KEY) === 'open';
+  } catch {
+    // Private windows and blocked storage both throw. Closed is the default
+    // either way, so there is nothing to recover.
+    return false;
+  }
+}
+
+function writePathOpen(open: boolean): void {
+  try {
+    localStorage.setItem(PATH_FIELDS_KEY, open ? 'open' : 'shut');
+  } catch {
+    // Not remembering is a fine outcome; failing to render is not.
+  }
+}
 
 interface Props {
   task: Task | null;
@@ -31,16 +59,31 @@ interface Props {
   onSelectTask: (id: string) => void;
   /** Adds or removes one label. A press is the whole interaction. */
   onToggleLabel: (task: Task, labelId: string) => void;
+  /**
+   * Puts labels on by name, making any that don't exist yet. By name because
+   * that is what the box collects, and in one call because a pasted list has
+   * to land as one write.
+   */
+  onWearLabels: (task: Task, names: string[]) => void;
 }
 
 export function DetailPanel(props: Props) {
   const { task } = props;
+  // Held here rather than in the form below, which is keyed by task id and so
+  // remounts on every selection — the fold would shut itself every click.
+  const [pathOpen, setPathOpen] = useState(readPathOpen);
+
+  const openPath = (open: boolean) => {
+    setPathOpen(open);
+    writePathOpen(open);
+  };
+
   return (
     <aside className={task ? 'detail detail--open' : 'detail'} aria-label="Task details">
       {task === null ? (
         <p className="detail__empty">Select a task to see its details.</p>
       ) : (
-        <TaskForm key={task.id} {...props} task={task} />
+        <TaskForm key={task.id} {...props} task={task} pathOpen={pathOpen} onPathOpen={openPath} />
       )}
     </aside>
   );
@@ -61,7 +104,10 @@ function TaskForm({
   onAddSubtask,
   onSelectTask,
   onToggleLabel,
-}: Props & { task: Task }) {
+  onWearLabels,
+  pathOpen,
+  onPathOpen,
+}: Props & { task: Task; pathOpen: boolean; onPathOpen: (open: boolean) => void }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes ?? '');
   const [firstMove, setFirstMove] = useState(task.firstMove ?? '');
@@ -243,35 +289,17 @@ function TaskForm({
       </label>
 
       {/*
-        Every label at once rather than a picker that opens: there are few
-        enough of them to show, and seeing which are off is half of what you
-        came here for. A project answers where this belongs; labels answer
-        what it needs from you, and a task can carry any number of them.
+        A project answers where this belongs; labels answer what it needs from
+        you, and a task can carry any number of them — so this is a box you
+        type into, not a wall of every label as a toggle. The wall answered
+        "which are on" perfectly at five labels and not at all at fifty.
       */}
-      <fieldset className="field">
-        <legend>Labels</legend>
-        {labels.filter((l) => !l.archived).length === 0 ? (
-          <p className="sync-note">No labels yet. Make one from the sidebar.</p>
-        ) : (
-          <div className="field-row label-picker">
-            {labels
-              .filter((l) => !l.archived)
-              .sort((a, b) => (a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name)))
-              .map((label) => (
-                <button
-                  key={label.id}
-                  type="button"
-                  className="label-pick"
-                  data-color={label.colorId}
-                  aria-pressed={(task.labelIds ?? []).includes(label.id)}
-                  onClick={() => onToggleLabel(task, label.id)}
-                >
-                  {label.name}
-                </button>
-              ))}
-          </div>
-        )}
-      </fieldset>
+      <LabelPicker
+        labels={labels}
+        worn={task.labelIds ?? []}
+        onWear={(names) => onWearLabels(task, names)}
+        onTakeOff={(labelId) => onToggleLabel(task, labelId)}
+      />
 
       <fieldset className="field">
         <legend>Priority</legend>
@@ -291,74 +319,90 @@ function TaskForm({
         </div>
       </fieldset>
 
-      <fieldset className="field">
-        <legend>Type</legend>
-        <div className="field-row">
-          <button
-            type="button"
-            className="pick"
-            aria-pressed={task.type === 'physical'}
-            onClick={() => setType('physical')}
-          >
-            Physical
-          </button>
-          <button
-            type="button"
-            className="pick"
-            aria-pressed={task.type === 'abstract'}
-            onClick={() => setType('abstract')}
-          >
-            Abstract
-          </button>
-        </div>
-      </fieldset>
-
-      <label className="field">
-        <span>First move</span>
-        <input
-          value={firstMove}
-          onChange={(event) => setFirstMove(event.target.value)}
-          onBlur={commitFirstMove}
-          placeholder="The smallest thing that starts it"
-        />
-      </label>
-
-      <fieldset className="field">
-        <legend>Duration</legend>
-        <div className="field-row">
-          <button
-            type="button"
-            className="pick"
-            aria-pressed={duration?.kind === 'fixed'}
-            onClick={() => setDurationKind('fixed')}
-          >
-            Fixed
-          </button>
-          <button
-            type="button"
-            className="pick"
-            aria-pressed={duration?.kind === 'natural'}
-            onClick={() => setDurationKind('natural')}
-          >
-            Runs to completion
-          </button>
-          {duration && (
-            <NumberField
-              value={duration.kind === 'fixed' ? duration.minutes : duration.estimateMinutes}
-              min={1}
-              max={720}
-              label={duration.kind === 'fixed' ? 'Minutes' : 'Estimated minutes'}
-              onCommit={setDurationMinutes}
-            />
-          )}
-        </div>
-      </fieldset>
-
       <RecurrenceEditor
         recurrence={task.recurrence}
         from={task.dueDate ?? today}
         onChange={(recurrence) => onSetRecurrence(task, recurrence)}
       />
+
+      {/*
+        Three fields the to-do side never reads. Type, first move and duration
+        exist so a day can be built out of this task — they are the path's
+        questions, and asking them of every task you file is friction charged
+        to the wrong mode.
+
+        A real `details`, so it opens with a keyboard and works with every
+        theme file blanked. Its open state is held above this form, so walking
+        through tasks doesn't snap it shut on every click.
+      */}
+      <details className="field-group" open={pathOpen} onToggle={(event) => onPathOpen(event.currentTarget.open)}>
+        <summary className="field-group__head">For the path</summary>
+
+        <div className="field-group__body">
+          <fieldset className="field">
+            <legend>Type</legend>
+            <div className="field-row">
+              <button
+                type="button"
+                className="pick"
+                aria-pressed={task.type === 'physical'}
+                onClick={() => setType('physical')}
+              >
+                Physical
+              </button>
+              <button
+                type="button"
+                className="pick"
+                aria-pressed={task.type === 'abstract'}
+                onClick={() => setType('abstract')}
+              >
+                Abstract
+              </button>
+            </div>
+          </fieldset>
+
+          <label className="field">
+            <span>First move</span>
+            <input
+              value={firstMove}
+              onChange={(event) => setFirstMove(event.target.value)}
+              onBlur={commitFirstMove}
+              placeholder="The smallest thing that starts it"
+            />
+          </label>
+
+          <fieldset className="field">
+            <legend>Duration</legend>
+            <div className="field-row">
+              <button
+                type="button"
+                className="pick"
+                aria-pressed={duration?.kind === 'fixed'}
+                onClick={() => setDurationKind('fixed')}
+              >
+                Fixed
+              </button>
+              <button
+                type="button"
+                className="pick"
+                aria-pressed={duration?.kind === 'natural'}
+                onClick={() => setDurationKind('natural')}
+              >
+                Runs to completion
+              </button>
+              {duration && (
+                <NumberField
+                  value={duration.kind === 'fixed' ? duration.minutes : duration.estimateMinutes}
+                  min={1}
+                  max={720}
+                  label={duration.kind === 'fixed' ? 'Minutes' : 'Estimated minutes'}
+                  onCommit={setDurationMinutes}
+                />
+              )}
+            </div>
+          </fieldset>
+        </div>
+      </details>
 
       {task.parentId === null && (
         <section className="field">

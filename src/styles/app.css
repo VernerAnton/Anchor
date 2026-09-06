@@ -629,8 +629,46 @@ h2 {
   text-align: left;
 }
 
+/*
+ * The reference line, which used to carry the reference and nothing else —
+ * most of a line left empty on every row in the app. The length goes to the
+ * far end of it, making a column you can read straight down to see what a day
+ * weighs, and costing no height to do it.
+ */
+.task-row__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.task-length {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .task-title {
   overflow-wrap: anywhere;
+}
+
+/*
+ * The note's first line, in your voice rather than the app's — it is the one
+ * thing on the row you wrote. One line and then an ellipsis: a row that grows
+ * with the length of a note stops being a row.
+ */
+.task-note {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--text-s);
+  color: var(--text-muted);
+}
+
+.task-row--done .task-note,
+.task-row--done .task-length {
+  color: var(--text-faint);
 }
 
 /*
@@ -847,29 +885,83 @@ h2 {
  * Rounded where the priority and type pickers are square, so the two rows of
  * buttons never read as one control.
  */
-.label-picker {
+/*
+ * The label box: what the task wears, then one input that searches what
+ * exists and makes what doesn't.
+ */
+.label-search {
+  position: relative;
+}
+
+.label-search__worn {
+  display: flex;
   flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
-.label-pick {
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border-strong);
+/* Colour comes from the label's own identity, so the outline reads as which
+   label rather than as which control. */
+.label-worn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid currentColor;
   border-radius: var(--radius-l);
-  background: var(--surface);
   font-size: var(--text-s);
-  color: var(--text-muted);
 }
 
-.label-pick:hover {
-  border-color: currentColor;
-  color: var(--text);
+.label-worn__off {
+  font-size: var(--text-xs);
+  line-height: 1;
+  opacity: 0.7;
 }
 
-.label-pick[aria-pressed='true'] {
-  border-color: currentColor;
+.label-worn__off:hover {
+  opacity: 1;
+}
+
+/*
+ * The suggestions sit in the flow and push what follows down, rather than
+ * floating over it. An overlay would need a background to hide what's beneath
+ * — which is exactly the kind of thing that stops working with a theme file
+ * missing — and inside a panel that already scrolls it is fiddly on a phone.
+ */
+.label-search__options {
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+}
+
+.label-search__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-s);
+  cursor: pointer;
+}
+
+/*
+ * The keyboard's place in the list. The tint carries it normally; the rule
+ * down the edge is `currentColor`, so which option Enter would take is still
+ * visible with every theme file blanked — a highlight that only exists as a
+ * background is a highlight that disappears with the background.
+ */
+.label-search__option[aria-selected='true'] {
   background: var(--surface-hover);
-  color: var(--text);
-  font-weight: 600;
+  box-shadow: inset 2px 0 0 currentColor;
+}
+
+/* The one row that isn't a label yet. Stamped, because it's the app
+   offering something rather than something you already have. */
+.label-search__new {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
 /*
@@ -879,28 +971,36 @@ h2 {
  */
 .meta-label[data-color='steel'],
 .label-chip[data-color='steel'],
-.label-pick[data-color='steel'] { color: var(--project-steel); }
+.label-worn[data-color='steel'],
+.label-search__option[data-color='steel'] { color: var(--project-steel); }
 .meta-label[data-color='violet'],
 .label-chip[data-color='violet'],
-.label-pick[data-color='violet'] { color: var(--project-violet); }
+.label-worn[data-color='violet'],
+.label-search__option[data-color='violet'] { color: var(--project-violet); }
 .meta-label[data-color='teal'],
 .label-chip[data-color='teal'],
-.label-pick[data-color='teal'] { color: var(--project-teal); }
+.label-worn[data-color='teal'],
+.label-search__option[data-color='teal'] { color: var(--project-teal); }
 .meta-label[data-color='sage'],
 .label-chip[data-color='sage'],
-.label-pick[data-color='sage'] { color: var(--project-sage); }
+.label-worn[data-color='sage'],
+.label-search__option[data-color='sage'] { color: var(--project-sage); }
 .meta-label[data-color='ochre'],
 .label-chip[data-color='ochre'],
-.label-pick[data-color='ochre'] { color: var(--project-ochre); }
+.label-worn[data-color='ochre'],
+.label-search__option[data-color='ochre'] { color: var(--project-ochre); }
 .meta-label[data-color='plum'],
 .label-chip[data-color='plum'],
-.label-pick[data-color='plum'] { color: var(--project-plum); }
+.label-worn[data-color='plum'],
+.label-search__option[data-color='plum'] { color: var(--project-plum); }
 .meta-label[data-color='indigo'],
 .label-chip[data-color='indigo'],
-.label-pick[data-color='indigo'] { color: var(--project-indigo); }
+.label-worn[data-color='indigo'],
+.label-search__option[data-color='indigo'] { color: var(--project-indigo); }
 .meta-label[data-color='clay'],
 .label-chip[data-color='clay'],
-.label-pick[data-color='clay'] { color: var(--project-clay); }
+.label-worn[data-color='clay'],
+.label-search__option[data-color='clay'] { color: var(--project-clay); }
 
 .priority-flag {
   font-family: var(--font-mono);
@@ -922,6 +1022,35 @@ h2 {
   color: var(--text-muted);
   font-size: var(--text-s);
   padding: var(--space-2) 0;
+}
+
+/*
+ * A folded group of fields. The head takes the same stamped voice as every
+ * other field label, so a closed group reads as one more line of the form
+ * rather than as a control bolted onto it.
+ */
+.field-group__head {
+  /* The marker keeps its own space rather than sitting against the first
+     letter, which the wide tracking below would otherwise close up. */
+  padding-inline-start: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+
+.field-group__head:hover {
+  color: var(--text-muted);
+}
+
+.field-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+  padding-top: var(--space-4, 1rem);
 }
 
 /* ── Detail panel ─────────────────────────────────────────────────────── */

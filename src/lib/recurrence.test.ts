@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Recurrence, RecurrenceSpec } from '../types/task';
 import {
   describeRecurrence,
+  shortRecurrence,
   matches,
   nextOccurrence,
   previewOccurrences,
@@ -467,6 +468,70 @@ describe('end conditions', () => {
     );
     expect(describeRecurrence(rule({ freq: 'daily' }, { remaining: 3 }))).toBe(
       'every day · 3 times left',
+    );
+  });
+});
+
+describe('shortRecurrence', () => {
+  it('collapses a contiguous run of days to a range', () => {
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [1, 2, 3, 4, 5] }))).toBe('Mon–Fri');
+  });
+
+  it('keeps two days as two days — a range of two is longer than the days are', () => {
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [1, 2] }))).toBe('Mon Tue');
+  });
+
+  it('lists scattered days', () => {
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [1, 4] }))).toBe('Mon Thu');
+  });
+
+  it('calls all seven days daily, however it was built', () => {
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [0, 1, 2, 3, 4, 5, 6] }))).toBe('daily');
+    expect(shortRecurrence(rule({ freq: 'daily' }))).toBe('daily');
+  });
+
+  it('keeps an interval that changes the rhythm', () => {
+    expect(shortRecurrence(rule({ freq: 'daily' }, { interval: 3 }))).toBe('every 3 days');
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [6] }, { interval: 2 }))).toBe(
+      'every 2 weeks · Sat',
+    );
+    expect(
+      shortRecurrence(
+        rule({ freq: 'weekly', weekdays: [1, 2, 3, 4, 5], count: 'occurrences' }, { interval: 2 }),
+      ),
+    ).toBe('every 2nd · Mon–Fri');
+  });
+
+  it('reads days of the month as ordinals', () => {
+    expect(shortRecurrence(rule({ freq: 'monthlyByDate', days: [1, 15] }))).toBe('1st, 15th');
+    expect(shortRecurrence(rule({ freq: 'monthlyByDate', days: [-1] }))).toBe('last day');
+    expect(shortRecurrence(rule({ freq: 'monthlyByWeekday', week: -1, weekday: 5 }))).toBe(
+      'last Fri',
+    );
+  });
+
+  it('names the month for a yearly rule', () => {
+    expect(shortRecurrence(rule({ freq: 'yearlyByDate', months: [9], day: 23 }))).toBe('Sep 23rd');
+  });
+
+  /**
+   * The point of the short form: a row can't act on the mechanism, and three
+   * neighbouring tasks that all spell it out have spent their width agreeing.
+   */
+  it('drops what a row cannot act on', () => {
+    const busy = rule(
+      { freq: 'weekly', weekdays: [1, 2, 3, 4, 5] },
+      { mode: 'fromCompletion', until: '2026-12-31', remaining: 4 },
+    );
+    expect(shortRecurrence(busy)).toBe('Mon–Fri');
+    // The full description still says all of it, where there is room to read it.
+    expect(describeRecurrence(busy)).toContain('from completion');
+  });
+
+  it('falls back to the interval when a rule has no days at all', () => {
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [] }))).toBe('weekly');
+    expect(shortRecurrence(rule({ freq: 'weekly', weekdays: [] }, { interval: 3 }))).toBe(
+      'every 3 weeks',
     );
   });
 });
