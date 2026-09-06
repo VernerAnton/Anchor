@@ -790,6 +790,44 @@ h2 {
   padding: var(--space-1) var(--space-2);
 }
 
+/*
+ * On a phone the title and the view's controls can't share a line. Two selects
+ * and the reverse toggle are wider than the screen between them, so holding
+ * them on the title's row pushed the toggle past the right edge and squeezed
+ * "All tasks" onto two lines.
+ *
+ * The header wraps instead: title on top, controls on a full-width row beneath
+ * it. The toggle keeps its square and the two selects split what's left, which
+ * is what makes them land at a thumb-sized width rather than each shrinking to
+ * fit its own longest option.
+ */
+@media (max-width: 560px) {
+  .panel-header {
+    flex-wrap: wrap;
+    /* Falls back so the two rows stay apart with every theme file blanked. */
+    row-gap: var(--space-2, 0.5rem);
+  }
+
+  .panel-header h1 {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .panel-header__options {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .panel-header__group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .panel-header__group select {
+    width: 100%;
+  }
+}
+
 .panel-empty {
   margin: 0;
   color: var(--text-muted);
@@ -2644,6 +2682,16 @@ button.path-card--rest:hover {
   justify-content: center;
   padding: var(--space-6);
   z-index: 10;
+}
+
+/*
+ * A modal is the top layer by definition, and the two backdrops are not the
+ * same thing: the drawer scrim sits *under* its drawer, a dialog's sits over
+ * everything. Sharing one depth meant the sidebar — fixed above the scrim on a
+ * phone — covered most of the dialog it had just opened.
+ */
+.modal-backdrop {
+  z-index: 40;
 }
 
 .modal {
