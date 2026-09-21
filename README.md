@@ -1,11 +1,21 @@
 # Anchor
 
 A task manager built on one premise: **action produces motivation, not the other way
-around.** The signature feature — a day rendered as a route rather than a list — arrives in
-a later phase; the foundation is a capable to-do app that stands on its own.
+around.**
 
-Design history, handovers and standing decisions live in `design/`. The structural rules
-every session must follow are in `CLAUDE.md`.
+## Current state: rebuilding the to-do side
+
+`src/` was deliberately cleared. An earlier attempt built the signature feature — the
+**path**, a day rendered as a route rather than a list — and an elaborate theme before the
+to-do foundation was finished, which made every small change expensive. So the project was
+reset to build a complete, capable to-do app first, on plain default styling.
+
+- **`handover/`** — what's being built and how. Start at `handover/README.md`.
+- **`archive/`** — the previous implementation, kept as a parts bin. Excluded from the
+  build; see `handover/mechanisms.md` for what's worth taking.
+- **`CLAUDE.md`** — the structural rules every session must follow.
+
+The path returns as a later phase, as views inside this app.
 
 ## Stack
 
@@ -18,7 +28,7 @@ not a fallback.
 ```
 npm install
 npm run dev        # local server
-npm run test       # recurrence engine unit tests
+npm run test       # unit tests (archive/ is excluded)
 npm run typecheck
 npm run build      # tsc + vite build, service worker included
 ```

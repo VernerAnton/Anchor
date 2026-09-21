@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#04080d" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="description" content="A task manager built on one premise: action produces motivation, not the other way around." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>Anchor</title>
     <script>
       /*
-       * Paints the right theme before anything renders.
+       * Paints the right colour scheme before anything renders.
        *
        * The real preference lives in the synced settings document, which
        * arrives a moment after the page does — so without this the first paint
@@ -26,8 +26,8 @@
       (function () {
         try {
           var hint = localStorage.getItem('anchor-theme-hint');
-          if (hint !== 'noir' && hint !== 'blossom') {
-            hint = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'noir' : 'blossom';
+          if (hint !== 'light' && hint !== 'dark') {
+            hint = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
           document.documentElement.dataset.theme = hint;
         } catch (error) {
