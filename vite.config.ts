@@ -1,5 +1,7 @@
 import { execSync } from 'node:child_process';
-import { defineConfig } from 'vite';
+// `vitest/config` re-exports Vite's defineConfig widened with the `test` key, so the
+// two configs stay in one file rather than drifting apart in two.
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -29,6 +31,11 @@ const sha = process.env.VERCEL_GIT_COMMIT_SHA || gitSha();
 const ref = process.env.VERCEL_GIT_COMMIT_REF || '';
 
 export default defineConfig({
+  // archive/ is reference material, not part of the project. Its tests refer
+  // to code that no longer exists here and must never join the suite.
+  test: {
+    exclude: ['**/node_modules/**', '**/dist/**', 'archive/**'],
+  },
   define: {
     __BUILD_SHA__: JSON.stringify(sha ? sha.slice(0, 7) : 'dev'),
     __BUILD_REF__: JSON.stringify(ref),
@@ -59,8 +66,8 @@ export default defineConfig({
         description: 'A task manager built on one premise: action produces motivation, not the other way around.',
         start_url: '/',
         display: 'standalone',
-        background_color: '#04080d',
-        theme_color: '#04080d',
+        background_color: '#ffffff',
+        theme_color: '#ffffff',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
