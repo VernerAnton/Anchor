@@ -123,8 +123,18 @@ on several devices.
 
 **[proposed] Light / dark / follow-the-system**, the preference synced.
 
-**[core] `APP_VERSION` visible in the app.** With an installed PWA you cannot otherwise
-tell whether a device is on the current build.
+**[core] `APP_VERSION` visible in the app, and an update prompt that offers a reload.**
+
+With an installed PWA you cannot otherwise tell whether a device is on the current build —
+and worse, a resumed app can sit on an old one for days without a hint. The prompt notices
+when a newer build has taken over and offers **Reload** or **Later**, naming the version
+you're currently on.
+
+Offered, never forced: a reload you didn't ask for throws away whatever you were half-way
+through typing. Declining costs nothing — the offer returns on the next check.
+
+`mechanisms.md` has the detail, including the one-line mistake that turns this from an
+offer into a silent reload that eats input.
 
 **[proposed] Sample data on first run**, so an empty install isn't a blank screen.
 
