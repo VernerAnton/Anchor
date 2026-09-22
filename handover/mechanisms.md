@@ -152,6 +152,55 @@ are one of the better things about this app.
 
 ---
 
+## Take this: the update prompt
+
+```
+archive/src/hooks/useAppUpdate.ts        the detection
+archive/src/components/UpdatePrompt.tsx  the offer, with a Reload button
+docs/app-version-and-update-prompt.md    324-line guide, still at the repo root
+```
+
+**This one matters more than its size suggests, and it has a trap in it.**
+
+The owner has Anchor installed as a PWA on several devices. A service worker will happily
+install a new build, but a page that is already open keeps running the JavaScript it
+started with, and the browser only looks for a new worker on a **cold load**. An installed
+app resumed from the background can therefore sit on an old build for days with no hint —
+which is how a bug fixed last week is still on your phone. Without this, "did my fix
+actually reach the device?" becomes unanswerable, and that question comes up constantly.
+
+**What it already knows:**
+
+- **Check on visibility change, not just on a timer.** This app is switched back to far
+  more often than it is loaded fresh, so the `visibilitychange` listener is the one that
+  actually catches updates. The hourly timer is the backstop.
+- **`onNeedReload`, not `onNeedRefresh` — and this is the trap.** Registration stays on
+  `autoUpdate`, which is what lets a new worker claim already-installed copies rather than
+  waiting behind a prompt nobody sees. But under `autoUpdate` the plugin **never calls
+  `onNeedRefresh`**, and its `updateServiceWorker` does nothing. What it *will* do is call
+  `window.location.reload()` by itself unless you supply `onNeedReload`. **Supplying that
+  callback is the only thing standing between "we offer you a reload" and "the app reloads
+  underneath you and discards the task you were half-way through typing."**
+
+  Wire this up from the wrong half of the plugin's API and it looks correct in testing —
+  you'll see updates arrive — while silently eating input in real use.
+- **By the time the prompt fires the new worker already controls the page**, so
+  `window.location.reload()` is all that's needed. No `skipWaiting` dance.
+- **Offered, never forced.** Declining costs nothing; the offer returns on the next check.
+  Same reason as everywhere else in the app — a reload you didn't ask for throws away what
+  you were typing.
+- **The prompt names the version you're on** ("You're on V26"), which is what makes
+  `APP_VERSION` worth maintaining rather than decorative.
+
+**`docs/app-version-and-update-prompt.md` survived the reset and is still at the repo
+root** — it's a full guide with a working implementation in its appendix, plus a section on
+verifying it for real rather than asserting it. Read that before wiring this up.
+
+The `UpdatePrompt` component itself is trivial and carries old class names, so rebuild the
+markup. **Take `useAppUpdate.ts` as-is** — it's the part with the knowledge in it.
+
+---
+
 ## Take as-is: infrastructure
 
 Already at the repo root and working. Don't rebuild these.
@@ -168,7 +217,6 @@ Also worth lifting:
 ```
 archive/src/components/ErrorBoundary.tsx    small, does its job
 archive/src/components/NumberField.tsx      a numeric input that behaves
-archive/src/hooks/useAppUpdate.ts           service-worker update prompt
 archive/src/lib/theme.ts                    light/dark/system resolution
 archive/src/lib/build.ts, id.ts             trivial but done
 ```

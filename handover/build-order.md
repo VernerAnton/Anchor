@@ -51,6 +51,12 @@ Sync, PWA verification, light/dark, the update prompt, sample data.
 Test sync on a real second device, not just two browser tabs. Test offline for real:
 airplane mode, make changes, reconnect, confirm they land.
 
+**Verify the update prompt on an actually-installed copy**, not in a dev tab — deploy,
+resume the installed app from the background, and confirm the offer appears and that
+declining it doesn't reload. This is the one feature whose failure mode is invisible from
+the developer's machine, and `docs/app-version-and-update-prompt.md` has a section on
+testing it properly.
+
 ---
 
 ## Phase 5 — Make it good
