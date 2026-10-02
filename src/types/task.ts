@@ -34,6 +34,29 @@ export const PROJECT_COLOR_IDS = [
 
 export type ProjectColor = (typeof PROJECT_COLOR_IDS)[number];
 
+/**
+ * Where a task belongs. Exactly one per task (or none). Nests one level: a
+ * project with a parent never has children.
+ */
+export interface Project {
+  id: string;
+  name: string;
+  /** An id, never a hex value — the colour itself is a theme token. */
+  colorId: ProjectColor;
+  /** `null` = top level. */
+  parentId: string | null;
+  /** Manual ordering in the sidebar. */
+  order: number;
+  /**
+   * Archived rather than deleted, so a task filed here can still say where
+   * its work came from.
+   */
+  archived: boolean;
+  schemaVersion: number;
+  version: number;
+  updatedAt: number;
+}
+
 /** 1 is the strongest pull. Absent (`null`) sorts last and is not a P5. */
 export type Priority = 1 | 2 | 3 | 4;
 

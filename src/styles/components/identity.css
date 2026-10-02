@@ -1,0 +1,42 @@
+/*
+ * Identity and priority, mapped from data ids to theme tokens.
+ *
+ * Identity colours say *which thing this is* — a project is a filled dot, and
+ * labels (phase 3) will be outlined chips: shape carries the axis, colour
+ * carries the item. Priority also reads as text ("P1"), so it survives with
+ * no colour at all.
+ */
+
+.project-dot {
+  display: inline-block;
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--text-muted);
+}
+
+.project-dot[data-color='steel'] { background-color: var(--project-steel); }
+.project-dot[data-color='violet'] { background-color: var(--project-violet); }
+.project-dot[data-color='teal'] { background-color: var(--project-teal); }
+.project-dot[data-color='sage'] { background-color: var(--project-sage); }
+.project-dot[data-color='ochre'] { background-color: var(--project-ochre); }
+.project-dot[data-color='plum'] { background-color: var(--project-plum); }
+.project-dot[data-color='indigo'] { background-color: var(--project-indigo); }
+.project-dot[data-color='clay'] { background-color: var(--project-clay); }
+
+.priority-flag {
+  font-weight: var(--weight-strong);
+}
+
+.priority-flag[data-priority='1'] { color: var(--priority-1); }
+.priority-flag[data-priority='2'] { color: var(--priority-2); }
+.priority-flag[data-priority='3'] { color: var(--priority-3); }
+.priority-flag[data-priority='4'] { color: var(--priority-4); }
+
+/* The detail panel's priority buttons: the current one is marked, never disabled. */
+.priority-choice[aria-pressed='true'] {
+  border-color: var(--accent);
+  background-color: var(--surface-selected);
+  font-weight: var(--weight-strong);
+}

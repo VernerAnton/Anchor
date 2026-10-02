@@ -1,6 +1,6 @@
 import type { AnchorRepository, Unsubscribe } from './repository';
-import { localKey, taskDoc, tasksCollection } from './keys';
-import { parseTask } from './schemas';
+import { localKey, projectDoc, projectsCollection, taskDoc, tasksCollection } from './keys';
+import { parseProject, parseTask } from './schemas';
 
 /**
  * localStorage behind the Firestore-shaped interface. A complete mode of the
@@ -91,6 +91,12 @@ export function createLocalRepository(userId: string): AnchorRepository {
   };
 
   const tasksPrefix = `${localKey(tasksCollection(userId))}:`;
+  const projectsPrefix = `${localKey(projectsCollection(userId))}:`;
+
+  const remove = (key: string) => {
+    localStorage.removeItem(key);
+    notify(key);
+  };
 
   return {
     async getTasks() {
@@ -109,9 +115,26 @@ export function createLocalRepository(userId: string): AnchorRepository {
     },
 
     async deleteTask(id) {
-      const key = localKey(taskDoc(userId, id));
-      localStorage.removeItem(key);
-      notify(key);
+      remove(localKey(taskDoc(userId, id)));
+    },
+
+    async getProjects() {
+      return scanAll(projectsPrefix, parseProject);
+    },
+
+    subscribeProjects(cb) {
+      return watch(
+        (changed) => changed.startsWith(projectsPrefix),
+        () => cb(scanAll(projectsPrefix, parseProject)),
+      );
+    },
+
+    async saveProject(project) {
+      writeVersioned(localKey(projectDoc(userId, project.id)), project);
+    },
+
+    async deleteProject(id) {
+      remove(localKey(projectDoc(userId, id)));
     },
   };
 }

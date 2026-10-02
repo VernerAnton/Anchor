@@ -4,25 +4,31 @@
  */
 
 .task-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding-inline: var(--space-2);
   border-bottom-style: solid;
   border-bottom-width: var(--border-width);
   border-bottom-color: var(--border-subtle);
+}
+
+.task-row__main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
 }
 
 .task-row__check {
   flex: none;
   width: var(--space-5);
   height: var(--space-5);
-  margin: 0;
+  /* Lines the box up with the title's first line inside the button's padding. */
+  margin: var(--space-3) 0 0;
   accent-color: var(--state-done);
   cursor: pointer;
 }
 
 .task-row__open {
+  display: grid;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
   min-height: var(--tap-target);
@@ -34,32 +40,80 @@
   cursor: pointer;
 }
 
-.task-row__open:hover {
-  background-color: var(--surface-hover);
-}
 
 .task-row__title {
   font-size: var(--text-md);
+  line-height: var(--leading-tight);
   overflow-wrap: anywhere;
 }
 
+.task-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.meta-project {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* A date that has gone by. Neutral by rule — never a warning, never red. */
+.meta-due--past {
+  color: var(--state-past);
+}
+
+/* One line of the note, then an ellipsis. A row that grows with its note stops being a row. */
+.task-row__note {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Done: the text recedes and is struck through — a record, not a to-do. */
-.task-row--done .task-row__title {
+.task-row--done > .task-row__main .task-row__title,
+.detail-subtasks__item.task-row--done .task-row__title {
   color: var(--text-muted);
   text-decoration-line: line-through;
 }
 
-.task-row--selected .task-row__open {
+.task-row--selected > .task-row__main .task-row__open {
   background-color: var(--surface-selected);
+}
+
+/* Subtasks sit indented under their parent, one level only. */
+.subtask-list {
+  padding-inline-start: var(--space-7);
+}
+
+.subtask-list .task-row {
+  border-bottom: none;
+  border-top-style: solid;
+  border-top-width: var(--border-width);
+  border-top-color: var(--border-subtle);
 }
 
 @media (pointer: fine) {
   .task-row__check {
     width: var(--space-4);
     height: var(--space-4);
+    margin-top: var(--space-2);
   }
 
   .task-row__open {
     min-height: 0;
+  }
+}
+
+/* Hover only where there is a pointer that hovers — on touch it sticks after a tap. */
+@media (hover: hover) {
+  .task-row__open:hover {
+    background-color: var(--surface-hover);
   }
 }

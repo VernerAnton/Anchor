@@ -33,9 +33,14 @@
   gap: var(--space-1);
 }
 
+.nav-list--nested {
+  padding-inline-start: var(--space-4);
+}
+
 .nav-list__link {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: var(--tap-target);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
@@ -44,8 +49,46 @@
   text-decoration: none;
 }
 
-.nav-list__link:hover {
-  background-color: var(--surface-hover);
+
+.nav-list__label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nav-list__count {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.sidebar__projects {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sidebar__heading {
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.sidebar__new-project {
+  justify-self: start;
+  margin-inline: var(--space-2);
+}
+
+.new-project {
+  display: grid;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+}
+
+.sidebar__archived-summary {
+  padding: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
 }
 
 /* The current view: marked by aria-current, which is also what screen readers announce. */
@@ -84,5 +127,12 @@
   .nav-list__link {
     min-height: 0;
     padding-block: var(--space-2);
+  }
+}
+
+/* Hover only where there is a pointer that hovers — on touch it sticks after a tap. */
+@media (hover: hover) {
+  .nav-list__link:hover {
+    background-color: var(--surface-hover);
   }
 }

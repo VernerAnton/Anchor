@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completeTask, editTask, emptyTaskDraft, newTask, nextOrder, reopenTask } from './mutations';
+import { completeTask, editTask, emptyTaskDraft, newTask, nextOrder, refileTask, reopenTask } from './mutations';
 
 const fresh = () => newTask({ ...emptyTaskDraft(), title: 'Water the plants' }, 1, 1000);
 
@@ -31,5 +31,18 @@ describe('nextOrder', () => {
   it('places a new task after the last one', () => {
     expect(nextOrder([])).toBe(1);
     expect(nextOrder([{ ...fresh(), order: 7 }, { ...fresh(), order: 3 }])).toBe(8);
+  });
+});
+
+describe('refileTask', () => {
+  it('moves a task’s subtasks with it, and only touches what changes', () => {
+    const parent = { ...fresh(), id: 'p', projectId: 'old' };
+    const sub = { ...fresh(), id: 's', parentId: 'p', projectId: 'old' };
+    const alreadyThere = { ...fresh(), id: 't', parentId: 'p', projectId: 'new' };
+    const moved = refileTask(parent, [sub, alreadyThere], 'new', 9);
+    expect(moved.map((t) => [t.id, t.projectId, t.version])).toEqual([
+      ['p', 'new', 2],
+      ['s', 'new', 2],
+    ]);
   });
 });

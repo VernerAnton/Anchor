@@ -50,3 +50,52 @@ Tasks persist in `localStorage` behind the subscription-shaped repository.
 **Not yet:** the service worker isn't registered by `src/` (the archive did it in
 `useAppUpdate`); that and the update prompt are phase 4. Installed devices still pick up
 new builds through the browser's own `sw.js` update check.
+
+---
+
+## Phase 2 — The core to-do app (V28)
+
+**Shipped:** projects (one level of nesting, eight identity colours, archive/unarchive,
+inline editor above the project's own list), and the views Today (Earlier / Today),
+Upcoming (one section per date), All tasks and per-project — each with a Completed block.
+The detail panel edits everything in place: title, done/reopen, due date, priority,
+project, notes, subtasks, delete. Quick add infers its context. Sidebar counts.
+
+**Where things are:**
+
+- `src/lib/views.ts` — `buildList` (sections, rows, completed, empty text, quick-add
+  context), `taskDetail`, `countFor`. Rows arrive with every meta decision made.
+- `src/lib/projects.ts`, `src/lib/sidebar.ts`, `src/lib/selection.ts`,
+  `src/lib/dateLabels.ts`, `src/lib/sorting.ts` — all pure.
+- `src/store/actions.ts` — every write, including multi-document ones (re-filing a task
+  with its subtasks, deleting a task with its subtasks, archiving a project with its
+  sub-projects).
+
+**Decisions made:**
+
+- **Views live in the URL hash** (`#today`, `#upcoming`, `#all`, `#project/<id>`), so
+  reload and Back keep your place. An unknown project falls back to Today without leaving
+  a history entry.
+- **Quick add in Upcoming lands on tomorrow**, and every quick add's placeholder says
+  where the task will go ("Add a task for today", "Add a task to Home"). A task that
+  vanished from the list it was typed into would read as a failed press.
+- **A subtask has no project of its own**; it follows its parent, and re-filing the
+  parent moves its subtasks. The panel says so instead of offering a choice.
+- **In Today and Upcoming, an undated subtask follows its parent's date.** A subtask sits
+  nested when its parent is in the same section; otherwise it stands alone with
+  "Part of …". Nothing is shown twice, nothing is lost.
+- **Completing a parent doesn't complete its subtasks.** Nothing records an event that
+  didn't happen; open subtasks of a done parent stay listed, saying whose they are.
+- **A project's list includes its sub-projects' tasks**, each under its own heading.
+- **Projects archive; deletion is offered only for a project nothing was ever filed
+  under.** Archiving a parent archives its sub-projects too.
+- **Priority's current value is stated in words** under the buttons ("Press P1 again to
+  clear it."), so it reads with no theme. Pressing the current one clears it.
+- **Text fields save on blur and on the way out** — closing the panel mid-edit with
+  Escape still saves what was typed.
+- **Hover styles only apply on devices that hover** (`@media (hover: hover)`); on touch
+  they stuck after a tap.
+- **Dates:** rows say "Today", "Tomorrow" or "Wed 23 Sep"; headings "Tomorrow · Saturday
+  3 Oct" or "Monday · 5 Oct". The year appears only when it isn't this one. A date that
+  has gone by is written exactly like any other and styled with the neutral
+  `--state-past`.

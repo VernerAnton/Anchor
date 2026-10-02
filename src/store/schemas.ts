@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { Task } from '../types/task';
+import type { Project, Task } from '../types/task';
+import { PROJECT_COLOR_IDS } from '../types/task';
 
 /**
  * Validation for everything read from storage.
@@ -74,6 +75,24 @@ export const taskSchema = z
     updatedAt: z.number().catch(0),
   })
   .passthrough();
+
+export const projectSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    colorId: z.enum(PROJECT_COLOR_IDS).catch('steel'),
+    parentId: z.string().nullable().catch(null),
+    order: z.number().catch(0),
+    archived: z.boolean().catch(false),
+    schemaVersion: z.number().catch(1),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export function parseProject(data: unknown, context: string): Project | null {
+  return parse(projectSchema, data, context) as Project | null;
+}
 
 export function parseTask(data: unknown, context: string): Task | null {
   return parse(taskSchema, data, context) as Task | null;

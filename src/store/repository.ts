@@ -1,4 +1,4 @@
-import type { Task } from '../types/task';
+import type { Project, Task } from '../types/task';
 
 export type Unsubscribe = () => void;
 
@@ -17,8 +17,8 @@ export type Unsubscribe = () => void;
  * that is what Firestore does. The loading state is handled now rather than
  * discovered later.
  *
- * Projects, labels and settings join this interface as they're built; adding
- * methods to a backend is mechanical.
+ * Labels and settings join this interface as they're built; adding methods
+ * to a backend is mechanical.
  */
 export interface AnchorRepository {
   /** One-shot read. */
@@ -26,4 +26,9 @@ export interface AnchorRepository {
   subscribeTasks(cb: (tasks: Task[]) => void): Unsubscribe;
   saveTask(task: Task): Promise<void>;
   deleteTask(id: string): Promise<void>;
+
+  getProjects(): Promise<Project[]>;
+  subscribeProjects(cb: (projects: Project[]) => void): Unsubscribe;
+  saveProject(project: Project): Promise<void>;
+  deleteProject(id: string): Promise<void>;
 }

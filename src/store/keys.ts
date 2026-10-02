@@ -26,6 +26,14 @@ export function taskDoc(userId: string, id: string): string[] {
   return [...tasksCollection(userId), id];
 }
 
+export function projectsCollection(userId: string): string[] {
+  return ['users', userId, 'v3-projects'];
+}
+
+export function projectDoc(userId: string, id: string): string[] {
+  return [...projectsCollection(userId), id];
+}
+
 /** localStorage has no collections, so a document path becomes a flat key. */
 export function localKey(segments: string[]): string {
   return `${LOCAL_PREFIX}:${segments.join(':')}`;

@@ -1,4 +1,4 @@
-import type { Task } from '../types/task';
+import type { Project, Task } from '../types/task';
 import { newId } from '../lib/id';
 import { SCHEMA_VERSION } from './keys';
 
@@ -50,9 +50,9 @@ export function newTask(draft: TaskDraft, order: number, now: number): Task {
   };
 }
 
-/** The order a new task takes at the end of the list it joins. */
-export function nextOrder(tasks: readonly Task[]): number {
-  return tasks.reduce((max, task) => Math.max(max, task.order), 0) + 1;
+/** The order a new document takes after everything already there. */
+export function nextOrder(docs: readonly { order: number }[]): number {
+  return docs.reduce((max, doc) => Math.max(max, doc.order), 0) + 1;
 }
 
 export function editTask(task: Task, changes: Partial<TaskDraft>, now: number): Task {
@@ -71,4 +71,45 @@ export function completeTask(task: Task, now: number): Task {
 /** Undoes a completion. Mis-taps happen, and a wrong record is worse than none. */
 export function reopenTask(task: Task, now: number): Task {
   return touch({ ...task, completedAt: null }, now);
+}
+
+/**
+ * Files a task under a project, and its subtasks with it. A subtask has no
+ * project of its own to choose — it belongs where its parent does — so moving
+ * the parent is one change to every document involved, returned together so
+ * the caller writes them all.
+ */
+export function refileTask(
+  task: Task,
+  subtasks: readonly Task[],
+  projectId: string | null,
+  now: number,
+): Task[] {
+  return [task, ...subtasks]
+    .filter((doc) => doc.projectId !== projectId)
+    .map((doc) => touch({ ...doc, projectId }, now));
+}
+
+// ── Projects ───────────────────────────────────────────────────────────────
+
+export type ProjectDraft = Pick<Project, 'name' | 'colorId' | 'parentId'>;
+
+export function newProject(draft: ProjectDraft, order: number, now: number): Project {
+  return {
+    id: newId(),
+    ...draft,
+    order,
+    archived: false,
+    schemaVersion: SCHEMA_VERSION,
+    version: 1,
+    updatedAt: now,
+  };
+}
+
+export function editProject(
+  project: Project,
+  changes: Partial<ProjectDraft & Pick<Project, 'archived'>>,
+  now: number,
+): Project {
+  return touch({ ...project, ...changes }, now);
 }

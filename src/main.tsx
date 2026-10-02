@@ -10,11 +10,14 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/components/button.css';
+import './styles/components/fields.css';
+import './styles/components/identity.css';
 import './styles/components/sidebar.css';
 import './styles/components/task-list.css';
 import './styles/components/task-row.css';
 import './styles/components/quick-add.css';
 import './styles/components/detail-panel.css';
+import './styles/components/project-editor.css';
 import './styles/components/notices.css';
 
 // `?theme=none` paints with no theme at all — the blank-theme test.

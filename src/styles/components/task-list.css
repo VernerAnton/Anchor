@@ -1,4 +1,4 @@
-/* A view's list: heading, the rows, the completed block, and its messages. */
+/* A view's list: heading, sections, the completed block, and its messages. */
 
 .list-panel {
   display: grid;
@@ -13,13 +13,38 @@
 }
 
 .list-panel__title {
+  flex: 1;
+  min-width: 0;
   font-size: var(--text-xl);
+  overflow-wrap: anywhere;
 }
 
 .list-panel__message {
   padding: var(--space-4) var(--space-3);
   color: var(--text-secondary);
   font-size: var(--text-sm);
+}
+
+.list-panel__notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.list-section {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.list-section__title {
+  padding: var(--space-2) var(--space-2) var(--space-1);
+  border-bottom-style: solid;
+  border-bottom-width: var(--border-width);
+  border-bottom-color: var(--border-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .task-list {
@@ -41,9 +66,6 @@
   cursor: pointer;
 }
 
-.completed-block__summary:hover {
-  background-color: var(--surface-hover);
-}
 
 .completed-block__count {
   margin-inline-start: var(--space-1);
@@ -54,5 +76,12 @@
 @media (pointer: fine) {
   .completed-block__summary {
     padding-block: var(--space-2);
+  }
+}
+
+/* Hover only where there is a pointer that hovers — on touch it sticks after a tap. */
+@media (hover: hover) {
+  .completed-block__summary:hover {
+    background-color: var(--surface-hover);
   }
 }

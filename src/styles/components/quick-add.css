@@ -1,4 +1,4 @@
-/* The add-a-task input at the top of every list. */
+/* The add-a-task input at the top of every list, and under a task's subtasks. */
 
 .quick-add {
   display: flex;
@@ -7,23 +7,4 @@
 
 .quick-add__input {
   flex: 1;
-  min-width: 0;
-  min-height: var(--tap-target);
-  padding: var(--space-2) var(--space-3);
-  border-style: solid;
-  border-width: var(--border-width);
-  border-color: var(--border-strong);
-  border-radius: var(--radius-md);
-  background-color: var(--surface-raised);
-  font-size: var(--text-md);
-}
-
-.quick-add__input::placeholder {
-  color: var(--text-muted);
-}
-
-@media (pointer: fine) {
-  .quick-add__input {
-    min-height: 0;
-  }
 }
