@@ -50,6 +50,7 @@ momentum, no scenic mode. Not even "a small hook for later."
 | `decisions.md` | Tone and product rules that outlive any rebuild |
 | `styling.md` | The default-theme brief and the swappability contract |
 | `build-order.md` | Suggested phases |
+| `scope-chosen.md` | **What the owner chose** from `features.md` — the answer, not the menu |
 
 ## The state you're starting from
 
