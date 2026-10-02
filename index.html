@@ -24,15 +24,16 @@
        * network arrives too late to prevent the flash it exists to prevent.
        */
       (function () {
+        var hint = null;
         try {
-          var hint = localStorage.getItem('anchor-theme-hint');
-          if (hint !== 'light' && hint !== 'dark') {
-            hint = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
-          document.documentElement.dataset.theme = hint;
+          hint = localStorage.getItem('anchor-theme-hint');
         } catch (error) {
-          /* Storage can be blocked. The default theme is a fine fallback. */
+          /* Storage can be blocked. The device's preference is a fine fallback. */
         }
+        if (hint !== 'light' && hint !== 'dark') {
+          hint = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = hint;
       })();
     </script>
   </head>

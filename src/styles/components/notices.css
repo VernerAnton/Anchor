@@ -1,0 +1,20 @@
+/* App-level notices: a write that didn't land. */
+
+.write-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-style: solid;
+  border-width: var(--border-width);
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
+
+.write-error__text {
+  font-size: var(--text-sm);
+}

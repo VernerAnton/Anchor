@@ -1,0 +1,65 @@
+/*
+ * One task. Status is carried by the checkbox and the modifier class, so it
+ * reads without colour — and without a theme at all.
+ */
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+  border-bottom-style: solid;
+  border-bottom-width: var(--border-width);
+  border-bottom-color: var(--border-subtle);
+}
+
+.task-row__check {
+  flex: none;
+  width: var(--space-5);
+  height: var(--space-5);
+  margin: 0;
+  accent-color: var(--state-done);
+  cursor: pointer;
+}
+
+.task-row__open {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap-target);
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: start;
+  cursor: pointer;
+}
+
+.task-row__open:hover {
+  background-color: var(--surface-hover);
+}
+
+.task-row__title {
+  font-size: var(--text-md);
+  overflow-wrap: anywhere;
+}
+
+/* Done: the text recedes and is struck through — a record, not a to-do. */
+.task-row--done .task-row__title {
+  color: var(--text-muted);
+  text-decoration-line: line-through;
+}
+
+.task-row--selected .task-row__open {
+  background-color: var(--surface-selected);
+}
+
+@media (pointer: fine) {
+  .task-row__check {
+    width: var(--space-4);
+    height: var(--space-4);
+  }
+
+  .task-row__open {
+    min-height: 0;
+  }
+}

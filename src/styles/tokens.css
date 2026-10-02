@@ -1,0 +1,153 @@
+/*
+ * The default theme. Every variable the app uses, and nothing else.
+ *
+ * Complete in itself: a second theme is one new file defining these same
+ * names, and nothing else changes. No component holds a raw value — if a
+ * stylesheet needs a colour, shadow, radius, font, border width or spacing
+ * step that isn't here, it gets added here.
+ *
+ * Every rule is keyed off `data-theme` on <html>, which the inline script in
+ * index.html sets before first paint. `?theme=none` sets a value nothing here
+ * matches — the blank-theme test, equivalent to emptying this file.
+ *
+ * Quiet on purpose: neutral greys, one accent, flat. Striking is a later phase.
+ */
+
+/* ── Scheme-independent: type, space, shape, motion ─────────────────────── */
+
+:root[data-theme='light'],
+:root[data-theme='dark'],
+:root:not([data-theme]) {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-strong: 600;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+
+  /* The smallest comfortable touch target. */
+  --tap-target: 2.75rem;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.75rem;
+
+  --border-width: 1px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  --transition-fast: 120ms ease-out;
+}
+
+/* ── Light ──────────────────────────────────────────────────────────────── */
+
+:root[data-theme='light'],
+:root:not([data-theme]) {
+  color-scheme: light;
+
+  --surface-page: #fafafa;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f4f5;
+  --surface-overlay: #ffffff;
+  --surface-hover: #f1f1f3;
+  --surface-selected: #e9effc;
+
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #6e6e78;
+  --text-on-accent: #ffffff;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+
+  --border-subtle: #e4e4e7;
+  --border-strong: #8f8f99;
+  --focus-ring: #2563eb;
+
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
+  --backdrop: rgb(24 24 27 / 0.4);
+
+  --state-now: #2563eb;
+  --state-done: #3f7d4e;
+  --state-optional: #71717a;
+  --state-past: #52525b;
+
+  --project-steel: #64748b;
+  --project-violet: #7c6fb0;
+  --project-teal: #3b8a8a;
+  --project-sage: #6b8f5e;
+  --project-ochre: #a8823a;
+  --project-plum: #8e5a7f;
+  --project-indigo: #4f5fa8;
+  --project-clay: #b0694e;
+
+  --priority-1: #1e40af;
+  --priority-2: #2f5fd0;
+  --priority-3: #6286dc;
+  --priority-4: #94a8d8;
+}
+
+/* ── Dark ───────────────────────────────────────────────────────────────── */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-page: #161618;
+  --surface-raised: #1e1e21;
+  --surface-sunken: #131315;
+  --surface-overlay: #252529;
+  --surface-hover: #27272b;
+  --surface-selected: #1d2944;
+
+  --text-primary: #f4f4f5;
+  --text-secondary: #a8a8b2;
+  --text-muted: #8c8c96;
+  --text-on-accent: #ffffff;
+
+  --accent: #2f6fe4;
+  --accent-hover: #4a82ea;
+
+  --border-subtle: #2c2c31;
+  --border-strong: #64646e;
+  --focus-ring: #7aa5f8;
+
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  --backdrop: rgb(0 0 0 / 0.55);
+
+  --state-now: #7aa5f8;
+  --state-done: #7fb58c;
+  --state-optional: #9a9aa4;
+  --state-past: #a8a8b2;
+
+  --project-steel: #8a9ab0;
+  --project-violet: #a598d6;
+  --project-teal: #6bb3b0;
+  --project-sage: #94b585;
+  --project-ochre: #cfaa62;
+  --project-plum: #b886a8;
+  --project-indigo: #8090d4;
+  --project-clay: #d08f74;
+
+  --priority-1: #a9c4fb;
+  --priority-2: #7fa6f5;
+  --priority-3: #5a83d6;
+  --priority-4: #45639f;
+}

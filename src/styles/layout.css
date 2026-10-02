@@ -1,0 +1,39 @@
+/*
+ * The app shell: sidebar, list, detail — three columns when wide; below the
+ * breakpoint the sidebar becomes a drawer and the detail panel an overlay.
+ *
+ * The breakpoint is a literal because a media query can't read a custom
+ * property. Its twin is `NARROW_QUERY` in src/hooks/useNarrowLayout.ts —
+ * change both together.
+ *
+ * Column widths are literals here rather than tokens: they're structure, not
+ * appearance. A theme restyles the app; it doesn't re-lay it out. The first
+ * blank-theme run showed why it matters — with the widths in the token file,
+ * no theme meant no columns, and the sticky sidebar landed on top of the list.
+ */
+
+.app {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr) 22rem;
+  min-height: 100dvh;
+}
+
+.app__main {
+  min-width: 0;
+  padding: var(--space-6) var(--space-8);
+}
+
+.app__main > * {
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 59.99rem) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app__main {
+    padding: var(--space-3) var(--space-4) var(--space-8);
+  }
+}

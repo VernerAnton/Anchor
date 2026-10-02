@@ -1,0 +1,113 @@
+/*
+ * Reset, element defaults, typography. Values come from tokens.css only.
+ *
+ * One deliberate exception pattern, used only where a missing theme would make
+ * the app unusable rather than merely plain: a `var()` fallback to a CSS system
+ * colour (`Canvas`, `CanvasText`). System colours belong to the browser, not
+ * to any theme — they're what "no theme" looks like — so an overlay stays
+ * opaque under the blank-theme test instead of printing on top of the list.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 100%;
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--surface-page);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: var(--leading-tight);
+  font-weight: var(--weight-strong);
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+/*
+ * Focus is always visible. The style is set here and only the width and
+ * colour are tokens, so with no theme the ring is still drawn — at the
+ * browser's default width, in the text colour.
+ */
+:focus-visible {
+  outline-style: solid;
+  outline-width: var(--focus-ring-width);
+  outline-color: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Focus targets that exist so focus has somewhere to land, not to be pressed. */
+[tabindex='-1']:focus-visible {
+  outline-offset: var(--space-1);
+}
+
+/* Present for assistive tech, absent from the layout. Structure, not appearance. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.crash {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.crash__detail {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}

@@ -1,0 +1,49 @@
+/*
+ * Buttons. The border style is set here and its width and colour are tokens,
+ * so with no theme every button still has a visible edge.
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target);
+  padding: var(--space-2) var(--space-4);
+  border-style: solid;
+  border-width: var(--border-width);
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.button:hover {
+  background-color: var(--surface-hover);
+}
+
+.button--primary {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.button--primary:hover {
+  border-color: var(--accent-hover);
+  background-color: var(--accent-hover);
+}
+
+@media (pointer: fine) {
+  /* A pointer doesn't need a thumb-sized target; keep desktop compact. */
+  .button {
+    min-height: 0;
+    padding: var(--space-1) var(--space-3);
+  }
+}

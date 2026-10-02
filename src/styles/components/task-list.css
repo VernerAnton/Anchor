@@ -1,0 +1,58 @@
+/* A view's list: heading, the rows, the completed block, and its messages. */
+
+.list-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.list-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-target);
+}
+
+.list-panel__title {
+  font-size: var(--text-xl);
+}
+
+.list-panel__message {
+  padding: var(--space-4) var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.task-list {
+  display: grid;
+}
+
+.completed-block {
+  margin-top: var(--space-2);
+}
+
+/* Left as a list item so it keeps the browser's disclosure marker — the one
+   cue, with or without a theme, that this opens. */
+.completed-block__summary {
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.completed-block__summary:hover {
+  background-color: var(--surface-hover);
+}
+
+.completed-block__count {
+  margin-inline-start: var(--space-1);
+  color: var(--text-muted);
+  font-weight: var(--weight-normal);
+}
+
+@media (pointer: fine) {
+  .completed-block__summary {
+    padding-block: var(--space-2);
+  }
+}

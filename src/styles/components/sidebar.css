@@ -1,0 +1,88 @@
+/* Navigation: a column when wide, a drawer when narrow. */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100dvh;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-3);
+  border-inline-end-style: solid;
+  border-inline-end-width: var(--border-width);
+  border-inline-end-color: var(--border-subtle);
+  background-color: var(--surface-sunken);
+}
+
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+}
+
+.sidebar__name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.nav-list {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.nav-list__link {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.nav-list__link:hover {
+  background-color: var(--surface-hover);
+}
+
+/* The current view: marked by aria-current, which is also what screen readers announce. */
+.nav-list__link[aria-current='page'] {
+  background-color: var(--surface-selected);
+  font-weight: var(--weight-medium);
+}
+
+.app-version {
+  margin-top: auto;
+  padding-inline: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ── Narrow: the drawer ─────────────────────────────────────────────────── */
+
+.sidebar--drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 20;
+  width: min(15rem, 85vw);
+  border-inline-end: none;
+  background-color: var(--surface-overlay, Canvas);
+  box-shadow: var(--shadow-overlay);
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background-color: var(--backdrop);
+}
+
+@media (pointer: fine) {
+  .nav-list__link {
+    min-height: 0;
+    padding-block: var(--space-2);
+  }
+}
