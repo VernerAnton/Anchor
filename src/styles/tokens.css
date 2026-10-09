@@ -56,6 +56,9 @@
   --focus-ring-offset: 2px;
 
   --transition-fast: 120ms ease-out;
+
+  /* A row being dragged, still visible where it came from. */
+  --opacity-lifted: 0.5;
 }
 
 /* ── Light ──────────────────────────────────────────────────────────────── */

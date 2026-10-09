@@ -1,0 +1,12 @@
+/* Labels in the detail panel: what's on, a box to find or make more, and matches in the flow. */
+
+.label-picker__worn,
+.label-picker__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.label-chip--removable {
+  color: var(--text-primary);
+}

@@ -1,4 +1,5 @@
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
+import type { Settings } from '../types/settings';
 
 export type Unsubscribe = () => void;
 
@@ -17,8 +18,8 @@ export type Unsubscribe = () => void;
  * that is what Firestore does. The loading state is handled now rather than
  * discovered later.
  *
- * Labels and settings join this interface as they're built; adding methods
- * to a backend is mechanical.
+ * Settings is a single document; `null` means it has never been written,
+ * which reads as the defaults.
  */
 export interface AnchorRepository {
   /** One-shot read. */
@@ -31,4 +32,13 @@ export interface AnchorRepository {
   subscribeProjects(cb: (projects: Project[]) => void): Unsubscribe;
   saveProject(project: Project): Promise<void>;
   deleteProject(id: string): Promise<void>;
+
+  getLabels(): Promise<Label[]>;
+  subscribeLabels(cb: (labels: Label[]) => void): Unsubscribe;
+  saveLabel(label: Label): Promise<void>;
+  deleteLabel(id: string): Promise<void>;
+
+  getSettings(): Promise<Settings | null>;
+  subscribeSettings(cb: (settings: Settings | null) => void): Unsubscribe;
+  saveSettings(settings: Settings): Promise<void>;
 }

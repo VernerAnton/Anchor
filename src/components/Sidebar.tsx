@@ -18,7 +18,7 @@ function Count({ count }: { count: number }) {
 
 /** Navigation: the views, the projects, and the build stamp. */
 export function Sidebar({ build, model, drawer, closeRef, onClose, onCreateProject }: Props) {
-  const { views, projects, archived } = model;
+  const { views, projects, archived, labels, manageLabels } = model;
   const classes = ['sidebar'];
   if (drawer) classes.push('sidebar--drawer');
 
@@ -87,6 +87,38 @@ export function Sidebar({ build, model, drawer, closeRef, onClose, onCreateProje
             </ul>
           </details>
         )}
+      </section>
+
+      <section className="sidebar__labels" aria-labelledby="labels-heading">
+        <h2 id="labels-heading" className="sidebar__heading">
+          Labels
+        </h2>
+        {labels.length > 0 && (
+          <ul className="nav-list">
+            {labels.map((label) => (
+              <li key={label.id}>
+                <a
+                  className="nav-list__link"
+                  href={label.href}
+                  aria-current={label.current ? 'page' : undefined}
+                  onClick={onClose}
+                >
+                  <span className="label-mark" data-color={label.colorId} aria-hidden="true" />
+                  <span className="nav-list__label">{label.name}</span>
+                  <Count count={label.count} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+        <a
+          className="nav-list__link sidebar__manage"
+          href={manageLabels.href}
+          aria-current={manageLabels.current ? 'page' : undefined}
+          onClick={onClose}
+        >
+          {labels.length > 0 ? 'Manage labels' : 'Add labels'}
+        </a>
       </section>
 
       <p className="app-version" title={build.detail}>

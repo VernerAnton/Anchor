@@ -18,3 +18,23 @@
 .write-error__text {
   font-size: var(--text-sm);
 }
+
+/* A brief word about what just happened, with Undo when there's a way back. */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-style: solid;
+  border-width: var(--border-width);
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+}
+
+.notice__text {
+  font-size: var(--text-sm);
+}

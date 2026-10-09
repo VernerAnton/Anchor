@@ -10,7 +10,13 @@ export type Selection =
   | { kind: 'today' }
   | { kind: 'upcoming' }
   | { kind: 'all' }
-  | { kind: 'project'; projectId: string };
+  | { kind: 'project'; projectId: string }
+  | { kind: 'label'; labelId: string }
+  /** Every label, to rename and reorder in place. Not a task list. */
+  | { kind: 'labels' };
+
+/** Selections that show a task list. */
+export type ListSelection = Exclude<Selection, { kind: 'labels' }>;
 
 export const DEFAULT_SELECTION: Selection = { kind: 'today' };
 
@@ -19,14 +25,25 @@ export function parseHash(hash: string): Selection {
   if (path === 'upcoming') return { kind: 'upcoming' };
   if (path === 'all') return { kind: 'all' };
   if (path === 'today') return { kind: 'today' };
+  if (path === 'labels') return { kind: 'labels' };
   const project = /^project\/(.+)$/.exec(path);
   if (project?.[1]) return { kind: 'project', projectId: decodeURIComponent(project[1]) };
+  const label = /^label\/(.+)$/.exec(path);
+  if (label?.[1]) return { kind: 'label', labelId: decodeURIComponent(label[1]) };
   return DEFAULT_SELECTION;
 }
 
 export function selectionHref(selection: Selection): string {
   if (selection.kind === 'project') return `#project/${encodeURIComponent(selection.projectId)}`;
+  if (selection.kind === 'label') return `#label/${encodeURIComponent(selection.labelId)}`;
   return `#${selection.kind}`;
+}
+
+/** The key a view's sort and grouping are stored under in settings. */
+export function viewKey(selection: ListSelection): string {
+  if (selection.kind === 'project') return `project:${selection.projectId}`;
+  if (selection.kind === 'label') return `label:${selection.labelId}`;
+  return selection.kind;
 }
 
 export function sameSelection(a: Selection, b: Selection): boolean {

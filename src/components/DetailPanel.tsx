@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import type { Priority } from '../types/task';
+import type { Label, Priority, Recurrence } from '../types/task';
 import type { TaskDetailModel } from '../lib/views';
+import { LabelPicker } from './LabelPicker';
+import { RecurrenceEditor } from './RecurrenceEditor';
 
 export interface TaskChanges {
   title?: string;
@@ -11,6 +13,8 @@ export interface TaskChanges {
 
 interface Props {
   detail: TaskDetailModel;
+  /** Every label, for the picker to search. */
+  labels: readonly Label[];
   /** The narrow layout, where the panel covers the list instead of sitting beside it. */
   overlay: boolean;
   onClose(): void;
@@ -18,6 +22,11 @@ interface Props {
   onToggle(id: string, done: boolean): void;
   onUpdate(id: string, changes: TaskChanges): void;
   onSetProject(id: string, projectId: string | null): void;
+  onReschedule(id: string, date: string): void;
+  onSetRecurrence(id: string, recurrence: Recurrence | null): void;
+  onAddLabelNames(id: string, names: string[]): void;
+  onAddLabel(id: string, labelId: string): void;
+  onRemoveLabel(id: string, labelId: string): void;
   onAddSubtask(parentId: string, title: string): void;
   onDelete(id: string): void;
 }
@@ -51,12 +60,18 @@ function useDraft(value: string) {
  */
 export function DetailPanel({
   detail,
+  labels,
   overlay,
   onClose,
   onOpen,
   onToggle,
   onUpdate,
   onSetProject,
+  onReschedule,
+  onSetRecurrence,
+  onAddLabelNames,
+  onAddLabel,
+  onRemoveLabel,
   onAddSubtask,
   onDelete,
 }: Props) {
@@ -180,6 +195,34 @@ export function DetailPanel({
         <span className="detail-panel__status-text">{detail.completedLabel ?? 'Open'}</span>
       </div>
 
+      {detail.reschedule.length > 0 && (
+        // The commonest edit a task gets, one press each. Every button says
+        // where it lands; the one matching the current date is marked, not
+        // disabled, so pressing it still visibly does something.
+        <div className="reschedule" role="group" aria-labelledby="reschedule-label">
+          <span id="reschedule-label" className="field__label">
+            Move to
+          </span>
+          <div className="reschedule__choices">
+            {detail.reschedule.map((choice) => (
+              <button
+                key={choice.id}
+                type="button"
+                className="button reschedule__choice"
+                aria-pressed={choice.current}
+                onClick={() => onReschedule(detail.id, choice.date)}
+              >
+                <span className="reschedule__name">{choice.label}</span>
+                <span className="reschedule__date">
+                  {choice.dateLabel}
+                  {choice.current && ' · current'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="field">
         <label className="field__label" htmlFor="detail-due">
           Due date
@@ -199,6 +242,14 @@ export function DetailPanel({
           )}
         </div>
       </div>
+
+      <RecurrenceEditor
+        recurrence={detail.recurrence}
+        from={detail.recurrenceFrom}
+        summary={detail.recurrenceSummary}
+        preview={detail.recurrencePreview}
+        onChange={(rule) => onSetRecurrence(detail.id, rule)}
+      />
 
       <fieldset className="field">
         <legend className="field__label">Priority</legend>
@@ -253,6 +304,14 @@ export function DetailPanel({
           </>
         )}
       </div>
+
+      <LabelPicker
+        worn={detail.labels}
+        labels={labels}
+        onAddNames={(names) => onAddLabelNames(detail.id, names)}
+        onAddExisting={(labelId) => onAddLabel(detail.id, labelId)}
+        onRemove={(labelId) => onRemoveLabel(detail.id, labelId)}
+      />
 
       <div className="field">
         <label className="field__label" htmlFor="detail-notes">

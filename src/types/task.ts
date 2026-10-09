@@ -57,13 +57,31 @@ export interface Project {
   updatedAt: number;
 }
 
+/**
+ * A label: a cross-cutting tag, and the second identity axis. A project says
+ * where a task belongs; labels say what it needs from you — "quick win", "at
+ * the computer". Flat on purpose: a tag that needs a parent is a project
+ * wearing the wrong hat. Same palette as projects, different shape: a project
+ * is a filled dot, a label an outlined chip.
+ */
+export interface Label {
+  id: string;
+  name: string;
+  colorId: ProjectColor;
+  /** Manual ordering, used everywhere labels are listed. */
+  order: number;
+  archived: boolean;
+  schemaVersion: number;
+  version: number;
+  updatedAt: number;
+}
+
 /** 1 is the strongest pull. Absent (`null`) sorts last and is not a P5. */
 export type Priority = 1 | 2 | 3 | 4;
 
 /**
- * Recurrence, as explicit rules — no natural-language parsing anywhere. The
- * engine that reads these arrives in phase 3 (lifted from
- * `archive/src/lib/recurrence.ts`); the stored shape is fixed now.
+ * Recurrence, as explicit rules — no natural-language parsing anywhere. Read
+ * by the engine in `src/lib/recurrence.ts`.
  *
  * Weekdays use JavaScript's convention: 0 = Sunday … 6 = Saturday. Months are
  * 1-based. A `week` of 1–4 counts from the start of the month; -1 means the

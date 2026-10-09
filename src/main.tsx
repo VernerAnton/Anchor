@@ -18,6 +18,10 @@ import './styles/components/task-row.css';
 import './styles/components/quick-add.css';
 import './styles/components/detail-panel.css';
 import './styles/components/project-editor.css';
+import './styles/components/view-options.css';
+import './styles/components/recurrence.css';
+import './styles/components/label-picker.css';
+import './styles/components/labels-screen.css';
 import './styles/components/notices.css';
 
 // `?theme=none` paints with no theme at all — the blank-theme test.

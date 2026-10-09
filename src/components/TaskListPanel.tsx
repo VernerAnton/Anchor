@@ -1,7 +1,9 @@
 import type { ReactNode, Ref } from 'react';
+import type { ViewOptions } from '../types/settings';
 import type { ListModel } from '../lib/views';
 import { QuickAdd } from './QuickAdd';
-import { TaskRow } from './TaskRow';
+import { TaskRowList } from './TaskRows';
+import { ViewOptionsBar } from './ViewOptionsBar';
 
 interface Props {
   /** `null` while the store hasn't answered yet. */
@@ -20,6 +22,8 @@ interface Props {
   onAdd(title: string): void;
   onToggle(id: string, done: boolean): void;
   onOpen(id: string): void;
+  onMove(shown: string[], id: string, toIndex: number): void;
+  onOptions(changes: Partial<ViewOptions>): void;
 }
 
 /** A view's list: its heading, quick add, the sections, and what's done. */
@@ -35,8 +39,10 @@ export function TaskListPanel({
   onAdd,
   onToggle,
   onOpen,
+  onMove,
+  onOptions,
 }: Props) {
-  const rowProps = { selectedId, onToggle, onOpen };
+  const handlers = { selectedId, onToggle, onOpen, onMove: list?.options.manual ? onMove : null };
 
   return (
     <section className="list-panel" aria-labelledby="list-heading">
@@ -68,15 +74,13 @@ export function TaskListPanel({
         <>
           <QuickAdd placeholder={list.quickAdd.placeholder} onAdd={onAdd} />
 
+          <ViewOptionsBar options={list.options} onChange={onOptions} />
+
           {list.sections.length === 0 && <p className="list-panel__message">{list.emptyText}</p>}
 
           {list.sections.map((section) =>
             section.title === null ? (
-              <ul key={section.key} className="task-list">
-                {section.rows.map((row) => (
-                  <TaskRow key={row.id} row={row} {...rowProps} />
-                ))}
-              </ul>
+              <TaskRowList key={section.key} rows={section.rows} {...handlers} />
             ) : (
               <section
                 key={section.key}
@@ -86,11 +90,7 @@ export function TaskListPanel({
                 <h2 id={`section-${section.key}`} className="list-section__title">
                   {section.title}
                 </h2>
-                <ul className="task-list">
-                  {section.rows.map((row) => (
-                    <TaskRow key={row.id} row={row} {...rowProps} />
-                  ))}
-                </ul>
+                <TaskRowList rows={section.rows} {...handlers} />
               </section>
             ),
           )}
@@ -100,11 +100,7 @@ export function TaskListPanel({
               <summary className="completed-block__summary">
                 Completed <span className="completed-block__count">{list.completed.length}</span>
               </summary>
-              <ul className="task-list">
-                {list.completed.map((row) => (
-                  <TaskRow key={row.id} row={row} {...rowProps} />
-                ))}
-              </ul>
+              <TaskRowList rows={list.completed} {...handlers} onMove={null} />
             </details>
           )}
         </>

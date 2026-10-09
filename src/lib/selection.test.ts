@@ -8,6 +8,8 @@ describe('selection', () => {
       { kind: 'upcoming' },
       { kind: 'all' },
       { kind: 'project', projectId: 'a b/c' },
+      { kind: 'label', labelId: 'x' },
+      { kind: 'labels' },
     ] as const) {
       expect(parseHash(selectionHref(s))).toEqual(s);
     }

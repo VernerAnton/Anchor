@@ -99,3 +99,51 @@ project, notes, subtasks, delete. Quick add infers its context. Sidebar counts.
   3 Oct" or "Monday · 5 Oct". The year appears only when it isn't this one. A date that
   has gone by is written exactly like any other and styled with the neutral
   `--state-past`.
+
+---
+
+## Phase 3 — The hard parts (V29)
+
+**Shipped:** repeating tasks (the archived engine, unchanged, with its 537-line test suite
+passing as-is), a rebuilt rule editor with the rule read back as a sentence plus the next
+four dates, the reschedule trio, labels (picker, label views, a Labels screen, sidebar
+section, row chips), sorting (Default / Priority / Due date / Name / Manual, plus Reverse),
+grouping (None / Project / Label on Today and All tasks), per-view options in a synced
+settings document, and manual reordering by drag or by arrow keys.
+
+**Where things are:**
+
+- `src/lib/recurrence.ts`, `src/lib/reschedule.ts`, `src/lib/labelSearch.ts` — lifted
+  from the archive with their tests.
+- `src/lib/sorting.ts`, `src/lib/grouping.ts`, `src/lib/reorder.ts` — pure, tested.
+- `src/types/settings.ts` — `Settings`, `ViewOptions`. Stored at `v3-settings/app`.
+- `src/components/TaskRows.tsx` — rows plus the drag/keyboard reordering; the only DOM
+  geometry in the app lives here. What to write is `reorderPlan`'s decision.
+
+**Decisions made:**
+
+- **Completing a repeating task says where it went, with Undo.** Its tick undoes itself on
+  screen as it moves to the next date, which would otherwise read as a press that did
+  nothing. Undo writes the old document back with a *higher* version, so every device takes
+  it as newest.
+- **A rule set on a task with no date gives it its first occurrence** (today if the rule
+  falls today). A rule that never put the task on a day would be a rule in name only.
+- **Every choice in the rule editor is a native checkbox, radio or select**, not a pressed
+  button, so the selected days read with no theme. The archived editor used `aria-pressed`
+  buttons, which are indistinguishable when the theme is blank.
+- **The current reschedule option is marked in words** ("· current") as well as styled.
+- **Labels are deleted, not archived.** Deleting takes the label off every task first (one
+  write per task), behind an inline confirm. The `archived` field stays on the model.
+- **A label's view adds that label to tasks added there**, and its placeholder says so.
+- **Grouping isn't offered on Upcoming, a project, or a label** — each is already cut along
+  that axis. Today's Earlier stays on top, ungrouped, whatever the grouping.
+- **Sidebar counts ignore grouping**, so a task with two labels is never counted twice.
+- **Manual moves write one task** — it takes a value halfway between its new neighbours —
+  and renumber the list only when neighbours have collided. Drag uses pointer events
+  (mouse, pen and touch alike); the handle also takes ArrowUp/ArrowDown.
+- **Reverse is a checkbox**, not a toggle button, for the same no-theme reason.
+
+**Open question for the owner:** when a repeating task with subtasks moves to its next
+date, its subtasks currently stay as they were (done ones stay done). Resetting them for
+each occurrence is the common expectation, but it means clearing their `completedAt`.
+Not changed without asking.

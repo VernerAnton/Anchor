@@ -87,6 +87,40 @@
   background-color: var(--surface-selected);
 }
 
+/* The manual-order handle: drag it, or focus it and use the arrow keys. */
+.task-row__handle {
+  flex: none;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-md);
+  cursor: grab;
+  /* Touch would otherwise scroll the page instead of moving the row. */
+  touch-action: none;
+}
+
+.task-row--dragging {
+  opacity: var(--opacity-lifted);
+}
+
+/* Where a dragged row would land: a rule above that row, or below the last. */
+.task-row--drop-before {
+  border-top-style: solid;
+  border-top-width: var(--focus-ring-width);
+  border-top-color: var(--accent);
+}
+
+.task-list--drop-end {
+  border-bottom-style: solid;
+  border-bottom-width: var(--focus-ring-width);
+  border-bottom-color: var(--accent);
+}
+
 /* Subtasks sit indented under their parent, one level only. */
 .subtask-list {
   padding-inline-start: var(--space-7);
@@ -100,6 +134,11 @@
 }
 
 @media (pointer: fine) {
+  .task-row__handle {
+    min-width: var(--space-6);
+    min-height: var(--space-8);
+  }
+
   .task-row__check {
     width: var(--space-4);
     height: var(--space-4);

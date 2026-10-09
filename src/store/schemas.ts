@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { Project, Task } from '../types/task';
+import type { Label, Project, Task } from '../types/task';
+import type { Settings } from '../types/settings';
 import { PROJECT_COLOR_IDS } from '../types/task';
 
 /**
@@ -89,6 +90,45 @@ export const projectSchema = z
     updatedAt: z.number().catch(0),
   })
   .passthrough();
+
+export const labelSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    colorId: z.enum(PROJECT_COLOR_IDS).catch('steel'),
+    order: z.number().catch(0),
+    archived: z.boolean().catch(false),
+    schemaVersion: z.number().catch(1),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+/* An unknown sort or group name from a future build reads as the default
+   rather than as a broken list. */
+const viewOptionsSchema = z.object({
+  groupBy: z.enum(['none', 'project', 'label']).catch('none'),
+  sortBy: z.enum(['smart', 'priority', 'due', 'name', 'manual']).catch('smart'),
+  reverse: z.boolean().catch(false),
+});
+
+export const settingsSchema = z
+  .object({
+    theme: z.enum(['system', 'light', 'dark']).catch('system'),
+    views: z.record(z.string(), viewOptionsSchema).catch({}),
+    schemaVersion: z.number().catch(1),
+    version: z.number().catch(0),
+    updatedAt: z.number().catch(0),
+  })
+  .passthrough();
+
+export function parseLabel(data: unknown, context: string): Label | null {
+  return parse(labelSchema, data, context) as Label | null;
+}
+
+export function parseSettings(data: unknown, context: string): Settings | null {
+  return parse(settingsSchema, data, context) as Settings | null;
+}
 
 export function parseProject(data: unknown, context: string): Project | null {
   return parse(projectSchema, data, context) as Project | null;

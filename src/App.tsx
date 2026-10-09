@@ -1,25 +1,37 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useProjects, useTasks } from './hooks/useStore';
+import type { ProjectColor, Recurrence } from './types/task';
+import type { ViewOptions } from './types/settings';
+import { useLabels, useProjects, useSettings, useTasks } from './hooks/useStore';
 import { useNarrowLayout } from './hooks/useNarrowLayout';
 import { useFocusAfterRender } from './hooks/useFocusAfterRender';
 import { useSelection } from './hooks/useSelection';
 import { useToday } from './hooks/useToday';
-import { buildList, focusAfterToggle, taskDetail } from './lib/views';
+import { buildList, completionNotice, focusAfterToggle, labelsScreen, taskDetail } from './lib/views';
 import { sidebarModel } from './lib/sidebar';
 import { projectEditorModel } from './lib/projects';
+import { viewKey } from './lib/selection';
 import { buildInfo } from './lib/build';
 import * as actions from './store/actions';
 import { Sidebar } from './components/Sidebar';
 import { TaskListPanel } from './components/TaskListPanel';
 import { DetailPanel, DetailPlaceholder, type TaskChanges } from './components/DetailPanel';
 import { ProjectEditor, type ProjectChanges } from './components/ProjectEditor';
+import { LabelsScreen } from './components/LabelsScreen';
+import { Notice, type NoticeModel } from './components/Notice';
 
 const BUILD = buildInfo();
 
 /** Plain and blameless: the device failed a write, the person did nothing wrong. */
 const WRITE_ERROR = 'That change couldn’t be saved on this device. Your other tasks are unaffected.';
 
-const FALLBACK_TITLES = { today: 'Today', upcoming: 'Upcoming', all: 'All tasks', project: 'Project' };
+const FALLBACK_TITLES = {
+  today: 'Today',
+  upcoming: 'Upcoming',
+  all: 'All tasks',
+  project: 'Project',
+  label: 'Label',
+  labels: 'Labels',
+};
 
 /**
  * The shell: sidebar, list, detail.
@@ -32,6 +44,8 @@ const FALLBACK_TITLES = { today: 'Today', upcoming: 'Upcoming', all: 'All tasks'
 export function App() {
   const tasks = useTasks();
   const projects = useProjects();
+  const labels = useLabels();
+  const settings = useSettings();
   const today = useToday();
   const narrow = useNarrowLayout();
   const [selection, navigate] = useSelection();
@@ -39,24 +53,32 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<NoticeModel | null>(null);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const focusAfterRender = useFocusAfterRender();
+  // The latest tasks, for callbacks that run after later writes have landed (Undo).
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
 
-  const list = useMemo(
-    () =>
-      tasks !== null && projects !== null ? buildList({ selection, tasks, projects, today }) : null,
-    [selection, tasks, projects, today],
-  );
+  const listSelection = selection.kind === 'labels' ? null : selection;
+  const loaded = tasks !== null && projects !== null && labels !== null && settings !== undefined;
+
+  const list = useMemo(() => {
+    if (!loaded || !listSelection) return null;
+    const options = settings?.views[viewKey(listSelection)];
+    return buildList({ selection: listSelection, tasks, projects, labels, today, options });
+  }, [loaded, listSelection, tasks, projects, labels, settings, today]);
   const sidebar = useMemo(
-    () => sidebarModel(selection, tasks ?? [], projects ?? [], today),
-    [selection, tasks, projects, today],
+    () => sidebarModel(selection, tasks ?? [], projects ?? [], labels ?? [], today),
+    [selection, tasks, projects, labels, today],
   );
   const detail = useMemo(
-    () => taskDetail({ tasks: tasks ?? [], projects: projects ?? [], today }, selectedId),
-    [tasks, projects, today, selectedId],
+    () =>
+      taskDetail({ tasks: tasks ?? [], projects: projects ?? [], labels: labels ?? [], today }, selectedId),
+    [tasks, projects, labels, today, selectedId],
   );
   const projectModel = useMemo(
     () =>
@@ -65,13 +87,15 @@ export function App() {
         : null,
     [selection, projects, tasks],
   );
+  const labelRows = useMemo(() => labelsScreen(labels ?? [], tasks ?? []), [labels, tasks]);
 
-  // A project that no longer exists isn't a place to be; fall back to Today.
+  // A project or label that no longer exists isn't a place to be; fall back to Today.
   useEffect(() => {
-    if (selection.kind === 'project' && projects !== null && projectModel === null) {
-      navigate({ kind: 'today' }, true);
-    }
-  }, [selection, projects, projectModel, navigate]);
+    const goneProject = selection.kind === 'project' && projects !== null && projectModel === null;
+    const goneLabel =
+      selection.kind === 'label' && labels !== null && !labels.some((l) => l.id === selection.labelId);
+    if (goneProject || goneLabel) navigate({ kind: 'today' }, true);
+  }, [selection, projects, projectModel, labels, navigate]);
 
   // Each view opens with its project editor closed.
   useEffect(() => setEditingProject(false), [selection]);
@@ -91,14 +115,16 @@ export function App() {
   }, []);
 
   const findTask = useCallback((id: string) => tasks?.find((task) => task.id === id), [tasks]);
+  const findLabel = useCallback((id: string) => labels?.find((label) => label.id === id), [labels]);
+  const dismissNotice = useCallback(() => setNotice(null), []);
 
   // ── Tasks ──
 
   const onAdd = useCallback(
     (title: string) => {
       if (!tasks || !list) return;
-      const { dueDate, projectId } = list.quickAdd;
-      void report(actions.addTask(title, { dueDate, projectId, parentId: null }, tasks));
+      const { dueDate, projectId, labelIds } = list.quickAdd;
+      void report(actions.addTask(title, { dueDate, projectId, parentId: null, labelIds }, tasks));
     },
     [tasks, list, report],
   );
@@ -106,12 +132,25 @@ export function App() {
   const onToggle = useCallback(
     (id: string, done: boolean) => {
       const task = findTask(id);
-      if (!task || !list) return;
+      if (!task) return;
       // Only a toggle made from a list row moves focus — the row is about to
-      // move to the other list and would take focus with it.
-      const fromRow = document.activeElement?.getAttribute('data-check-task') === id;
+      // move and would take focus with it.
+      const fromRow = list && document.activeElement?.getAttribute('data-check-task') === id;
       const next = fromRow ? focusAfterToggle(list, id, done) : undefined;
-      void report(actions.setTaskDone(task, done));
+      // A repeating task moves on instead of closing; say where it went, and
+      // offer the way back, because the tick undoes itself on screen.
+      const moved = done ? completionNotice(task, today) : null;
+      void report(actions.setTaskDone(task, done)).then((before) => {
+        if (moved && before) {
+          setNotice({
+            text: moved,
+            undo: () => {
+              const current = tasksRef.current?.find((t) => t.id === id);
+              void report(actions.restoreTask(before, current ?? before));
+            },
+          });
+        }
+      });
       if (next === undefined) return;
       focusAfterRender(
         () =>
@@ -119,30 +158,80 @@ export function App() {
           listHeadingRef.current,
       );
     },
-    [findTask, list, report, focusAfterRender],
+    [findTask, list, today, report, focusAfterRender],
   );
 
-  const onUpdate = useCallback(
-    (id: string, changes: TaskChanges) => {
+  /** Runs an action against the current copy of a task, if it still exists. */
+  const withTask = useCallback(
+    (id: string, run: (task: NonNullable<ReturnType<typeof findTask>>) => Promise<unknown>) => {
       const task = findTask(id);
-      if (task) void report(actions.updateTask(task, changes));
+      if (task) void report(run(task));
     },
     [findTask, report],
   );
 
+  const onUpdate = useCallback(
+    (id: string, changes: TaskChanges) => withTask(id, (task) => actions.updateTask(task, changes)),
+    [withTask],
+  );
   const onSetProject = useCallback(
-    (id: string, projectId: string | null) => {
-      const task = findTask(id);
-      if (task && tasks) void report(actions.setTaskProject(task, projectId, tasks));
-    },
-    [findTask, tasks, report],
+    (id: string, projectId: string | null) =>
+      withTask(id, (task) => actions.setTaskProject(task, projectId, tasks ?? [])),
+    [withTask, tasks],
+  );
+  const onReschedule = useCallback(
+    (id: string, date: string) => withTask(id, (task) => actions.rescheduleTo(task, date)),
+    [withTask],
+  );
+  const onSetRecurrence = useCallback(
+    (id: string, rule: Recurrence | null) => withTask(id, (task) => actions.setRecurrence(task, rule)),
+    [withTask],
+  );
+  const onAddLabelNames = useCallback(
+    (id: string, names: string[]) =>
+      withTask(id, (task) => actions.addLabelsByName(task, names, labels ?? [])),
+    [withTask, labels],
+  );
+  const onAddLabel = useCallback(
+    (id: string, labelId: string) => withTask(id, (task) => actions.addLabelById(task, labelId)),
+    [withTask],
+  );
+  const onRemoveLabel = useCallback(
+    (id: string, labelId: string) => withTask(id, (task) => actions.removeLabel(task, labelId)),
+    [withTask],
   );
 
   const onAddSubtask = useCallback(
     (parentId: string, title: string) => {
-      if (tasks) void report(actions.addTask(title, { dueDate: null, projectId: null, parentId }, tasks));
+      if (tasks) {
+        void report(
+          actions.addTask(title, { dueDate: null, projectId: null, parentId, labelIds: [] }, tasks),
+        );
+      }
     },
     [tasks, report],
+  );
+
+  const onMove = useCallback(
+    (shown: string[], id: string, toIndex: number) => {
+      if (!tasks || !list) return;
+      const byId = new Map(tasks.map((t) => [t.id, t]));
+      const ordered = shown.flatMap((sid) => {
+        const t = byId.get(sid);
+        return t ? [{ id: sid, order: t.order }] : [];
+      });
+      void report(actions.moveTask(ordered, id, toIndex, list.options.reverse, tasks));
+    },
+    [tasks, list, report],
+  );
+
+  const onOptions = useCallback(
+    (changes: Partial<ViewOptions>) => {
+      if (listSelection && settings !== undefined) {
+        void report(actions.setViewOptions(settings, viewKey(listSelection), changes));
+      }
+    },
+    [listSelection, settings, report],
   );
 
   const closeDetail = useCallback(() => {
@@ -213,6 +302,44 @@ export function App() {
     navigate({ kind: 'today' }, true);
   }, [currentProject, report, navigate]);
 
+  // ── Labels ──
+
+  const onCreateLabel = useCallback(
+    (name: string) => {
+      if (labels) void report(actions.createLabel(name, labels));
+    },
+    [labels, report],
+  );
+  const onRenameLabel = useCallback(
+    (id: string, name: string) => {
+      const label = findLabel(id);
+      if (label) void report(actions.updateLabel(label, { name }));
+    },
+    [findLabel, report],
+  );
+  const onRecolorLabel = useCallback(
+    (id: string, colorId: ProjectColor) => {
+      const label = findLabel(id);
+      if (label) void report(actions.updateLabel(label, { colorId }));
+    },
+    [findLabel, report],
+  );
+  const onSwapLabels = useCallback(
+    (id: string, withId: string) => {
+      const a = findLabel(id);
+      const b = findLabel(withId);
+      if (a && b) void report(actions.swapLabels(a, b));
+    },
+    [findLabel, report],
+  );
+  const onDeleteLabel = useCallback(
+    (id: string) => {
+      const label = findLabel(id);
+      if (label && tasks) void report(actions.deleteLabel(label, tasks));
+    },
+    [findLabel, tasks, report],
+  );
+
   // ── The drawer ──
 
   const closeDrawer = useCallback(() => {
@@ -242,6 +369,7 @@ export function App() {
 
   const drawerShown = narrow && drawerOpen;
   const overlayShown = narrow && detail !== null;
+  const openMenu = narrow ? () => setDrawerOpen(true) : null;
 
   return (
     <div className="app">
@@ -266,66 +394,90 @@ export function App() {
             </button>
           </div>
         )}
-        <TaskListPanel
-          list={list}
-          fallbackTitle={FALLBACK_TITLES[selection.kind]}
-          selectedId={detail?.id ?? null}
-          onOpenMenu={narrow ? () => setDrawerOpen(true) : null}
-          menuButtonRef={menuButtonRef}
-          headingRef={listHeadingRef}
-          headerActions={
-            projectModel && (
-              <button
-                type="button"
-                className="button list-panel__action"
-                aria-expanded={editingProject}
-                aria-controls="project-editor"
-                onClick={() => (editingProject ? closeProjectEditor() : setEditingProject(true))}
-              >
-                Edit project
-              </button>
-            )
-          }
-          beforeList={
-            projectModel && (
-              <>
-                {projectModel.archived && (
-                  <p className="list-panel__notice">
-                    This project is archived. It’s kept so its tasks can still say where they came
-                    from.
-                  </p>
-                )}
-                {editingProject && (
-                  <div id="project-editor">
-                    <ProjectEditor
-                      key={projectModel.id}
-                      model={projectModel}
-                      onSave={onSaveProject}
-                      onArchive={onArchiveProject}
-                      onDelete={onDeleteProject}
-                      onClose={closeProjectEditor}
-                    />
-                  </div>
-                )}
-              </>
-            )
-          }
-          onAdd={onAdd}
-          onToggle={onToggle}
-          onOpen={setSelectedId}
-        />
+        {notice && <Notice notice={notice} onDismiss={dismissNotice} />}
+
+        {selection.kind === 'labels' ? (
+          <LabelsScreen
+            rows={labelRows}
+            onOpenMenu={openMenu}
+            menuButtonRef={menuButtonRef}
+            headingRef={listHeadingRef}
+            onCreate={onCreateLabel}
+            onRename={onRenameLabel}
+            onRecolor={onRecolorLabel}
+            onSwap={onSwapLabels}
+            onDelete={onDeleteLabel}
+          />
+        ) : (
+          <TaskListPanel
+            list={list}
+            fallbackTitle={FALLBACK_TITLES[selection.kind]}
+            selectedId={detail?.id ?? null}
+            onOpenMenu={openMenu}
+            menuButtonRef={menuButtonRef}
+            headingRef={listHeadingRef}
+            headerActions={
+              projectModel && (
+                <button
+                  type="button"
+                  className="button list-panel__action"
+                  aria-expanded={editingProject}
+                  aria-controls="project-editor"
+                  onClick={() => (editingProject ? closeProjectEditor() : setEditingProject(true))}
+                >
+                  Edit project
+                </button>
+              )
+            }
+            beforeList={
+              projectModel && (
+                <>
+                  {projectModel.archived && (
+                    <p className="list-panel__notice">
+                      This project is archived. It’s kept so its tasks can still say where they
+                      came from.
+                    </p>
+                  )}
+                  {editingProject && (
+                    <div id="project-editor">
+                      <ProjectEditor
+                        key={projectModel.id}
+                        model={projectModel}
+                        onSave={onSaveProject}
+                        onArchive={onArchiveProject}
+                        onDelete={onDeleteProject}
+                        onClose={closeProjectEditor}
+                      />
+                    </div>
+                  )}
+                </>
+              )
+            }
+            onAdd={onAdd}
+            onToggle={onToggle}
+            onOpen={setSelectedId}
+            onMove={onMove}
+            onOptions={onOptions}
+          />
+        )}
       </main>
 
       {detail ? (
         <DetailPanel
           key={detail.id}
           detail={detail}
+          labels={labels ?? []}
           overlay={narrow}
           onClose={closeDetail}
           onOpen={setSelectedId}
           onToggle={onToggle}
           onUpdate={onUpdate}
           onSetProject={onSetProject}
+          onReschedule={onReschedule}
+          onSetRecurrence={onSetRecurrence}
+          onAddLabelNames={onAddLabelNames}
+          onAddLabel={onAddLabel}
+          onRemoveLabel={onRemoveLabel}
           onAddSubtask={onAddSubtask}
           onDelete={onDelete}
         />

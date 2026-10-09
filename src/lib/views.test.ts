@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildList, countFor, focusAfterToggle, noteLine, taskDetail, type ViewInput } from './views';
+import { buildList, countFor, focusAfterToggle, labelsScreen, noteLine, taskDetail, type ViewInput } from './views';
+import { newLabel } from '../store/mutations';
+import type { ViewOptions } from '../types/settings';
 import { emptyTaskDraft, newProject, newTask } from '../store/mutations';
-import type { Project, Task } from '../types/task';
-import type { Selection } from './selection';
+import type { Label, Project, Task } from '../types/task';
+import type { ListSelection } from './selection';
 
 const TODAY = '2026-10-02'; // a Friday
 
@@ -16,8 +18,18 @@ function project(overrides: Partial<Project>): Project {
   return { ...newProject({ name: 'Home', colorId: 'sage', parentId: null }, 1, 0), ...overrides };
 }
 
-function view(selection: Selection, tasks: Task[], projects: Project[] = []) {
-  const input: ViewInput = { selection, tasks, projects, today: TODAY };
+function label(overrides: Partial<Label>): Label {
+  return { ...newLabel('Focus', 'violet', 1, 0), ...overrides };
+}
+
+function view(
+  selection: ListSelection,
+  tasks: Task[],
+  projects: Project[] = [],
+  labels: Label[] = [],
+  options?: ViewOptions,
+) {
+  const input: ViewInput = { selection, tasks, projects, labels, today: TODAY, options };
   return buildList(input);
 }
 
@@ -80,6 +92,7 @@ describe('Upcoming', () => {
       placeholder: 'Add a task for tomorrow',
       dueDate: '2026-10-03',
       projectId: null,
+      labelIds: [],
     });
   });
 });
@@ -144,6 +157,7 @@ describe('projects', () => {
       selection: { kind: 'project', projectId: 'home' },
       tasks: [task({ projectId: 'home' }), task({ projectId: 'garden' }), task({ projectId: 'home', completedAt: 1 })],
       projects: [home, garden],
+      labels: [],
       today: TODAY,
     };
     expect(countFor(input)).toBe(2);
@@ -199,11 +213,166 @@ describe('focusAfterToggle', () => {
 describe('taskDetail', () => {
   it('gives a parent its subtasks, and a subtask its parent and no subtasks of its own', () => {
     const tasks = [task({ id: 'p', title: 'Parent' }), task({ id: 's', parentId: 'p' })];
-    const input = { tasks, projects: [], today: TODAY };
+    const input = { tasks, projects: [], labels: [], today: TODAY };
     expect(taskDetail(input, 'p')?.subtasks?.map((r) => r.id)).toEqual(['s']);
     const sub = taskDetail(input, 's');
     expect(sub?.subtasks).toBeNull();
     expect(sub?.parent).toEqual({ id: 'p', title: 'Parent' });
     expect(taskDetail(input, 'missing')).toBeNull();
+  });
+});
+
+describe('sorting', () => {
+  const tasks = () => [
+    task({ id: 'none', title: 'B' }),
+    task({ id: 'p1', title: 'C', priority: 1 }),
+    task({ id: 'p3', title: 'A', priority: 3 }),
+  ];
+  const opts = (o: Partial<ViewOptions>): ViewOptions => ({ groupBy: 'none', sortBy: 'smart', reverse: false, ...o });
+
+  it('sorts by the chosen key, absent values last', () => {
+    const list = view({ kind: 'all' }, tasks(), [], [], opts({ sortBy: 'priority' }));
+    expect(ids(list.sections[0]!.rows)).toEqual(['p1', 'p3', 'none']);
+  });
+
+  it('reverse is the list read from the bottom — absent values now first', () => {
+    const list = view({ kind: 'all' }, tasks(), [], [], opts({ sortBy: 'priority', reverse: true }));
+    expect(ids(list.sections[0]!.rows)).toEqual(['none', 'p3', 'p1']);
+  });
+
+  it('manual follows the stored order and says rows can be moved', () => {
+    const list = view(
+      { kind: 'all' },
+      [task({ id: 'x', order: 3 }), task({ id: 'y', order: 1 }), task({ id: 'z', order: 2 })],
+      [],
+      [],
+      opts({ sortBy: 'manual' }),
+    );
+    expect(ids(list.sections[0]!.rows)).toEqual(['y', 'z', 'x']);
+    expect(list.options.manual).toBe(true);
+  });
+});
+
+describe('grouping', () => {
+  const home = project({ id: 'home', name: 'Home', order: 1 });
+  const work = project({ id: 'work', name: 'Work', order: 2 });
+  const focus = label({ id: 'focus', name: 'Focus', order: 1 });
+  const quick = label({ id: 'quick', name: 'Quick win', order: 2 });
+
+  it('keeps Earlier on top, ungrouped, and groups the rest of Today by project', () => {
+    const list = view(
+      { kind: 'today' },
+      [
+        task({ id: 'old', dueDate: '2026-09-01', projectId: 'work' }),
+        task({ id: 'w', dueDate: TODAY, projectId: 'work' }),
+        task({ id: 'h', dueDate: TODAY, projectId: 'home' }),
+        task({ id: 'n', dueDate: TODAY }),
+      ],
+      [home, work],
+      [],
+      { groupBy: 'project', sortBy: 'smart', reverse: false },
+    );
+    expect(list.sections.map((s) => s.title)).toEqual(['Earlier', 'Home', 'Work', 'No project']);
+    // The heading says the project, so the row doesn't.
+    expect(list.sections[1]!.rows[0]!.project).toBeNull();
+    expect(list.sections[0]!.rows[0]!.project?.name).toBe('Work');
+  });
+
+  it('shows a task with two labels under both, and names the unlabelled group last', () => {
+    const list = view(
+      { kind: 'all' },
+      [task({ id: 'both', labelIds: ['focus', 'quick'] }), task({ id: 'bare' })],
+      [],
+      [focus, quick],
+      { groupBy: 'label', sortBy: 'smart', reverse: false },
+    );
+    expect(list.sections.map((s) => [s.title, ids(s.rows)])).toEqual([
+      ['Focus', ['both']],
+      ['Quick win', ['both']],
+      ['No label', ['bare']],
+    ]);
+    // Under "Focus", the row shows only its other label.
+    expect(list.sections[0]!.rows[0]!.labels.map((l) => l.name)).toEqual(['Quick win']);
+  });
+
+  it('isn’t offered where the list is already cut along that axis', () => {
+    const options = { groupBy: 'project' as const, sortBy: 'smart' as const, reverse: false };
+    expect(view({ kind: 'upcoming' }, [], [], [], options).options.groupable).toBe(false);
+    expect(view({ kind: 'project', projectId: 'home' }, [], [home], [], options).options.groupBy).toBe('none');
+  });
+
+  it('never makes the sidebar count a task twice', () => {
+    const input: ViewInput = {
+      selection: { kind: 'all' },
+      tasks: [task({ labelIds: ['focus', 'quick'] })],
+      projects: [],
+      labels: [focus, quick],
+      today: TODAY,
+      options: { groupBy: 'label', sortBy: 'smart', reverse: false },
+    };
+    expect(countFor(input)).toBe(1);
+  });
+});
+
+describe('labels', () => {
+  const focus = label({ id: 'focus', name: 'Focus', order: 2 });
+  const errand = label({ id: 'errand', name: 'Errand', order: 1 });
+
+  it('show on rows in the label list’s own order', () => {
+    const list = view({ kind: 'all' }, [task({ labelIds: ['focus', 'errand'] })], [], [focus, errand]);
+    expect(list.sections[0]!.rows[0]!.labels.map((l) => l.name)).toEqual(['Errand', 'Focus']);
+  });
+
+  it('a label’s view gathers tasks from anywhere, hides that label on its rows, and adds it to new tasks', () => {
+    const list = view(
+      { kind: 'label', labelId: 'focus' },
+      [task({ id: 'a', labelIds: ['focus'], projectId: 'x' }), task({ id: 'b' })],
+      [project({ id: 'x', name: 'Work' })],
+      [focus, errand],
+    );
+    expect(ids(list.sections[0]!.rows)).toEqual(['a']);
+    expect(list.sections[0]!.rows[0]!.labels).toEqual([]);
+    expect(list.sections[0]!.rows[0]!.project?.name).toBe('Work');
+    expect(list.quickAdd).toMatchObject({ labelIds: ['focus'], placeholder: 'Add a task labelled Focus' });
+  });
+
+  it('the labels screen lists them in order with their neighbours and open counts', () => {
+    const rows = labelsScreen([focus, errand], [task({ labelIds: ['focus'] }), task({ labelIds: ['focus'], completedAt: 1 })]);
+    expect(rows.map((r) => [r.name, r.count, r.above, r.below])).toEqual([
+      ['Errand', 0, null, 'focus'],
+      ['Focus', 1, 'errand', null],
+    ]);
+  });
+});
+
+describe('repeating tasks', () => {
+  const daily = {
+    freq: 'daily' as const,
+    interval: 1,
+    anchor: TODAY,
+    mode: 'grid' as const,
+    until: null,
+    remaining: null,
+  };
+
+  it('a row says briefly how often, and nothing about the mechanism', () => {
+    const list = view({ kind: 'all' }, [task({ recurrence: { ...daily, mode: 'fromCompletion' } })]);
+    expect(list.sections[0]!.rows[0]!.recurrence).toBe('daily');
+  });
+
+  it('the panel offers the three moves, each naming its date, with the current one marked', () => {
+    const t = task({ id: 'r', dueDate: '2026-10-03', recurrence: daily });
+    const detail = taskDetail({ tasks: [t], projects: [], labels: [], today: TODAY }, 'r')!;
+    expect(detail.reschedule.map((o) => [o.label, o.date, o.current])).toEqual([
+      ['Tomorrow', '2026-10-03', true],
+      ['In a week', '2026-10-09', false],
+      ['Next occurrence', '2026-10-04', false],
+    ]);
+    expect(detail.recurrencePreview).toContain('Next:');
+  });
+
+  it('a finished task offers no moves', () => {
+    const t = task({ id: 'd', completedAt: 1 });
+    expect(taskDetail({ tasks: [t], projects: [], labels: [], today: TODAY }, 'd')!.reschedule).toEqual([]);
   });
 });

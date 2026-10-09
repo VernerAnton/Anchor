@@ -40,3 +40,56 @@
   background-color: var(--surface-selected);
   font-weight: var(--weight-strong);
 }
+
+/*
+ * Labels: an outlined chip in the label's colour — the same palette as
+ * projects, a different shape, so a coloured mark never means two things on
+ * one row. The name is always written out; the colour only says which.
+ */
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-style: solid;
+  border-width: var(--border-width);
+  border-color: var(--text-muted);
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.label-mark {
+  display: inline-block;
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-style: solid;
+  border-width: var(--focus-ring-width);
+  border-color: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+
+.label-chip[data-color='steel'], .label-mark[data-color='steel'] { border-color: var(--project-steel); }
+.label-chip[data-color='violet'], .label-mark[data-color='violet'] { border-color: var(--project-violet); }
+.label-chip[data-color='teal'], .label-mark[data-color='teal'] { border-color: var(--project-teal); }
+.label-chip[data-color='sage'], .label-mark[data-color='sage'] { border-color: var(--project-sage); }
+.label-chip[data-color='ochre'], .label-mark[data-color='ochre'] { border-color: var(--project-ochre); }
+.label-chip[data-color='plum'], .label-mark[data-color='plum'] { border-color: var(--project-plum); }
+.label-chip[data-color='indigo'], .label-mark[data-color='indigo'] { border-color: var(--project-indigo); }
+.label-chip[data-color='clay'], .label-mark[data-color='clay'] { border-color: var(--project-clay); }
+
+button.label-chip {
+  min-height: var(--tap-target);
+  padding-inline: var(--space-3);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+@media (pointer: fine) {
+  button.label-chip {
+    min-height: 0;
+  }
+}

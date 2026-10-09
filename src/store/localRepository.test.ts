@@ -55,7 +55,7 @@ describe('local repository', () => {
   it('refuses a write carrying a lower version than what is stored', async () => {
     const repo = createLocalRepository(USER);
     const task = sample();
-    const done = completeTask(task, 5);
+    const done = completeTask(task, 5, '2026-10-09');
     await repo.saveTask(done);
     await repo.saveTask(task); // a stale echo of the earlier version
     const [stored] = await repo.getTasks();

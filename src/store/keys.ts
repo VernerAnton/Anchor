@@ -34,6 +34,18 @@ export function projectDoc(userId: string, id: string): string[] {
   return [...projectsCollection(userId), id];
 }
 
+export function labelsCollection(userId: string): string[] {
+  return ['users', userId, 'v3-labels'];
+}
+
+export function labelDoc(userId: string, id: string): string[] {
+  return [...labelsCollection(userId), id];
+}
+
+export function settingsDoc(userId: string): string[] {
+  return ['users', userId, 'v3-settings', 'app'];
+}
+
 /** localStorage has no collections, so a document path becomes a flat key. */
 export function localKey(segments: string[]): string {
   return `${LOCAL_PREFIX}:${segments.join(':')}`;

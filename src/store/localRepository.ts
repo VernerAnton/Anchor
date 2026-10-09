@@ -1,6 +1,15 @@
 import type { AnchorRepository, Unsubscribe } from './repository';
-import { localKey, projectDoc, projectsCollection, taskDoc, tasksCollection } from './keys';
-import { parseProject, parseTask } from './schemas';
+import {
+  labelDoc,
+  labelsCollection,
+  localKey,
+  projectDoc,
+  projectsCollection,
+  settingsDoc,
+  taskDoc,
+  tasksCollection,
+} from './keys';
+import { parseLabel, parseProject, parseSettings, parseTask } from './schemas';
 
 /**
  * localStorage behind the Firestore-shaped interface. A complete mode of the
@@ -92,6 +101,12 @@ export function createLocalRepository(userId: string): AnchorRepository {
 
   const tasksPrefix = `${localKey(tasksCollection(userId))}:`;
   const projectsPrefix = `${localKey(projectsCollection(userId))}:`;
+  const labelsPrefix = `${localKey(labelsCollection(userId))}:`;
+  const settingsKey = localKey(settingsDoc(userId));
+  const readSettings = () => {
+    const raw = readJson(settingsKey);
+    return raw === null ? null : parseSettings(raw, settingsKey);
+  };
 
   const remove = (key: string) => {
     localStorage.removeItem(key);
@@ -135,6 +150,40 @@ export function createLocalRepository(userId: string): AnchorRepository {
 
     async deleteProject(id) {
       remove(localKey(projectDoc(userId, id)));
+    },
+
+    async getLabels() {
+      return scanAll(labelsPrefix, parseLabel);
+    },
+
+    subscribeLabels(cb) {
+      return watch(
+        (changed) => changed.startsWith(labelsPrefix),
+        () => cb(scanAll(labelsPrefix, parseLabel)),
+      );
+    },
+
+    async saveLabel(label) {
+      writeVersioned(localKey(labelDoc(userId, label.id)), label);
+    },
+
+    async deleteLabel(id) {
+      remove(localKey(labelDoc(userId, id)));
+    },
+
+    async getSettings() {
+      return readSettings();
+    },
+
+    subscribeSettings(cb) {
+      return watch(
+        (changed) => changed === settingsKey,
+        () => cb(readSettings()),
+      );
+    },
+
+    async saveSettings(settings) {
+      writeVersioned(settingsKey, settings);
     },
   };
 }

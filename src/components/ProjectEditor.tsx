@@ -17,7 +17,7 @@ interface Props {
 }
 
 /** Names for the colour ids, shown beside each swatch so the choice reads with no theme. */
-const COLOR_NAMES: Record<ProjectColor, string> = {
+export const COLOR_NAMES: Record<ProjectColor, string> = {
   steel: 'Steel',
   violet: 'Violet',
   teal: 'Teal',
