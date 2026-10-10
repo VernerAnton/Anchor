@@ -4,6 +4,16 @@ import type { Settings } from '../types/settings';
 export type Unsubscribe = () => void;
 
 /**
+ * Where the data stands with the place it's kept.
+ *
+ * - `local` — no sync key; this device is the whole store. A complete mode.
+ * - `synced` — everything written here has reached the cloud.
+ * - `sending` — written here, kept safely on this device, not yet confirmed.
+ * - `offline` — no connection; changes are kept here and go up on reconnect.
+ */
+export type SyncStatus = 'local' | 'synced' | 'sending' | 'offline';
+
+/**
  * Everything the app knows how to store, expressed the way Firestore expresses
  * it: one-shot reads, live subscriptions, and whole-document writes.
  *
@@ -22,7 +32,11 @@ export type Unsubscribe = () => void;
  * which reads as the defaults.
  */
 export interface AnchorRepository {
-  /** One-shot read. */
+  /**
+   * One-shot reads, used by the guarded first-connect migration. The cloud
+   * backend reads these from the server, never its cache: comparing against
+   * an empty offline cache is exactly how a device could overwrite newer data.
+   */
   getTasks(): Promise<Task[]>;
   subscribeTasks(cb: (tasks: Task[]) => void): Unsubscribe;
   saveTask(task: Task): Promise<void>;
@@ -41,4 +55,14 @@ export interface AnchorRepository {
   getSettings(): Promise<Settings | null>;
   subscribeSettings(cb: (settings: Settings | null) => void): Unsubscribe;
   saveSettings(settings: Settings): Promise<void>;
+
+  subscribeStatus(cb: (status: SyncStatus) => void): Unsubscribe;
+  /** Resolves once every write made so far has reached wherever data is kept. */
+  settle(): Promise<void>;
+  /**
+   * A write that failed after the app had already moved on — the cloud
+   * refused something it had accepted locally. Writes that fail at once
+   * reject their own promise instead.
+   */
+  subscribeWriteErrors(cb: (error: unknown) => void): Unsubscribe;
 }

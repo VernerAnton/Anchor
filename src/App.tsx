@@ -6,10 +6,17 @@ import { useNarrowLayout } from './hooks/useNarrowLayout';
 import { useFocusAfterRender } from './hooks/useFocusAfterRender';
 import { useSelection } from './hooks/useSelection';
 import { useToday } from './hooks/useToday';
+import { useSyncStatus } from './hooks/useSyncStatus';
+import { useTheme } from './hooks/useTheme';
+import { useAppUpdate } from './hooks/useAppUpdate';
 import { buildList, completionNotice, focusAfterToggle, labelsScreen, taskDetail } from './lib/views';
 import { sidebarModel } from './lib/sidebar';
 import { projectEditorModel } from './lib/projects';
-import { viewKey } from './lib/selection';
+import { isListSelection, viewKey } from './lib/selection';
+import { syncStatusText } from './lib/sync';
+import { countSamples } from './lib/sampleData';
+import { hasFirebaseConfig } from './store/firebaseConfig';
+import { repository, syncMode } from './store';
 import { buildInfo } from './lib/build';
 import * as actions from './store/actions';
 import { Sidebar } from './components/Sidebar';
@@ -18,6 +25,9 @@ import { DetailPanel, DetailPlaceholder, type TaskChanges } from './components/D
 import { ProjectEditor, type ProjectChanges } from './components/ProjectEditor';
 import { LabelsScreen } from './components/LabelsScreen';
 import { Notice, type NoticeModel } from './components/Notice';
+import { SettingsScreen } from './components/SettingsScreen';
+import { UpdatePrompt } from './components/UpdatePrompt';
+import { SampleNotice } from './components/SampleNotice';
 
 const BUILD = buildInfo();
 
@@ -31,7 +41,12 @@ const FALLBACK_TITLES = {
   project: 'Project',
   label: 'Label',
   labels: 'Labels',
+  settings: 'Settings',
 };
+
+/** A write the cloud refused after this device had already shown it. Plain, and says what to do. */
+const CLOUD_WRITE_ERROR =
+  'A recent change didn’t reach the cloud. It’s still on this device — check that the sync key matches the one in your Firestore rules.';
 
 /**
  * The shell: sidebar, list, detail.
@@ -47,6 +62,10 @@ export function App() {
   const labels = useLabels();
   const settings = useSettings();
   const today = useToday();
+  const syncStatus = useSyncStatus();
+  const update = useAppUpdate();
+  const [samplesHidden, setSamplesHidden] = useState(false);
+  useTheme(settings?.theme ?? 'system');
   const narrow = useNarrowLayout();
   const [selection, navigate] = useSelection();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -63,7 +82,7 @@ export function App() {
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
 
-  const listSelection = selection.kind === 'labels' ? null : selection;
+  const listSelection = isListSelection(selection) ? selection : null;
   const loaded = tasks !== null && projects !== null && labels !== null && settings !== undefined;
 
   const list = useMemo(() => {
@@ -100,6 +119,7 @@ export function App() {
   // Each view opens with its project editor closed.
   useEffect(() => setEditingProject(false), [selection]);
 
+
   const report = useCallback(<T,>(write: Promise<T>): Promise<T | undefined> => {
     return write.then(
       (value) => {
@@ -117,6 +137,33 @@ export function App() {
   const findTask = useCallback((id: string) => tasks?.find((task) => task.id === id), [tasks]);
   const findLabel = useCallback((id: string) => labels?.find((label) => label.id === id), [labels]);
   const dismissNotice = useCallback(() => setNotice(null), []);
+
+  // A write the cloud refused after accepting it locally.
+  useEffect(() => repository.subscribeWriteErrors(() => setWriteError(CLOUD_WRITE_ERROR)), []);
+
+  /*
+   * First run: an install with nothing in it gets sample tasks, so it isn't a
+   * blank screen. Only here on this device — a shared cloud store is never
+   * seeded — and only once: the settings document written alongside marks the
+   * install as set up, so clearing the samples is final.
+   */
+  const firstRunDone = useRef(false);
+  useEffect(() => {
+    if (firstRunDone.current || !loaded || settings !== null) return;
+    firstRunDone.current = true;
+    const empty = tasks.length === 0 && projects.length === 0 && labels.length === 0;
+    void report(
+      (async () => {
+        if (empty && syncMode === 'local') await actions.loadSamples();
+        await actions.markInitialised(null);
+      })(),
+    );
+  }, [loaded, settings, tasks, projects, labels, report]);
+
+  const sampleCount = useMemo(
+    () => countSamples(tasks ?? [], projects ?? [], labels ?? []),
+    [tasks, projects, labels],
+  );
 
   // ── Tasks ──
 
@@ -340,6 +387,13 @@ export function App() {
     [findLabel, tasks, report],
   );
 
+  const onClearSamples = useCallback(() => {
+    if (tasks && projects && labels) {
+      setSelectedId(null);
+      void report(actions.clearSamples(tasks, projects, labels));
+    }
+  }, [tasks, projects, labels, report]);
+
   // ── The drawer ──
 
   const closeDrawer = useCallback(() => {
@@ -377,6 +431,7 @@ export function App() {
         <Sidebar
           build={BUILD}
           model={sidebar}
+          syncText={syncStatusText(syncStatus).short}
           drawer={narrow}
           closeRef={drawerCloseRef}
           onClose={narrow ? closeDrawer : () => {}}
@@ -394,9 +449,29 @@ export function App() {
             </button>
           </div>
         )}
+        {update.needRefresh && <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />}
         {notice && <Notice notice={notice} onDismiss={dismissNotice} />}
 
-        {selection.kind === 'labels' ? (
+        {selection.kind === 'settings' ? (
+          <SettingsScreen
+            cloudAvailable={hasFirebaseConfig()}
+            connected={syncMode === 'cloud'}
+            statusText={syncStatusText(syncStatus).long}
+            theme={settings?.theme ?? 'system'}
+            sampleCount={sampleCount}
+            build={BUILD}
+            onOpenMenu={openMenu}
+            menuButtonRef={menuButtonRef}
+            headingRef={listHeadingRef}
+            onTheme={(theme) => {
+              if (settings !== undefined) void report(actions.setThemePreference(settings, theme));
+            }}
+            onConnect={actions.connectSync}
+            onDisconnect={actions.disconnectSync}
+            onLoadSamples={() => void report(actions.loadSamples())}
+            onClearSamples={onClearSamples}
+          />
+        ) : selection.kind === 'labels' ? (
           <LabelsScreen
             rows={labelRows}
             onOpenMenu={openMenu}
@@ -416,6 +491,12 @@ export function App() {
             onOpenMenu={openMenu}
             menuButtonRef={menuButtonRef}
             headingRef={listHeadingRef}
+            notices={
+              sampleCount > 0 &&
+              !samplesHidden && (
+                <SampleNotice onClear={onClearSamples} onHide={() => setSamplesHidden(true)} />
+              )
+            }
             headerActions={
               projectModel && (
                 <button

@@ -17,6 +17,8 @@ interface Props {
   headingRef: Ref<HTMLHeadingElement>;
   /** Extra header controls — a project's Edit button. */
   headerActions?: ReactNode;
+  /** Notices about the list as a whole — sample tasks. Shown under the header. */
+  notices?: ReactNode;
   /** Content between the header and the list — a project's inline editor. */
   beforeList?: ReactNode;
   onAdd(title: string): void;
@@ -35,6 +37,7 @@ export function TaskListPanel({
   menuButtonRef,
   headingRef,
   headerActions,
+  notices,
   beforeList,
   onAdd,
   onToggle,
@@ -64,6 +67,7 @@ export function TaskListPanel({
         {headerActions}
       </header>
 
+      {notices}
       {beforeList}
 
       {list === null ? (

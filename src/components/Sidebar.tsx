@@ -5,6 +5,8 @@ import type { ProjectNavItem, SidebarModel } from '../lib/sidebar';
 interface Props {
   build: BuildInfo;
   model: SidebarModel;
+  /** "On this device", "Synced", "Offline"… */
+  syncText: string;
   /** The narrow layout's drawer: adds a close control. */
   drawer: boolean;
   closeRef: Ref<HTMLButtonElement>;
@@ -17,8 +19,8 @@ function Count({ count }: { count: number }) {
 }
 
 /** Navigation: the views, the projects, and the build stamp. */
-export function Sidebar({ build, model, drawer, closeRef, onClose, onCreateProject }: Props) {
-  const { views, projects, archived, labels, manageLabels } = model;
+export function Sidebar({ build, model, syncText, drawer, closeRef, onClose, onCreateProject }: Props) {
+  const { views, projects, archived, labels, manageLabels, settings } = model;
   const classes = ['sidebar'];
   if (drawer) classes.push('sidebar--drawer');
 
@@ -121,9 +123,22 @@ export function Sidebar({ build, model, drawer, closeRef, onClose, onCreateProje
         </a>
       </section>
 
-      <p className="app-version" title={build.detail}>
-        {build.label}
-      </p>
+      <footer className="sidebar__footer">
+        <a
+          className="nav-list__link"
+          href={settings.href}
+          aria-current={settings.current ? 'page' : undefined}
+          onClick={onClose}
+        >
+          <span className="nav-list__label">Settings</span>
+          <span className="sidebar__sync" aria-label={`Sync: ${syncText}`}>
+            {syncText}
+          </span>
+        </a>
+        <p className="app-version" title={build.detail}>
+          {build.label}
+        </p>
+      </footer>
     </nav>
   );
 }

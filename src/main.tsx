@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { startTheme } from './lib/theme';
+import { initRepository } from './store';
 
 // Tokens first: every later sheet refers to them. Each component's styles sit
 // beside nothing else — one file per component, no file owning the app.
@@ -22,6 +23,7 @@ import './styles/components/view-options.css';
 import './styles/components/recurrence.css';
 import './styles/components/label-picker.css';
 import './styles/components/labels-screen.css';
+import './styles/components/settings.css';
 import './styles/components/notices.css';
 
 // `?theme=none` paints with no theme at all — the blank-theme test.
@@ -30,10 +32,20 @@ startTheme();
 const root = document.getElementById('root');
 if (!root) throw new Error('No #root element');
 
-createRoot(root).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
-);
+// The store is chosen before anything renders — local, or the cloud for a
+// device with a sync key — so no component ever sees it half-chosen.
+//
+// Deliberately `.then`, not a top-level `await`: the cloud store is a separate
+// chunk that imports shared code from this entry module, and an entry module
+// suspended in a top-level await can't finish evaluating for it — the two wait
+// on each other forever. That deadlock was hit: a device that connected sync
+// rebooted to a blank page.
+void initRepository().then(() => {
+  createRoot(root).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+});

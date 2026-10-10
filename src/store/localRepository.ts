@@ -185,5 +185,19 @@ export function createLocalRepository(userId: string): AnchorRepository {
     async saveSettings(settings) {
       writeVersioned(settingsKey, settings);
     },
+
+    subscribeStatus(cb) {
+      queueMicrotask(() => cb('local'));
+      return () => {};
+    },
+
+    // Local writes are done when they return.
+    async settle() {},
+
+    // Local writes fail at once (storage full, blocked) and reject their own
+    // promise, so there is never a late failure to report.
+    subscribeWriteErrors() {
+      return () => {};
+    },
   };
 }

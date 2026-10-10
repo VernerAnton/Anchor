@@ -147,3 +147,60 @@ settings document, and manual reordering by drag or by arrow keys.
 date, its subtasks currently stay as they were (done ones stay done). Resetting them for
 each occurrence is the common expectation, but it means clearing their `completedAt`.
 Not changed without asking.
+
+---
+
+## Phase 4 — Platform (V30)
+
+**Shipped:** cloud sync by sync key (Firestore, the archived layer ported to this model), a
+Settings screen (sync, appearance, sample tasks, version), the light / dark / system choice
+synced with your tasks, the service worker actually registered with an update prompt, and
+sample tasks on first run.
+
+**Verified, not assumed** — against the Firestore emulator running the production-style
+keyed rule, with two separate browser profiles as two devices:
+
+- a wrong key is refused by the rules; Settings says so and the device is untouched;
+- first connect pushes this device's own tasks, never its samples;
+- a second device sees them on connecting; a task added on one appears on the other in
+  about 0.2 s, no reload;
+- offline: the status reads Offline, changes stay on the device, and reach the other device
+  about 0.2 s after reconnecting;
+- the theme chosen on one device repaints the other;
+- disconnecting returns a device to the local copy it had before;
+- a synced device cold-loads with no network and shows its tasks from the on-device cache;
+- production build: the service worker takes control, the app cold-loads offline, adding
+  works offline, and a newly deployed build is *offered* (Reload / Later), not forced.
+
+**Not verifiable here:** a real second physical device and real airplane mode, against the
+real Firebase project. That needs doing once on the owner's devices — see below.
+
+**Bugs found by testing, fixed:**
+
+- **A top-level `await` deadlocked boot in cloud mode.** `main.tsx` awaited the store, the
+  store dynamically imported the Firestore chunk, and that chunk imports shared code from
+  the entry module — which can't finish evaluating while suspended. Every device that
+  connected sync rebooted to a blank page. Now `initRepository().then(render)`.
+- **A mistyped key broke Connect until a reload.** Firebase allows `initializeFirestore` once
+  per page; the retry threw. One database per page now.
+
+**Decisions made:**
+
+- **Writes don't wait for the server.** A Firestore write promise resolves only on server
+  acknowledgement — offline, not until reconnect. The write is already applied and durably
+  queued, so the app treats it as done; a late refusal comes through
+  `subscribeWriteErrors` and shows a plain notice.
+- **First connect reads the cloud from the server, never the cache,** and waits for its
+  pushes to be acknowledged before restarting on the cloud store. Offline, Connect says it
+  couldn't reach the cloud and changes nothing.
+- **The sync key is stored under a new name (`anchor:v3:sync-key`).** A device carrying the
+  old build's key never silently connects; connecting always runs the guarded push.
+- **Sample tasks load only on a fresh local install** (no settings document, nothing stored),
+  never into a shared cloud store, and never again once cleared. A notice under the heading
+  says they're samples, with Clear and Hide.
+- **Sync status is calm:** On this device / Synced / Sending… / Offline. Offline is a normal
+  state for a phone, not an error.
+
+**For the owner, once:** add the six `VITE_FIREBASE_*` values in Vercel (see
+`docs/firebase-setup.md`), redeploy, then connect two real devices and try airplane mode.
+Until then every deploy runs local-only, which is a complete mode.

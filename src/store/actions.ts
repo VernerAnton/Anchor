@@ -1,9 +1,11 @@
 import type { Label, Priority, Project, ProjectColor, Recurrence, Task } from '../types/task';
 import { PROJECT_COLOR_IDS } from '../types/task';
-import { defaultViewOptions, type Settings, type ViewOptions } from '../types/settings';
+import { defaultViewOptions, type Settings, type ThemePreference, type ViewOptions } from '../types/settings';
 import { findLabelByName, normalizeLabelName } from '../lib/labelSearch';
 import { reorderPlan, type Ordered } from '../lib/reorder';
 import { todayStr } from '../lib/dates';
+import { isSample, sampleLabels, sampleProjects, sampleTasks } from '../lib/sampleData';
+import { setSyncKey } from './identity';
 import { repository } from './index';
 import { SCHEMA_VERSION } from './keys';
 import {
@@ -271,4 +273,85 @@ export function setViewOptions(
     version: base.version + 1,
     updatedAt: Date.now(),
   });
+}
+
+export function setThemePreference(settings: Settings | null, theme: ThemePreference): Promise<void> {
+  const base = settings ?? emptySettings();
+  return repository.saveSettings({ ...base, theme, version: base.version + 1, updatedAt: Date.now() });
+}
+
+/**
+ * Marks this install as set up, by writing the settings document if it has
+ * never been written. That document is the first-run marker: once it exists,
+ * sample tasks are never added on their own again — clearing them is final.
+ */
+export async function markInitialised(settings: Settings | null): Promise<void> {
+  if (settings !== null) return;
+  await repository.saveSettings({ ...emptySettings(), version: 1, updatedAt: Date.now() });
+}
+
+// ── Sample tasks ───────────────────────────────────────────────────────────
+
+export async function loadSamples(): Promise<void> {
+  const now = Date.now();
+  const today = todayStr();
+  await Promise.all([
+    ...sampleProjects(now).map((p) => repository.saveProject(p)),
+    ...sampleLabels(now).map((l) => repository.saveLabel(l)),
+  ]);
+  await saveAll(sampleTasks(today, now));
+}
+
+/** Removes exactly the documents whose ids say they're samples — nothing you made. */
+export async function clearSamples(
+  tasks: readonly Task[],
+  projects: readonly Project[],
+  labels: readonly Label[],
+): Promise<void> {
+  const now = Date.now();
+  // Real tasks wearing a sample label, or filed under a sample project, keep
+  // themselves and lose only the sample reference.
+  const touched = tasks
+    .filter((t) => !isSample(t.id))
+    .flatMap((t) => {
+      let next = t;
+      for (const id of t.labelIds.filter(isSample)) next = removeTaskLabel(next, id, now);
+      if (next.projectId && isSample(next.projectId)) next = editTask(next, { projectId: null }, now);
+      return next === t ? [] : [next];
+    });
+  await saveAll(touched);
+  await Promise.all([
+    ...tasks.filter((t) => isSample(t.id)).map((t) => repository.deleteTask(t.id)),
+    ...projects.filter((p) => isSample(p.id)).map((p) => repository.deleteProject(p.id)),
+    ...labels.filter((l) => isSample(l.id)).map((l) => repository.deleteLabel(l.id)),
+  ]);
+}
+
+// ── Sync ───────────────────────────────────────────────────────────────────
+
+/**
+ * Connects this device to a sync key. This device's own data goes up first —
+ * guarded, so a fresh device joining an existing key can never wipe what's
+ * there — and only once it has reached the cloud is the key saved and the app
+ * restarted on the cloud store.
+ */
+export async function connectSync(key: string): Promise<void> {
+  const [{ createFirestoreRepository }, { migrateLocalToCloud }] = await Promise.all([
+    import('./firestoreRepository'),
+    import('./migrate'),
+  ]);
+  const cloud = createFirestoreRepository(key);
+  await migrateLocalToCloud(cloud);
+  await cloud.settle();
+  setSyncKey(key);
+  window.location.reload();
+}
+
+/**
+ * Back to this device only. The cloud keeps everything; this device returns to
+ * the local copy it had before connecting.
+ */
+export function disconnectSync(): void {
+  setSyncKey('');
+  window.location.reload();
 }

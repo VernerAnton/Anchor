@@ -55,8 +55,8 @@ service cloud.firestore {
 ```
 
 Swap in your real key (keep the quotes) and publish. The `{document=**}` wildcard covers
-every path the app uses — `users/{syncKey}/v2-tasks/…`, `v2-projects/…` and
-`v2-settings/app` (see `src/store/keys.ts`) — and `allow read` already covers both `get` and
+every path the app uses — `users/{syncKey}/v3-tasks/…`, `v3-projects/…`, `v3-labels/…`
+and `v3-settings/app` (see `src/store/keys.ts`) — and `allow read` already covers both `get` and
 `list`, which is what the live task/project subscriptions need.
 
 **The key is verified server-side, not just obscure.** Only requests carrying the exact key
@@ -78,14 +78,18 @@ compiled in.
 
 ## 5. Connect
 
-Open Anchor → **Sync** → enter your key → **Connect**.
+Open Anchor → **Settings** (sidebar footer) → **Sync** → enter your key → **Connect**.
 
 The device's existing local data is pushed up first, guarded so that connecting a fresh
-device to an existing key can never wipe what's already there. Enter the same key on the next
-device and they converge.
+device to an existing key can never wipe what's already there. Sample tasks stay behind on the
+device. Enter the same key on the next device and they converge.
 
-To check it worked: the sidebar footer reads `Sync · connected`, and a task added on one
-device appears on the other without a reload.
+To check it worked: the sidebar footer reads **Synced**, and a task added on one device
+appears on the other without a reload. A wrong key is refused by the rules, and Settings says
+so without changing anything on the device.
+
+A device that ran the previous build won't reconnect on its own: the key is stored under a new
+name in this build, so connecting is always the deliberate step above.
 
 ## Trying it without a project
 
@@ -96,9 +100,9 @@ changes without risking real data:
 npx firebase-tools emulators:start --only firestore --project anchor-emu-test
 ```
 
-with a `firebase.json` pointing at an open `allow read, write: if true` rules file — the
-emulator has no real data to protect, so there's no reason to key-gate it — then in
-`.env.local`:
+with a `firebase.json` pointing at a rules file. Using the same keyed rule as production is
+worth it: it's how the wrong-key path gets tested. Then in `.env.local` (or on the command
+line for a one-off build):
 
 ```
 VITE_FIRESTORE_EMULATOR=127.0.0.1:8080

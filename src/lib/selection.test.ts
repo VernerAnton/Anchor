@@ -10,6 +10,7 @@ describe('selection', () => {
       { kind: 'project', projectId: 'a b/c' },
       { kind: 'label', labelId: 'x' },
       { kind: 'labels' },
+      { kind: 'settings' },
     ] as const) {
       expect(parseHash(selectionHref(s))).toEqual(s);
     }

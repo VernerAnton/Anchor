@@ -36,6 +36,7 @@ export interface SidebarModel {
   labels: LabelNavItem[];
   /** The labels screen, where they're renamed and reordered. */
   manageLabels: { href: string; current: boolean };
+  settings: { href: string; current: boolean };
 }
 
 const VIEWS: { selection: ListSelection; label: string }[] = [
@@ -80,5 +81,6 @@ export function sidebarModel(
       };
     }),
     manageLabels: { href: selectionHref({ kind: 'labels' }), current: current.kind === 'labels' },
+    settings: { href: selectionHref({ kind: 'settings' }), current: current.kind === 'settings' },
   };
 }

@@ -13,10 +13,16 @@ export type Selection =
   | { kind: 'project'; projectId: string }
   | { kind: 'label'; labelId: string }
   /** Every label, to rename and reorder in place. Not a task list. */
-  | { kind: 'labels' };
+  | { kind: 'labels' }
+  /** Sync, appearance, sample tasks, version. Not a task list. */
+  | { kind: 'settings' };
 
 /** Selections that show a task list. */
-export type ListSelection = Exclude<Selection, { kind: 'labels' }>;
+export type ListSelection = Exclude<Selection, { kind: 'labels' } | { kind: 'settings' }>;
+
+export function isListSelection(selection: Selection): selection is ListSelection {
+  return selection.kind !== 'labels' && selection.kind !== 'settings';
+}
 
 export const DEFAULT_SELECTION: Selection = { kind: 'today' };
 
@@ -26,6 +32,7 @@ export function parseHash(hash: string): Selection {
   if (path === 'all') return { kind: 'all' };
   if (path === 'today') return { kind: 'today' };
   if (path === 'labels') return { kind: 'labels' };
+  if (path === 'settings') return { kind: 'settings' };
   const project = /^project\/(.+)$/.exec(path);
   if (project?.[1]) return { kind: 'project', projectId: decodeURIComponent(project[1]) };
   const label = /^label\/(.+)$/.exec(path);
