@@ -1,0 +1,50 @@
+/* Every label, edited in place. */
+
+.labels-screen__list {
+  display: grid;
+}
+
+.labels-screen__row {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  border-bottom-style: solid;
+  border-bottom-width: var(--border-width);
+  border-bottom-color: var(--border-subtle);
+}
+
+.labels-screen__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.labels-screen__name {
+  flex: 1;
+  min-width: calc(var(--space-8) * 5);
+}
+
+.labels-screen__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.labels-screen__count {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.labels-screen__link {
+  font-size: var(--text-sm);
+}
+
+.delete-confirm--inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+}

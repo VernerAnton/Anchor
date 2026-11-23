@@ -1,0 +1,39 @@
+/* The settings page: plain sections, one after another. */
+
+.settings__section {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) 0;
+  border: none;
+  border-top-style: solid;
+  border-top-width: var(--border-width);
+  border-top-color: var(--border-subtle);
+}
+
+.settings__heading {
+  padding: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.settings__text {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.settings__form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 28rem;
+}
+
+.settings__failure {
+  padding: var(--space-3);
+  border-style: solid;
+  border-width: var(--border-width);
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  font-size: var(--text-sm);
+}
