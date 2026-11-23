@@ -56,3 +56,8 @@ tracking, natural-language dates.
 The completed block and the reschedule trio were first left out, then brought back in when
 the gaps they leave were put to the owner — where a finished task goes to be reopened, and
 how to skip one occurrence of a recurring task. Both are in.
+
+## Later
+
+- **Project tracker** — added to the plan by the owner in November 2026, parked until the app
+  is running and in daily use. Goes after phase 5, before the path. See `project-tracker.md`.
