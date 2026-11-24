@@ -59,5 +59,8 @@ how to skip one occurrence of a recurring task. Both are in.
 
 ## Later
 
+- **The path** — redesigned with the owner in November 2026: a path built for one day (today
+  or tomorrow), locked in, run full screen one step at a time. Replaces the weekly-pattern
+  design. Phase 6, after phase 5. See `path.md`.
 - **Project tracker** — added to the plan by the owner in November 2026, parked until the app
-  is running and in daily use. Goes after phase 5, before the path. See `project-tracker.md`.
+  is running and in daily use. Goes after the path. See `project-tracker.md`.

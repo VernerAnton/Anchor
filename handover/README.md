@@ -52,6 +52,7 @@ momentum, no scenic mode. Not even "a small hook for later."
 | `build-order.md` | Suggested phases |
 | `scope-chosen.md` | **What the owner chose** from `features.md` — the answer, not the menu |
 | `progress.md` | What has shipped so far, and the decisions made while building it |
+| `path.md` | **The path's plan** — phase 6, after phase 5. Replaces the old weekly design |
 | `project-tracker.md` | A parked later phase: a project tracker as a third lens. Not current scope |
 
 ## The state you're starting from

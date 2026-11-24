@@ -15,7 +15,8 @@ tracker reads what's already there.
 
 ## Where it goes in the order
 
-After phase 5 (and the full-day test), **before the path**. The rebuild happened because a
+After the path (phase 6), which itself comes after phase 5 and the full-day test. The
+rebuild happened because a
 second mode was built before the to-do side was finished; this note exists so the same thing
 doesn't happen with a third.
 

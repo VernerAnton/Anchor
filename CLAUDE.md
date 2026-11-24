@@ -7,7 +7,8 @@
 > bin — excluded from the build, there to copy from, not to restore.
 >
 > **The path view and any custom visual identity are later phases.** Don't build toward
-> them.
+> them. The path's plan — redesigned November 2026 — is `handover/path.md`; it is phase 6,
+> built after phase 5.
 
 ## Structure and styling are separate
 
