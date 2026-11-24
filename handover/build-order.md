@@ -63,12 +63,20 @@ Actually do that before calling it done.
 
 ---
 
-## Phase 6 — Then, and only then
+## Phase 6 — The path
 
-Custom visual identity. Then the path.
+A path built for one day, locked in, and run one step at a time. **The plan is in
+`path.md`** — it replaced the earlier weekly-pattern design in November 2026.
 
-If the contract in `styling.md` held, the visual phase is one new token file. **That's the
-test of whether this rebuild worked.**
+---
+
+## Then
+
+1. **The project tracker** — parked; see `project-tracker.md`.
+2. **Custom visual identity.** If the contract in `styling.md` held, the visual phase is one
+   new token file. **That's the test of whether this rebuild worked.**
+
+The order of these two can change; ask the owner when phase 6 is done.
 
 ---
 
