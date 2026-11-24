@@ -116,7 +116,12 @@
   inset: 0;
   z-index: 20;
   height: auto;
-  padding: var(--space-4);
+  /* Clear of the notch and the home bar — the Delete button sits at the bottom. */
+  padding:
+    calc(var(--space-4) + env(safe-area-inset-top))
+    calc(var(--space-4) + env(safe-area-inset-right))
+    calc(var(--space-4) + env(safe-area-inset-bottom))
+    calc(var(--space-4) + env(safe-area-inset-left));
   border: none;
   background-color: var(--surface-overlay, Canvas);
   box-shadow: var(--shadow-overlay);

@@ -576,6 +576,18 @@ export function labelsScreen(labels: readonly Label[], tasks: readonly Task[]): 
   }));
 }
 
+// ── Flat lists (search) ────────────────────────────────────────────────────
+
+/**
+ * Rows for a flat list that isn't one of the views — search results. Every
+ * task stands on its own (subtasks say whose they are), and nothing is
+ * suppressed: there's no heading to have said the project or the date.
+ */
+export function flatRows(input: Omit<ViewInput, 'selection'>, tasks: readonly Task[]): TaskRowModel[] {
+  const lookup = lookupOf(input);
+  return tasks.map((task) => toRow(task, NO_CONTEXT, lookup, false));
+}
+
 // ── Feedback ───────────────────────────────────────────────────────────────
 
 /**

@@ -199,7 +199,9 @@ export function createFirestoreRepository(syncKey: string): AnchorRepository {
           fromCache = snap.metadata.fromCache;
           emit();
         },
-        () => cb('offline'),
+        // A refused key isn't a connection problem, and saying "offline" would
+        // send someone looking at their wifi. Anything else is treated as one.
+        (error) => cb((error as { code?: string }).code === 'permission-denied' ? 'refused' : 'offline'),
       );
       window.addEventListener('online', emit);
       window.addEventListener('offline', emit);

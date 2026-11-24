@@ -11,6 +11,8 @@ describe('selection', () => {
       { kind: 'label', labelId: 'x' },
       { kind: 'labels' },
       { kind: 'settings' },
+      { kind: 'search', query: '' },
+      { kind: 'search', query: 'call the bank / 50%' },
     ] as const) {
       expect(parseHash(selectionHref(s))).toEqual(s);
     }

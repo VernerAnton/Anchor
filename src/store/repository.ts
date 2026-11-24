@@ -10,8 +10,10 @@ export type Unsubscribe = () => void;
  * - `synced` — everything written here has reached the cloud.
  * - `sending` — written here, kept safely on this device, not yet confirmed.
  * - `offline` — no connection; changes are kept here and go up on reconnect.
+ * - `refused` — the cloud turned this device's sync key away (its rules don't
+ *   allow it). Nothing loads until the key or the rules are put right.
  */
-export type SyncStatus = 'local' | 'synced' | 'sending' | 'offline';
+export type SyncStatus = 'local' | 'synced' | 'sending' | 'offline' | 'refused';
 
 /**
  * Everything the app knows how to store, expressed the way Firestore expresses

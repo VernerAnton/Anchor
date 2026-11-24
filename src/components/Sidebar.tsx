@@ -20,7 +20,7 @@ function Count({ count }: { count: number }) {
 
 /** Navigation: the views, the projects, and the build stamp. */
 export function Sidebar({ build, model, syncText, drawer, closeRef, onClose, onCreateProject }: Props) {
-  const { views, projects, archived, labels, manageLabels, settings } = model;
+  const { views, projects, archived, labels, manageLabels, settings, search } = model;
   const classes = ['sidebar'];
   if (drawer) classes.push('sidebar--drawer');
 
@@ -36,6 +36,17 @@ export function Sidebar({ build, model, syncText, drawer, closeRef, onClose, onC
       </div>
 
       <ul className="nav-list">
+        <li>
+          <a
+            className="nav-list__link"
+            href={search.href}
+            aria-current={search.current ? 'page' : undefined}
+            aria-keyshortcuts="/"
+            onClick={onClose}
+          >
+            <span className="nav-list__label">Search</span>
+          </a>
+        </li>
         {views.map((item) => (
           <li key={item.key}>
             <a

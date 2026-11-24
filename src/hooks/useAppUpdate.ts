@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
 
 /**
@@ -36,12 +36,21 @@ export interface AppUpdate {
   needRefresh: boolean;
   /** Pick it up now. */
   updateApp: () => void;
-  /** Keep this build for now; the offer returns on the next check. */
+  /** Keep this build for now; the offer returns when you next come back to the app. */
   dismiss: () => void;
 }
 
 export function useAppUpdate(): AppUpdate {
   const [needRefresh, setNeedRefresh] = useState(false);
+  /*
+   * Set when a newer build first takes over, and left standing when the offer
+   * is dismissed — only a reload clears it. Once the new worker controls the
+   * page there is nothing left for `registration.update()` to find, so without
+   * this "Later" would quietly mean "never" and the device would sit on the old
+   * build. (The same gap was found and fixed in the owner's recovery-companion
+   * app.)
+   */
+  const stale = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,11 +60,16 @@ export function useAppUpdate(): AppUpdate {
     registerSW({
       immediate: true,
       onNeedReload() {
+        stale.current = true;
         if (!cancelled) setNeedRefresh(true);
       },
       onRegisteredSW(_url, registration) {
         if (!registration) return;
-        const check = () => void registration.update();
+        const check = () => {
+          // Already behind: offer it again rather than looking for another.
+          if (stale.current) setNeedRefresh(true);
+          else void registration.update();
+        };
         timer = window.setInterval(check, UPDATE_INTERVAL_MS);
         onVisible = () => {
           if (document.visibilityState === 'visible') check();

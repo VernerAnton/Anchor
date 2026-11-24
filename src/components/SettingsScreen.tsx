@@ -20,6 +20,17 @@ interface Props {
   onClearSamples(): void;
 }
 
+/** What each key does. Single keys never fire while you're typing in a field. */
+const SHORTCUTS: [string[], string][] = [
+  [['n'], 'Add a task'],
+  [['/'], 'Search'],
+  [['↑', '↓'], 'Move between tasks'],
+  [['Home', 'End'], 'First or last task'],
+  [['Enter'], 'Open the task'],
+  [['Space'], 'Tick or untick it, when its box is focused'],
+  [['Esc'], 'Close the task or the menu'],
+];
+
 const THEMES: { id: ThemePreference; label: string }[] = [
   { id: 'system', label: 'Match this device' },
   { id: 'light', label: 'Light' },
@@ -94,6 +105,26 @@ export function SettingsScreen(props: Props) {
             </div>
           </>
         )}
+      </section>
+
+      <section className="settings__section" aria-labelledby="keys-heading">
+        <h2 id="keys-heading" className="settings__heading">
+          Keyboard
+        </h2>
+        <dl className="shortcut-list">
+          {SHORTCUTS.map(([keys, what]) => (
+            <div key={what} className="shortcut-list__item">
+              <dt className="shortcut-list__keys">
+                {keys.map((key) => (
+                  <kbd key={key} className="shortcut-list__key">
+                    {key}
+                  </kbd>
+                ))}
+              </dt>
+              <dd className="shortcut-list__what">{what}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <section className="settings__section" aria-labelledby="about-heading">

@@ -10,6 +10,8 @@ interface Props {
   list: ListModel | null;
   /** Shown while loading, before the list knows its own title. */
   fallbackTitle: string;
+  /** What to say while the list hasn't arrived — usually that it's loading. */
+  waitingText: string;
   selectedId: string | null;
   /** Shown only in the narrow layout, where the sidebar is a drawer. */
   onOpenMenu: (() => void) | null;
@@ -32,6 +34,7 @@ interface Props {
 export function TaskListPanel({
   list,
   fallbackTitle,
+  waitingText,
   selectedId,
   onOpenMenu,
   menuButtonRef,
@@ -72,7 +75,7 @@ export function TaskListPanel({
 
       {list === null ? (
         <p className="list-panel__message" role="status">
-          Loading tasks…
+          {waitingText}
         </p>
       ) : (
         <>

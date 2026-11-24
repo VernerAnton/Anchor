@@ -32,3 +32,11 @@
     min-height: 0;
   }
 }
+
+/* iPhone Safari zooms the whole page into any field under 16px. On touch, the
+   menus are body size so tapping one doesn't. */
+@media (pointer: coarse) {
+  .view-options__select {
+    font-size: var(--text-md);
+  }
+}

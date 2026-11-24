@@ -24,6 +24,11 @@ export function syncStatusText(status: SyncStatus | null): SyncStatusText {
       return { short: 'Synced', long: 'Synced. Every change made here is in the cloud, for any device using the same key.' };
     case 'sending':
       return { short: 'Sending…', long: 'Sending recent changes. They’re already saved on this device.' };
+    case 'refused':
+      return {
+        short: 'Key refused',
+        long: 'The cloud refused this device’s sync key, so nothing can load. Check that the key matches the one in your Firestore rules. Nothing on this device has changed.',
+      };
     case 'offline':
       return {
         short: 'Offline',

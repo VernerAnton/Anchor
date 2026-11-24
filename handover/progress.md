@@ -204,3 +204,46 @@ real Firebase project. That needs doing once on the owner's devices — see belo
 **For the owner, once:** add the six `VITE_FIREBASE_*` values in Vercel (see
 `docs/firebase-setup.md`), redeploy, then connect two real devices and try airplane mode.
 Until then every deploy runs local-only, which is a complete mode.
+
+## Phase 5 — Daily-use polish (V31)
+
+**Shipped:** search, keyboard use throughout, Back closing overlays on a phone, a plain
+message when the cloud refuses the sync key, the update offer coming back after "Later",
+and phone ergonomics (notch and home-bar clearance, no zoom-on-focus).
+
+- **Search** (`#search/<words>`, sidebar link, or `/` from anywhere). Every word must appear
+  in the title or notes, in any order, case-insensitive. No operators — that's the whole
+  syntax. Open matches first in the smart order, finished ones under a closed "Completed"
+  (opened automatically when nothing open matches). Archived projects' tasks are left out.
+  When a word matches the notes rather than the title, the row shows the matching line.
+- **Keyboard.** `n` goes to the add field (Today's if the current view has none), `/` to
+  search, ↑ ↓ Home End move between tasks, Enter opens, Space ticks the focused box, Esc
+  closes the task or the drawer. Listed in Settings under "Keyboard". Shortcuts never fire
+  while typing in a field. Changing view from the sidebar puts focus on the new heading.
+- **Back closes the drawer or the task panel** on a phone instead of leaving the view.
+  Closing by button tidies the history entry away unless you've since moved on.
+- **"Key refused"** is its own sync status. A key the Firestore rules turn away used to look
+  like "Offline" and "Loading tasks…" forever; now the list says the cloud refused the key
+  and that nothing on the device changed.
+- **"Later" no longer means "never".** Once a new build has taken over, nothing remains for
+  `registration.update()` to find, so the offer now returns on the next visit to the app
+  (or the hourly check) until a reload picks the build up.
+- **Touch:** selects use the 16px body size under `pointer: coarse`, which stops iOS zooming
+  the page on focus. The main column, drawer and task panel pad by `env(safe-area-inset-*)`.
+
+**Verified in the real app** (production build, Chromium, desktop 1280 and iPhone 13
+emulation): every shortcut above; search, empty and no-match messages; Back closing the
+drawer and the panel; links in the drawer landing on their view; "Key refused" against the
+Firestore emulator with a wrong key, "Synced" with the right one; the update offer shown on a
+new build, gone on Later, back on returning to the tab. Blank theme (`?theme=none`) desktop
+and mobile: every control present and usable.
+
+**Bug found by testing, fixed:** tapping a link in the phone drawer bounced back to the view
+you'd left — closing the drawer took its history entry off *before* the browser followed the
+link. The tidy-up now waits a tick and only runs if the entry is still the current one.
+
+**Not verifiable here:** safe-area padding needs a real notched iPhone (Chromium reports the
+insets as 0); the owner's full day of real use, which is this phase's "done when".
+
+**Still open for the owner:** should a repeating task's finished subtasks reset when it moves
+to its next date? Currently they stay ticked.

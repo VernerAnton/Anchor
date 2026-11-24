@@ -32,6 +32,7 @@ export function QuickAdd({ placeholder, onAdd }: Props) {
         type="text"
         autoComplete="off"
         placeholder={placeholder}
+        aria-keyshortcuts="n"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
       />

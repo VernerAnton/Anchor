@@ -9,10 +9,13 @@ import { useToday } from './hooks/useToday';
 import { useSyncStatus } from './hooks/useSyncStatus';
 import { useTheme } from './hooks/useTheme';
 import { useAppUpdate } from './hooks/useAppUpdate';
+import { moveAmongRows, useShortcuts } from './hooks/useShortcuts';
+import { useBackToClose } from './hooks/useBackToClose';
 import { buildList, completionNotice, focusAfterToggle, labelsScreen, taskDetail } from './lib/views';
+import { searchTasks } from './lib/search';
 import { sidebarModel } from './lib/sidebar';
 import { projectEditorModel } from './lib/projects';
-import { isListSelection, viewKey } from './lib/selection';
+import { isListSelection, selectionHref, viewKey } from './lib/selection';
 import { syncStatusText } from './lib/sync';
 import { countSamples } from './lib/sampleData';
 import { hasFirebaseConfig } from './store/firebaseConfig';
@@ -24,6 +27,7 @@ import { TaskListPanel } from './components/TaskListPanel';
 import { DetailPanel, DetailPlaceholder, type TaskChanges } from './components/DetailPanel';
 import { ProjectEditor, type ProjectChanges } from './components/ProjectEditor';
 import { LabelsScreen } from './components/LabelsScreen';
+import { SearchScreen } from './components/SearchScreen';
 import { Notice, type NoticeModel } from './components/Notice';
 import { SettingsScreen } from './components/SettingsScreen';
 import { UpdatePrompt } from './components/UpdatePrompt';
@@ -42,6 +46,7 @@ const FALLBACK_TITLES = {
   label: 'Label',
   labels: 'Labels',
   settings: 'Settings',
+  search: 'Search',
 };
 
 /** A write the cloud refused after this device had already shown it. Plain, and says what to do. */
@@ -107,6 +112,14 @@ export function App() {
     [selection, projects, tasks],
   );
   const labelRows = useMemo(() => labelsScreen(labels ?? [], tasks ?? []), [labels, tasks]);
+  const searchQuery = selection.kind === 'search' ? selection.query : null;
+  const searchModel = useMemo(
+    () =>
+      searchQuery === null
+        ? null
+        : searchTasks({ tasks: tasks ?? [], projects: projects ?? [], labels: labels ?? [], today }, searchQuery),
+    [searchQuery, tasks, projects, labels, today],
+  );
 
   // A project or label that no longer exists isn't a place to be; fall back to Today.
   useEffect(() => {
@@ -421,8 +434,43 @@ export function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [drawerOpen, detail, closeDrawer, closeDetail]);
 
+  // `/` goes to Search; `n` goes to the add-a-task box — on Today if this view has none.
+  useShortcuts({
+    onSearch: useCallback(() => {
+      if (selection.kind === 'search') document.getElementById('search-query')?.focus();
+      else navigate({ kind: 'search', query: '' });
+    }, [selection, navigate]),
+    onNewTask: useCallback(() => {
+      setSelectedId(null);
+      setDrawerOpen(false);
+      if (!document.getElementById('quick-add-title')) navigate({ kind: 'today' });
+      focusAfterRender(() => document.getElementById('quick-add-title'));
+    }, [navigate, focusAfterRender]),
+  });
+
+  /*
+   * A new view moves focus to its heading, so keyboard and screen-reader users
+   * land at the top of what just opened — but only when focus has nowhere
+   * better to be: a shortcut or a closing drawer may already have placed it.
+   */
+  // Typing a search changes the URL but not the view.
+  const viewKeyNow = selection.kind === 'search' ? '#search' : selectionHref(selection);
+  const lastView = useRef(viewKeyNow);
+  useEffect(() => {
+    if (lastView.current === viewKeyNow) return;
+    lastView.current = viewKeyNow;
+    if (selection.kind === 'search') return; // Search focuses its own box.
+    const active = document.activeElement;
+    const adrift = !active || active === document.body || !!active.closest('#sidebar');
+    if (adrift) listHeadingRef.current?.focus();
+  }, [viewKeyNow, selection.kind]);
+
   const drawerShown = narrow && drawerOpen;
   const overlayShown = narrow && detail !== null;
+
+  // On a phone, the system Back gesture closes what's on top before leaving the view.
+  useBackToClose(drawerShown, closeDrawer, 'drawer');
+  useBackToClose(overlayShown, closeDetail, 'detail');
   const openMenu = narrow ? () => setDrawerOpen(true) : null;
 
   return (
@@ -440,7 +488,7 @@ export function App() {
       )}
       {drawerShown && <div className="drawer-backdrop" onClick={closeDrawer} />}
 
-      <main className="app__main" inert={drawerShown || overlayShown}>
+      <main className="app__main" inert={drawerShown || overlayShown} onKeyDown={moveAmongRows}>
         {writeError && (
           <div className="write-error" role="alert">
             <p className="write-error__text">{writeError}</p>
@@ -452,7 +500,20 @@ export function App() {
         {update.needRefresh && <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />}
         {notice && <Notice notice={notice} onDismiss={dismissNotice} />}
 
-        {selection.kind === 'settings' ? (
+        {searchModel ? (
+          <SearchScreen
+            model={searchModel}
+            selectedId={detail?.id ?? null}
+            onOpenMenu={openMenu}
+            menuButtonRef={menuButtonRef}
+            headingRef={listHeadingRef}
+            // Typing replaces the history entry, so Back leaves Search rather
+            // than stepping back one letter at a time.
+            onQuery={(query) => navigate({ kind: 'search', query }, true)}
+            onToggle={onToggle}
+            onOpen={setSelectedId}
+          />
+        ) : selection.kind === 'settings' ? (
           <SettingsScreen
             cloudAvailable={hasFirebaseConfig()}
             connected={syncMode === 'cloud'}
@@ -487,6 +548,7 @@ export function App() {
           <TaskListPanel
             list={list}
             fallbackTitle={FALLBACK_TITLES[selection.kind]}
+            waitingText={syncStatus === 'refused' ? syncStatusText(syncStatus).long : 'Loading tasks…'}
             selectedId={detail?.id ?? null}
             onOpenMenu={openMenu}
             menuButtonRef={menuButtonRef}
